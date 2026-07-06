@@ -7,32 +7,17 @@
 // per page; call leaveRoom() before initializing another node." Both photo
 // storage (store.ts) and collab rooms (collab.ts) must go through this one
 // shared instance instead. Adapted from tc-note's src/lib/mistNode.ts.
-import { MistNode } from "../vendor/mistlib/wrappers/web/index.js";
+import { MistNode, storage_get } from "../vendor/mistlib/wrappers/web/index.js";
 
 const NODE_ID_KEY = "tc-travel:nodeId";
-// Shared DID identity key from the tik-choco family convention (tc-storage's
-// crypto/didIdentity.ts) — read-only here, never written by tc-travel. When
-// present (e.g. a tc-storage tab has run on this origin) its `did` doubles as
-// this participant's mist nodeId and export originNode, per docs/INTEGRATION.md.
-const SHARED_DID_IDENTITY_KEY = "tc-storage-did-identity-v1";
-
-/** Defensive read: any parse failure or shape mismatch falls back to null so
- *  callers always have the plain uuid nodeId as a safety net. */
-function readSharedDid(): string | null {
-  try {
-    const raw = localStorage.getItem(SHARED_DID_IDENTITY_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as { did?: unknown } | null;
-    const did = parsed?.did;
-    return typeof did === "string" && did.startsWith("did:") ? did : null;
-  } catch {
-    return null;
-  }
-}
+// Family-wide shared pointer (see docs/INTEGRATION.md): a plain CID string
+// for a small identity record whose `.did` field, once adopted, lets every
+// app in the family converge on the same mist nodeId. tc-travel only ever
+// reads this pointer — lazily, after its own node is already initialized
+// (see adoptSharedFamilyDid below) — and never writes it.
+const SHARED_DID_IDENTITY_CID_KEY = "tc-shared-did-identity-cid-v1";
 
 function loadOrCreateNodeId(): string {
-  const sharedDid = readSharedDid();
-  if (sharedDid) return sharedDid;
   let id = localStorage.getItem(NODE_ID_KEY);
   if (!id) {
     id = crypto.randomUUID();
@@ -68,6 +53,7 @@ export async function ensureMistNode(): Promise<InstanceType<typeof MistNode>> {
     initPromise = (async () => {
       if (!node) node = new MistNode(getPageNodeId());
       await node.init();
+      adoptSharedFamilyDid(); // fire-and-forget, never blocks or throws
       return node;
     })();
     initPromise.finally(() => {
@@ -81,4 +67,28 @@ export async function ensureMistNode(): Promise<InstanceType<typeof MistNode>> {
 // in collab room presence (see collab.ts's awareness `peerId`).
 export function currentNodeId(): string {
   return getPageNodeId();
+}
+
+// Lazily adopts the family-wide DID identity (if another app on this origin
+// has published one) by persisting it as tc-travel's own nodeId for the
+// NEXT session — this never re-initializes the node that's already running,
+// since mistlib-wasm supports only one active node per page and racing a
+// second init against it would throw. Best-effort: any failure just leaves
+// the existing nodeId in place.
+function adoptSharedFamilyDid(): void {
+  void (async () => {
+    try {
+      if (getPageNodeId().startsWith("did:")) return; // already on the family DID
+      const cid = localStorage.getItem(SHARED_DID_IDENTITY_CID_KEY)?.trim();
+      if (!cid) return;
+      const raw = await storage_get(cid);
+      const text = new TextDecoder().decode(new Uint8Array(raw));
+      const parsed = JSON.parse(text) as { did?: unknown } | null;
+      const did = parsed?.did;
+      if (typeof did !== "string" || !did.startsWith("did:")) return;
+      localStorage.setItem(NODE_ID_KEY, did);
+    } catch (error) {
+      console.warn("tc-travel: failed to adopt shared family DID identity", error);
+    }
+  })();
 }

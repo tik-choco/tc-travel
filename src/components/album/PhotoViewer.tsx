@@ -4,7 +4,7 @@ import { usePhotoUrl } from "../../lib/store";
 import { countryName } from "../../lib/geo";
 import { getLanguage, useT } from "../../lib/i18n";
 import { ensureMistNode } from "../../lib/mistNode";
-import { exportPhotoToTcStorage, isPhotoExported } from "../../lib/tcstorage/export";
+import { exportPhotoToDrive, isPhotoExported } from "../../lib/drive/export";
 import { storage_get } from "../../vendor/mistlib/wrappers/web/index.js";
 import type { Member, Photo } from "../../lib/types";
 import { Avatar } from "../common/Avatar";
@@ -76,13 +76,13 @@ export function PhotoViewer({
     toastTimerRef.current = window.setTimeout(() => setToast(null), TOAST_MS);
   };
 
-  const handleExportToTcStorage = async () => {
+  const handleExportToDrive = async () => {
     const exportingId = photo.id;
     setExporting(true);
     try {
       await ensureMistNode();
       const raw = await storage_get(photo.cid);
-      await exportPhotoToTcStorage({
+      await exportPhotoToDrive({
         photoId: exportingId,
         bytes: new Uint8Array(raw),
         caption: photo.caption ?? "",
@@ -92,12 +92,12 @@ export function PhotoViewer({
       // navigating back later re-syncs "saved" from isPhotoExported anyway.
       if (mountedRef.current && shownPhotoIdRef.current === exportingId) {
         setExported(true);
-        showToast(t("album.tcStorage.saved"));
+        showToast(t("album.drive.saved"));
       }
     } catch (err) {
-      console.warn("tc-travel: failed to export photo to TC Storage", err);
+      console.warn("tc-travel: failed to export photo to drive", err);
       if (mountedRef.current && shownPhotoIdRef.current === exportingId) {
-        showToast(t("album.tcStorage.error"));
+        showToast(t("album.drive.error"));
       }
     } finally {
       if (mountedRef.current && shownPhotoIdRef.current === exportingId) setExporting(false);
@@ -202,7 +202,7 @@ export function PhotoViewer({
           <button
             type="button"
             class="btn btn-tonal"
-            onClick={handleExportToTcStorage}
+            onClick={handleExportToDrive}
             disabled={exporting || exported}
           >
             {exporting ? (
@@ -212,7 +212,7 @@ export function PhotoViewer({
             ) : (
               <HardDriveDownload size={16} />
             )}
-            {exported ? t("album.tcStorage.saved") : t("album.tcStorage.save")}
+            {exported ? t("album.drive.saved") : t("album.drive.save")}
           </button>
           {isOwn && (
             <button type="button" class="btn btn-danger" onClick={handleDelete}>

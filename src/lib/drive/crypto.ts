@@ -1,8 +1,8 @@
-// Ported from tc-storage's src/crypto/crypto.ts + src/crypto/cryptoEncoding.ts.
-// Output format must stay byte-compatible with tc-storage so it can decrypt
-// what tc-travel writes (and vice versa): AES-GCM 256, PBKDF2-SHA256 with
-// 210000 iterations, 16-byte salt, 12-byte iv, base64-encoded fields. See
-// docs/INTEGRATION.md.
+// Implements the family's neutral encrypted-bundle contract (see
+// protocol/docs/data-contracts/docs/encrypted-bundle.md and
+// docs/INTEGRATION.md). Output format must stay byte-compatible with any
+// app implementing that contract: AES-GCM 256, PBKDF2-SHA256 with 210000
+// iterations, 16-byte salt, 12-byte iv, base64-encoded fields.
 export type AesGcmPayload = {
   version: 1;
   algorithm: "AES-GCM";
@@ -38,9 +38,9 @@ export function base64ToBytes(value: string): Uint8Array {
   return bytes;
 }
 
-/** 24 random bytes, base64url-encoded — same format as tc-storage's
- *  crypto/folderKeys.ts generateFolderKey(), used here for the TC Travel
- *  folder's passphrase so it decrypts under tc-storage's own folder-key flow. */
+/** 24 random bytes, base64url-encoded — matches the family's folder-key
+ *  format, used here for the TC Travel folder's passphrase so any
+ *  drive-implementing app can decrypt it under its own folder-key flow. */
 export function generateFolderKey(): string {
   const bytes = new Uint8Array(24);
   const cryptoApi = globalThis.crypto;

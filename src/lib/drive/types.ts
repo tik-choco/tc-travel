@@ -1,9 +1,11 @@
-// Verbatim port of the record shapes tc-storage persists (tc-storage's
-// src/storage/domain.ts). Byte/shape compatibility matters here, not source
-// formatting — see docs/INTEGRATION.md. tc-travel only ever reads these back
-// out of `tc-storage-snapshot-v1` (reader.ts) or writes them into an
-// encrypted FileBundle/FolderBundle for mist storage (export.ts); it never
-// mutates a live tc-storage workspace directly.
+// Shapes for the neutral encrypted-bundle contract (see
+// protocol/docs/data-contracts/docs/encrypted-bundle.md and
+// docs/INTEGRATION.md). Byte/shape compatibility matters here, not source
+// formatting, since a drive-implementing app must be able to decrypt what
+// tc-travel writes into an encrypted FileBundle/FolderBundle for mist
+// storage (export.ts). tc-travel never reads or mutates a drive app's own
+// workspace state directly — see reader.ts, which only reads the
+// `drive-index` shared-bus topic.
 export type VersionStamp = {
   updatedAt: string;
   nodeId: string;
