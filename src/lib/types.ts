@@ -104,6 +104,9 @@ export interface Profile {
   language: Language | "auto";
   /** UI theme preference; resolves to "light" when unset (see lib/theme.ts). */
   theme?: ThemePref;
+  /** Show the 3D VRM companion (the one from vrmStorage) on the Home screen.
+   *  Unset is treated as ON — a VRM, once set, greets you on Home by default. */
+  showHomeVrm?: boolean;
 }
 
 export interface JoinedRoom {

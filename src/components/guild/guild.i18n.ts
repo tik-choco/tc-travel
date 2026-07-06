@@ -584,6 +584,26 @@ registerTranslations({
     en: "Color", ja: "カラー", zh: "颜色", ko: "색상",
     es: "Color", fr: "Couleur", de: "Farbe", pt: "Cor",
   },
+  "settings.vrm": {
+    en: "3D Avatar (VRM)", ja: "3Dアバター（VRM）", zh: "3D形象（VRM）", ko: "3D 아바타 (VRM)",
+    es: "Avatar 3D (VRM)", fr: "Avatar 3D (VRM)", de: "3D-Avatar (VRM)", pt: "Avatar 3D (VRM)",
+  },
+  "settings.vrmUpload": {
+    en: "Upload VRM", ja: "VRMをアップロード", zh: "上传VRM", ko: "VRM 업로드",
+    es: "Subir VRM", fr: "Importer un VRM", de: "VRM hochladen", pt: "Enviar VRM",
+  },
+  "settings.vrmReplace": {
+    en: "Replace VRM", ja: "VRMを変更", zh: "更换VRM", ko: "VRM 교체",
+    es: "Reemplazar VRM", fr: "Remplacer le VRM", de: "VRM ersetzen", pt: "Substituir VRM",
+  },
+  "settings.vrmRemove": {
+    en: "Remove VRM", ja: "VRMを削除", zh: "移除VRM", ko: "VRM 제거",
+    es: "Eliminar VRM", fr: "Supprimer le VRM", de: "VRM entfernen", pt: "Remover VRM",
+  },
+  "settings.vrmShowOnHome": {
+    en: "Show 3D avatar on Home", ja: "ホームに3Dアバターを表示", zh: "在主页显示3D形象", ko: "홈에 3D 아바타 표시",
+    es: "Mostrar avatar 3D en Inicio", fr: "Afficher l'avatar 3D à l'accueil", de: "3D-Avatar auf dem Startbildschirm zeigen", pt: "Mostrar avatar 3D na tela inicial",
+  },
   "settings.ai.title": {
     en: "AI Companion", ja: "AI使い魔", zh: "AI伙伴", ko: "AI 동료",
     es: "Compañero IA", fr: "Compagnon IA", de: "KI-Gefährte", pt: "Companheiro IA",

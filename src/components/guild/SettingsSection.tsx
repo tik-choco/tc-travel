@@ -1,10 +1,12 @@
-import { useRef, useState } from "preact/hooks";
-import { ImagePlus, Monitor, Moon, Sun, Trash2 } from "lucide-preact";
+import { useEffect, useRef, useState } from "preact/hooks";
+import { ImagePlus, Monitor, Moon, Sun, Trash2, Upload } from "lucide-preact";
 import type { Language, Profile, ThemePref } from "../../lib/types";
 import { LANGUAGES } from "../../lib/types";
 import { LANGUAGE_LABELS, getLanguage, setLanguage, useT } from "../../lib/i18n";
 import { useThemeSetting } from "../../lib/theme";
 import { clearProfileAvatar, setProfileAvatar } from "../../lib/avatar";
+import { setMemberVrmBytes } from "../../lib/store";
+import { clearVrmBytes, loadVrmBytes, saveVrmBytes } from "../ar/vrmStorage";
 import { Avatar } from "../common/Avatar";
 import { loadAiSettings, saveAiSettings, type AiCompanionSettings } from "../../lib/ai/aiSettings";
 
@@ -53,6 +55,53 @@ export function SettingsSection({ profile, onProfileChange }: SettingsSectionPro
     } finally {
       setAvatarBusy(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  // Mirror of Home's AvatarSheet VRM management, for in-room discoverability.
+  // hasVrm is a lagging snapshot of vrmStorage (the source of truth).
+  const vrmInputRef = useRef<HTMLInputElement>(null);
+  const [vrmBusy, setVrmBusy] = useState(false);
+  const [hasVrm, setHasVrm] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    loadVrmBytes()
+      .then((bytes) => {
+        if (alive) setHasVrm(bytes !== null);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const handleVrmFile = async (e: Event) => {
+    const file = (e.target as HTMLInputElement).files?.[0];
+    if (!file) return;
+    setVrmBusy(true);
+    try {
+      const bytes = new Uint8Array(await file.arrayBuffer());
+      await saveVrmBytes(bytes);
+      setHasVrm(true);
+      // Publish to the current room so companions update live (no-op outside rooms).
+      void setMemberVrmBytes(bytes).catch((err) => console.error("tc-travel: publish VRM failed", err));
+    } catch (err) {
+      console.error("tc-travel: saving VRM failed", err);
+    } finally {
+      setVrmBusy(false);
+      if (vrmInputRef.current) vrmInputRef.current.value = "";
+    }
+  };
+
+  const handleVrmRemove = async () => {
+    setVrmBusy(true);
+    try {
+      await clearVrmBytes();
+      setHasVrm(false);
+    } catch (err) {
+      console.error("tc-travel: clearing VRM failed", err);
+    } finally {
+      setVrmBusy(false);
     }
   };
 
@@ -131,6 +180,43 @@ export function SettingsSection({ profile, onProfileChange }: SettingsSectionPro
             aria-label={t("settings.changeAvatarImage")}
           />
         </div>
+      </div>
+
+      <div class="settings-row">
+        <span class="settings-label">{t("settings.vrm")}</span>
+        <div class="settings-avatar-image-actions">
+          <button
+            type="button"
+            class="btn btn-outlined"
+            disabled={vrmBusy}
+            onClick={() => vrmInputRef.current?.click()}
+          >
+            <Upload size={16} /> {t(hasVrm ? "settings.vrmReplace" : "settings.vrmUpload")}
+          </button>
+          {hasVrm && (
+            <button type="button" class="btn btn-ghost" disabled={vrmBusy} onClick={handleVrmRemove}>
+              <Trash2 size={16} /> {t("settings.vrmRemove")}
+            </button>
+          )}
+        </div>
+        {hasVrm && (
+          <label style={{ display: "flex", alignItems: "center", gap: "0.6rem", cursor: "pointer" }}>
+            <input
+              type="checkbox"
+              checked={profile.showHomeVrm !== false}
+              onChange={(e) => onProfileChange({ showHomeVrm: (e.target as HTMLInputElement).checked })}
+            />
+            <span class="settings-label">{t("settings.vrmShowOnHome")}</span>
+          </label>
+        )}
+        <input
+          ref={vrmInputRef}
+          type="file"
+          accept=".vrm"
+          class="visually-hidden"
+          onChange={handleVrmFile}
+          aria-label={t("settings.vrmUpload")}
+        />
       </div>
 
       <div class="settings-row">

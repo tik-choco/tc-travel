@@ -1,13 +1,16 @@
 import "./room.i18n";
-import { useRef, useState } from "preact/hooks";
-import { ScanLine, Plus, Users, ChevronRight, ArrowRight, Camera } from "lucide-preact";
+import { useEffect, useRef, useState } from "preact/hooks";
+import { ScanLine, Plus, Users, ChevronRight, ArrowRight, Camera, Sparkles } from "lucide-preact";
 import { useT } from "../../lib/i18n";
 import { useJoinedRooms, useProfile } from "../../lib/personal";
 import { createRoom, joinRoom } from "../../lib/store";
 import { setProfileAvatar } from "../../lib/avatar";
 import { parseJoinInput } from "../../lib/qr";
+import { loadVrmBytes } from "../ar/vrmStorage";
 import { Avatar } from "../common/Avatar";
 import { QrModal } from "./QrModal";
+import { AvatarSheet } from "./AvatarSheet";
+import { HomeVrmStageLazy } from "./HomeVrmStageLazy";
 
 const ROOM_EMOJI_CHOICES = ["🏕️", "🎉", "🗺️", "🏔️", "⚓", "🌲", "🏯", "🍻"];
 
@@ -39,6 +42,32 @@ export function Home() {
   // point for setting a real, personal portrait (attachment starts with "that's me").
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const [avatarBusy, setAvatarBusy] = useState(false);
+
+  // 3D companion hero: VRM bytes resolve async from IndexedDB, so the portrait
+  // always renders first and upgrades to the stage when a VRM is found —
+  // never block the landing screen on storage.
+  const [vrmBytes, setVrmBytes] = useState<Uint8Array | null>(null);
+  const [vrmChecked, setVrmChecked] = useState(false);
+  const [vrmFailed, setVrmFailed] = useState(false);
+  const [vrmVersion, setVrmVersion] = useState(0);
+  const [avatarSheetOpen, setAvatarSheetOpen] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    loadVrmBytes()
+      .then((bytes) => {
+        if (alive) setVrmBytes(bytes);
+      })
+      .catch(() => {
+        // IndexedDB unavailable (private mode etc.) — keep the portrait hero.
+      })
+      .finally(() => {
+        if (alive) setVrmChecked(true);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [vrmVersion]);
+  const hasVrm = vrmBytes !== null;
   const handleAvatarFile = async (e: Event) => {
     const file = (e.target as HTMLInputElement).files?.[0];
     if (!file) return;
@@ -91,20 +120,35 @@ export function Home() {
   return (
     <div class="screen" aria-label={t("home.title")}>
       <div class="home-hero">
-        <button
-          type="button"
-          class="home-hero-avatar"
-          disabled={avatarBusy}
-          aria-label={t("home.setAvatar")}
-          onClick={() => avatarInputRef.current?.click()}
-        >
-          <Avatar self size="xl" />
-          {!profile.avatarImage && (
-            <span class="home-hero-avatar-badge" aria-hidden="true">
-              <Camera />
-            </span>
-          )}
-        </button>
+        {profile.showHomeVrm !== false && !vrmFailed && vrmBytes ? (
+          // The 3D companion greets you; tapping it opens avatar management.
+          <button
+            type="button"
+            class="home-vrm-stage"
+            aria-label={t("home.avatarManage")}
+            onClick={() => setAvatarSheetOpen(true)}
+          >
+            <HomeVrmStageLazy key={vrmVersion} bytes={vrmBytes} onError={() => setVrmFailed(true)} />
+          </button>
+        ) : (
+          // Portrait fallback. Once a VRM exists (hidden or broken), the tap
+          // routes to the management sheet instead of the raw photo picker so
+          // the toggle stays reachable from Home.
+          <button
+            type="button"
+            class="home-hero-avatar"
+            disabled={avatarBusy}
+            aria-label={t("home.avatarManage")}
+            onClick={() => setAvatarSheetOpen(true)}
+          >
+            <Avatar self size="xl" />
+            {!profile.avatarImage && (
+              <span class="home-hero-avatar-badge" aria-hidden="true">
+                <Camera />
+              </span>
+            )}
+          </button>
+        )}
         <input
           ref={avatarInputRef}
           type="file"
@@ -115,6 +159,13 @@ export function Home() {
         />
         <p class="home-hero-greeting">{t(greetingKey(new Date().getHours()), { name: profile.name })}</p>
         <p class="home-hero-tagline">{t("home.heroTagline")}</p>
+        {vrmFailed && <p class="home-vrm-error">{t("home.vrmLoadError")}</p>}
+        {vrmChecked && !hasVrm && (
+          <button type="button" class="home-vrm-cta" onClick={() => setAvatarSheetOpen(true)}>
+            <Sparkles aria-hidden="true" />
+            {t("home.vrmCta")}
+          </button>
+        )}
       </div>
 
       <div class="home-actions">
@@ -231,6 +282,18 @@ export function Home() {
       )}
 
       {scanOpen && <QrModal roomId="" initialTab="scan" onClose={() => setScanOpen(false)} />}
+
+      {avatarSheetOpen && (
+        <AvatarSheet
+          hasVrm={hasVrm}
+          onClose={() => setAvatarSheetOpen(false)}
+          onVrmChanged={() => {
+            // Re-read storage and give a fresh VRM another chance to parse.
+            setVrmFailed(false);
+            setVrmVersion((v) => v + 1);
+          }}
+        />
+      )}
     </div>
   );
 }
