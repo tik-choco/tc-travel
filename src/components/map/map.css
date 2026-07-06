@@ -532,3 +532,388 @@
 .map-chipinput__add {
   flex-shrink: 0;
 }
+
+/* ---------------------------------------------------------------------- */
+/* Japan prefecture drill-down                                              */
+/* ---------------------------------------------------------------------- */
+
+/* Entry chips in the world map's stat card. Buttons, but dressed as the
+   continent chips they sit beside — the gold-washed border marks them as
+   the tappable ones. */
+.map-japan-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.map-japan-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  font-family: inherit;
+  border-color: color-mix(in srgb, var(--gold) 55%, var(--outline-variant));
+  color: var(--on-surface);
+}
+
+.map-japan-chip:hover {
+  background: color-mix(in srgb, var(--gold) 10%, var(--surface-container-high));
+}
+
+.map-japan-chip:active {
+  transform: scale(0.97);
+}
+
+/* Full-viewport overlay above the world map (which stays mounted beneath). */
+.jp-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface-dim);
+  animation: jp-overlay-in 0.25s ease-out;
+}
+
+@keyframes jp-overlay-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.jp-header {
+  margin: 12px 12px 8px;
+  box-shadow: var(--shadow-1);
+}
+
+.jp-header__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.jp-title {
+  flex: 1;
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--on-surface);
+}
+
+.jp-completion {
+  margin: 4px 0 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--on-surface);
+}
+
+/* Region + badge rows scroll sideways instead of stacking — the header must
+   stay shallow so the map keeps the viewport. */
+.jp-chips,
+.jp-badges {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.jp-chips::-webkit-scrollbar,
+.jp-badges::-webkit-scrollbar {
+  display: none;
+}
+
+.jp-badges {
+  margin-top: 6px;
+}
+
+.jp-chip--complete {
+  color: var(--on-primary-container);
+  border-color: color-mix(in srgb, var(--gold) 60%, var(--outline-variant));
+  background: color-mix(in srgb, var(--gold) 14%, var(--primary-container));
+}
+
+.jp-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  background: color-mix(in srgb, var(--gold) 14%, var(--surface-container-high));
+  border: 1px solid color-mix(in srgb, var(--gold) 45%, var(--outline-variant));
+  color: var(--on-surface);
+  white-space: nowrap;
+}
+
+/* Header celebration reuses the world map's stat-card keyframes. */
+.jp-header--pulse {
+  animation: map-stat-pulse 1.1s ease-out;
+}
+
+.jp-header--milestone {
+  animation: map-stat-milestone 1.3s ease-out;
+}
+
+.jp-header--pulse .map-progress__fill,
+.jp-header--milestone .map-progress__fill {
+  animation: map-progress-glint 1.1s ease-out;
+}
+
+.jp-map-area {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  padding: 0 8px 8px;
+}
+
+.jp-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.jp-ocean {
+  fill: url(#jp-ocean-grad);
+  rx: 12px;
+}
+
+.jp-inset-frame {
+  fill: none;
+  stroke: var(--outline-variant);
+  stroke-width: 1;
+  stroke-dasharray: 4 4;
+  vector-effect: non-scaling-stroke;
+}
+
+/* Prefectures speak the world map's fog/visited language, one zoom level in. */
+.jp-pref {
+  stroke-width: 0.7;
+  vector-effect: non-scaling-stroke;
+  transition: fill 0.4s ease;
+  cursor: pointer;
+}
+
+.jp-pref--fog {
+  fill: var(--surface-container-low);
+  stroke: var(--outline-variant);
+}
+
+.jp-pref--visited {
+  fill: url(#jp-land-grad);
+  paint-order: stroke;
+  stroke: color-mix(in srgb, var(--gold) 45%, var(--primary) 55%);
+  stroke-width: 1.6;
+}
+
+/* One drop-shadow on the whole visited group — a real glow at the cost of a
+   single filter pass, instead of 47 per-path filters. */
+.jp-land-glow {
+  filter: drop-shadow(0 0 5px color-mix(in srgb, var(--gold) 40%, transparent));
+}
+
+.jp-pref--revealing {
+  animation: map-fog-reveal 1.4s ease-out forwards;
+}
+
+.jp-pref--selected {
+  stroke: var(--gold-bright);
+  stroke-width: 2.2;
+}
+
+/* Tapped-prefecture card, floating at the foot of the map. */
+.jp-selected {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 12px;
+  z-index: 2;
+  box-shadow: var(--shadow-2);
+  animation: jp-selected-rise 0.2s ease-out;
+}
+
+@keyframes jp-selected-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.jp-selected__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.jp-selected__name {
+  flex: 1;
+  margin: 0;
+  font-size: 1.05rem;
+  color: var(--on-surface);
+}
+
+.jp-selected__sub {
+  margin: 2px 0 6px;
+  font-size: 0.8rem;
+  color: var(--on-surface-variant);
+}
+
+.jp-selected__state {
+  margin: 0;
+  font-size: 0.85rem;
+  font-style: italic;
+  color: var(--on-surface-variant);
+}
+
+.jp-selected__state--visited {
+  font-style: normal;
+  font-weight: 600;
+  color: var(--primary);
+}
+
+/* Rarity tiers — one chip per tier, legendary gets a slow gold shimmer. */
+.jp-rarity {
+  flex-shrink: 0;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 2px 10px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--outline-variant);
+  white-space: nowrap;
+}
+
+.jp-rarity--common {
+  color: var(--on-surface-variant);
+  background: var(--surface-container-high);
+}
+
+.jp-rarity--uncommon {
+  color: var(--on-secondary-container);
+  border-color: var(--secondary);
+  background: var(--secondary-container);
+}
+
+.jp-rarity--rare {
+  color: var(--on-tertiary-container);
+  border-color: var(--tertiary);
+  background: var(--tertiary-container);
+}
+
+.jp-rarity--legendary {
+  color: var(--on-primary-container);
+  border-color: color-mix(in srgb, var(--gold) 70%, var(--outline-variant));
+  background: linear-gradient(
+    100deg,
+    var(--primary-container),
+    color-mix(in srgb, var(--gold) 35%, var(--primary-container)),
+    var(--primary-container)
+  );
+  background-size: 200% 100%;
+  animation: jp-legend-shimmer 2.6s linear infinite;
+}
+
+@keyframes jp-legend-shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+/* ---------------------------------------------------------------------- */
+/* Brag card (自慢カード) — canvas preview + share/download                  */
+/* ---------------------------------------------------------------------- */
+
+.brag-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: var(--scrim);
+  backdrop-filter: blur(2px);
+}
+
+.brag-card {
+  width: 100%;
+  max-width: 420px;
+  max-height: 90dvh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-shadow: var(--shadow-3);
+  animation: jp-selected-rise 0.25s cubic-bezier(0.2, 0, 0, 1);
+}
+
+.brag-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.brag-card__title {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--on-surface);
+}
+
+.brag-canvas {
+  width: 100%;
+  height: auto;
+  border-radius: var(--radius);
+  border: 1px solid var(--outline-variant);
+}
+
+.brag-hint {
+  margin: 0;
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--on-surface-variant);
+}
+
+.brag-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.brag-actions .btn {
+  flex: 1;
+}
+
+/* Motion opt-out for everything the Japan drill-down adds. */
+@media (prefers-reduced-motion: reduce) {
+  .jp-overlay,
+  .jp-selected,
+  .brag-card,
+  .jp-header--pulse,
+  .jp-header--milestone,
+  .jp-header--pulse .map-progress__fill,
+  .jp-header--milestone .map-progress__fill,
+  .jp-pref--revealing,
+  .jp-rarity--legendary {
+    animation: none;
+  }
+
+  .jp-pref {
+    transition: none;
+  }
+
+  .map-japan-chip:active {
+    transform: none;
+  }
+}
