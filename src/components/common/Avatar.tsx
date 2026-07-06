@@ -30,7 +30,10 @@ export function Avatar(props: {
   const remoteUrl = useMemberAvatarUrl(self ? null : (member ?? null));
 
   const url = self ? (profile.avatarImage ?? null) : remoteUrl;
-  const emoji = self ? profile.avatarEmoji : (member?.avatarEmoji ?? FALLBACK_EMOJI);
+  // Self must always have a visible glyph too: an older/edited profile can carry
+  // an empty avatarEmoji, which would otherwise render a blank circle (members
+  // already fall back, self didn't).
+  const emoji = self ? (profile.avatarEmoji || FALLBACK_EMOJI) : (member?.avatarEmoji ?? FALLBACK_EMOJI);
   const sizeClass = SIZE_CLASS[size];
   const style = ringColor ? { borderColor: ringColor } : undefined;
 

@@ -23,8 +23,37 @@
   cursor: grab;
 }
 
+/* Ocean: radial gradient defined in WorldMap.tsx <defs>; the stop colors live
+   here so the sea follows the active theme. Soft light pools at the center of
+   the map and deepens toward the edges — an old-atlas vignette. */
 .map-ocean {
-  fill: var(--surface-dim);
+  fill: url(#map-ocean-grad);
+}
+
+.map-ocean-stop--core {
+  stop-color: color-mix(in srgb, var(--surface-dim) 94%, var(--primary) 6%);
+}
+
+.map-ocean-stop--mid {
+  stop-color: var(--surface-dim);
+}
+
+.map-ocean-stop--edge {
+  stop-color: color-mix(in srgb, var(--surface-dim) 88%, var(--ink) 12%);
+}
+
+/* Graticule: faint dashed meridians/parallels behind the land, purely
+   decorative. Dash lengths are user-space units, so they zoom with the map. */
+.map-graticule {
+  pointer-events: none;
+}
+
+.map-graticule line {
+  stroke: var(--outline-variant);
+  stroke-width: 0.5;
+  vector-effect: non-scaling-stroke;
+  stroke-dasharray: 3 5;
+  opacity: 0.45;
 }
 
 .map-loading,
@@ -50,28 +79,110 @@
   stroke: var(--outline-variant);
 }
 
+/* Visited land reads warm & alive: a shared world-spanning gradient fill
+   (defined in WorldMap.tsx <defs>) plus a gold-washed rim painted UNDER the
+   fill via paint-order — a glow with zero per-path filter cost. */
 .map-country--visited {
-  fill: var(--primary-container);
-  stroke: var(--primary);
+  fill: url(#map-land-grad);
+  paint-order: stroke;
+  stroke: color-mix(in srgb, var(--gold) 45%, var(--primary) 55%);
+  stroke-width: 1.4;
+}
+
+.map-land-stop--north {
+  stop-color: color-mix(in srgb, var(--primary-container) 80%, var(--gold) 20%);
+}
+
+.map-land-stop--mid {
+  stop-color: var(--primary-container);
+}
+
+.map-land-stop--south {
+  stop-color: color-mix(in srgb, var(--primary-container) 84%, var(--tertiary-container) 16%);
 }
 
 @keyframes map-fog-reveal {
   0% {
     fill: var(--surface-container-low);
-    filter: brightness(0.5);
+    filter: brightness(0.6) drop-shadow(0 0 0 transparent);
   }
-  45% {
+  40% {
+    fill: var(--gold);
+    filter: brightness(1.35) drop-shadow(0 0 10px var(--gold));
+  }
+  70% {
     fill: var(--primary);
-    filter: brightness(1.4);
+    filter: brightness(1.15) drop-shadow(0 0 5px var(--gold));
   }
   100% {
     fill: var(--primary-container);
-    filter: brightness(1);
+    filter: brightness(1) drop-shadow(0 0 0 transparent);
   }
 }
 
 .map-country--revealing {
   animation: map-fog-reveal 1.4s ease-out forwards;
+}
+
+/* One-shot golden flourish at a freshly-unlocked country's anchor point:
+   two staggered ripples + a compass-star pop. Unmounted by the same timer
+   that clears the reveal set, so nothing lingers. */
+.map-reveal-burst {
+  pointer-events: none;
+}
+
+.map-reveal-burst__ripple {
+  fill: none;
+  stroke: var(--gold);
+  stroke-width: 1.6;
+  vector-effect: non-scaling-stroke;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: map-burst-ripple 1.1s ease-out both;
+}
+
+.map-reveal-burst__ripple--late {
+  animation-delay: 0.25s;
+}
+
+@keyframes map-burst-ripple {
+  0% {
+    transform: scale(0.25);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(4);
+    opacity: 0;
+  }
+}
+
+.map-reveal-burst__star {
+  fill: var(--gold-bright);
+  stroke: var(--gold);
+  stroke-width: 0.5;
+  vector-effect: non-scaling-stroke;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: map-burst-star 1.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes map-burst-star {
+  0% {
+    transform: scale(0) rotate(-45deg);
+    opacity: 0;
+  }
+  30% {
+    transform: scale(1.15) rotate(0deg);
+    opacity: 1;
+  }
+  70% {
+    transform: scale(0.9) rotate(14deg);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(0.55) rotate(24deg);
+    opacity: 0;
+  }
 }
 
 .map-pin {
@@ -131,6 +242,153 @@
   color: var(--on-surface-variant);
   border: 1px solid var(--outline-variant);
   white-space: nowrap;
+}
+
+/* Explored-% progress track — primary-to-gold fill, eased so each new country
+   visibly sweeps the bar forward. */
+.map-progress {
+  height: 5px;
+  margin: 0 0 8px;
+  border-radius: var(--radius-full);
+  background: var(--surface-container-high);
+  overflow: hidden;
+}
+
+.map-progress__fill {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--primary), var(--gold));
+  transition: width 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Celebration pulses: fired by WorldMap when explored % rises ("pulse") or
+   crosses a tens bracket ("milestone"). */
+@keyframes map-stat-pulse {
+  0% {
+    transform: scale(1);
+    box-shadow: var(--shadow-1);
+  }
+  25% {
+    transform: scale(1.012);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--gold) 40%, transparent), var(--shadow-2);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: var(--shadow-1);
+  }
+}
+
+.map-stat-card--pulse {
+  animation: map-stat-pulse 1.1s ease-out;
+}
+
+@keyframes map-stat-milestone {
+  0% {
+    transform: scale(1);
+    box-shadow: var(--shadow-1);
+  }
+  20% {
+    transform: scale(1.03);
+    box-shadow:
+      0 0 0 4px color-mix(in srgb, var(--gold) 55%, transparent),
+      0 0 22px color-mix(in srgb, var(--gold-bright) 45%, transparent);
+  }
+  55% {
+    transform: scale(1.01);
+    box-shadow:
+      0 0 0 2px color-mix(in srgb, var(--gold) 35%, transparent),
+      0 0 10px color-mix(in srgb, var(--gold-bright) 25%, transparent);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: var(--shadow-1);
+  }
+}
+
+.map-stat-card--milestone {
+  animation: map-stat-milestone 1.3s ease-out;
+}
+
+@keyframes map-progress-glint {
+  0%,
+  100% {
+    filter: brightness(1);
+  }
+  30% {
+    filter: brightness(1.5);
+  }
+}
+
+.map-stat-card--pulse .map-progress__fill,
+.map-stat-card--milestone .map-progress__fill {
+  animation: map-progress-glint 1.1s ease-out;
+}
+
+/* Decorative compass rose, fixed to the viewport (doesn't pan/zoom). */
+.map-compass {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  z-index: 3;
+  pointer-events: none;
+  opacity: 0.92;
+  filter: drop-shadow(0 1px 2px color-mix(in srgb, var(--ink) 25%, transparent));
+}
+
+.map-compass__bg {
+  fill: color-mix(in srgb, var(--surface) 70%, transparent);
+  stroke: var(--outline-variant);
+  stroke-width: 1;
+}
+
+.map-compass__ring {
+  fill: none;
+  stroke: var(--outline);
+  stroke-width: 1;
+}
+
+.map-compass__ring--inner {
+  stroke: var(--outline-variant);
+  stroke-width: 0.5;
+}
+
+.map-compass__star {
+  fill: color-mix(in srgb, var(--gold) 72%, var(--ink) 28%);
+}
+
+.map-compass__star--minor {
+  fill: var(--outline-variant);
+}
+
+.map-compass__north {
+  fill: var(--seal);
+}
+
+/* Motion opt-out: every map animation stops; the reveal burst renders nothing
+   at all (its resting frames are invisible anyway). */
+@media (prefers-reduced-motion: reduce) {
+  .map-country {
+    transition: none;
+  }
+
+  .map-country--revealing {
+    animation: none;
+  }
+
+  .map-reveal-burst {
+    display: none;
+  }
+
+  .map-stat-card--pulse,
+  .map-stat-card--milestone,
+  .map-stat-card--pulse .map-progress__fill,
+  .map-stat-card--milestone .map-progress__fill {
+    animation: none;
+  }
+
+  .map-progress__fill {
+    transition: none;
+  }
 }
 
 /* Empty-state overlay — shown centered over the map when there are no pins */

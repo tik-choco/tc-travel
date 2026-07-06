@@ -13,9 +13,10 @@
 import { useEffect, useState } from "preact/hooks";
 import { storage_add, storage_get } from "../vendor/mistlib/wrappers/web/index.js";
 import { ensureMistNode } from "./mistNode";
-import { CollabSession, isValidRoomId, type PeerInfo } from "./collab";
+import { CollabSession, isValidRoomId, type PeerInfo, type CompanionPose } from "./collab";
+export type { CompanionPose };
 import { getProfile, recordJourney, touchJoinedRoom } from "./personal";
-import type { DiaryEntry, EncounterPin, Member, Photo, RoomMeta } from "./types";
+import type { DiaryEntry, EncounterPin, Letter, Member, Photo, RoomMeta } from "./types";
 
 // --- session singleton ------------------------------------------------
 
@@ -67,12 +68,19 @@ export async function setMemberAvatarBytes(bytes: Uint8Array): Promise<string | 
   if (active !== record) return null;
   const profile = getProfile();
   const session = record.session;
+  let vrmCid: string | undefined;
   session.transact(() => {
     const members = session.doc.getMap<Member>("members");
     const existing = members.get(profile.id);
-    if (existing) members.set(profile.id, { ...existing, avatarCid: cid });
+    if (existing) {
+      vrmCid = existing.vrmCid;
+      members.set(profile.id, { ...existing, avatarCid: cid });
+    }
   });
-  session.setUser({ memberId: profile.id, name: profile.name, color: profile.color, avatarEmoji: profile.avatarEmoji, avatarCid: cid });
+  // setUser replaces the whole awareness identity, so vrmCid must be carried
+  // through here (as setMemberVrmBytes carries avatarCid) or it would vanish
+  // from the local awareness state.
+  session.setUser({ memberId: profile.id, name: profile.name, color: profile.color, avatarEmoji: profile.avatarEmoji, avatarCid: cid, vrmCid });
   return cid;
 }
 
@@ -81,17 +89,79 @@ export function clearMemberAvatarCid(): void {
   if (!active) return;
   const session = active.session;
   const profile = getProfile();
+  let vrmCid: string | undefined;
   session.transact(() => {
     const members = session.doc.getMap<Member>("members");
     const existing = members.get(profile.id);
     if (!existing || existing.avatarCid === undefined) return;
+    vrmCid = existing.vrmCid;
     const { avatarCid: _drop, ...rest } = existing;
     members.set(profile.id, rest as Member);
   });
   // "" (not undefined) is the explicit "cleared" sentinel: awareness states are
   // JSON-encoded, so an undefined field is dropped and becomes indistinguishable
   // from "never sent one" on the receiving side. useMembers treats "" as cleared.
-  session.setUser({ memberId: profile.id, name: profile.name, color: profile.color, avatarEmoji: profile.avatarEmoji, avatarCid: "" });
+  // vrmCid is carried through since setUser replaces the whole identity.
+  session.setUser({ memberId: profile.id, name: profile.name, color: profile.color, avatarEmoji: profile.avatarEmoji, avatarCid: "", vrmCid });
+}
+
+/** Publishes the AR companion's VRM to shared storage and mirrors the cid onto
+ *  the members Y.Map and awareness. Same structure as setMemberAvatarBytes.
+ *  storage_add is content-addressed, so re-publishing the same bytes is idempotent. */
+export async function setMemberVrmBytes(bytes: Uint8Array): Promise<void> {
+  const record = active;
+  if (!record) return;
+  const profile = getProfile();
+  await ensureMistNode();
+  const cid = await storage_add(`companion-${profile.id}.vrm`, bytes);
+  // Mirrors setMemberAvatarBytes's stale-upload guard: the user may have left
+  // or switched rooms while the upload was in flight.
+  if (active !== record) return;
+  const session = record.session;
+  let avatarCid: string | undefined;
+  session.transact(() => {
+    const members = session.doc.getMap<Member>("members");
+    const existing = members.get(profile.id);
+    if (existing) {
+      avatarCid = existing.avatarCid;
+      members.set(profile.id, { ...existing, vrmCid: cid });
+    }
+  });
+  // setUser replaces the whole awareness identity, so avatarCid must be
+  // carried through here or this call would clobber it.
+  session.setUser({ memberId: profile.id, name: profile.name, color: profile.color, avatarEmoji: profile.avatarEmoji, avatarCid, vrmCid: cid });
+}
+
+/** Sends this session's companion pose (no-op if not in a room). */
+export function sendCompanionPose(pose: Omit<CompanionPose, "memberId" | "t">): void {
+  active?.session.sendPose(pose);
+}
+
+/** Subscribes to peers' companion poses (immediate no-op unsubscribe if not in a room). */
+export function onCompanionPose(listener: (pose: CompanionPose) => void): () => void {
+  if (!active) return () => {};
+  return active.session.onPose(listener);
+}
+
+/** memberId -> vrmCid for all members with a published companion VRM ("" and
+ *  undefined excluded). Same three-way merge convention as useMembers. */
+export function useMemberVrmCids(): Map<string, string> {
+  useStoreVersion();
+  const result = new Map<string, string>();
+  if (!active) return result;
+  const membersMap = active.session.doc.getMap<Member>("members");
+  membersMap.forEach((member, id) => {
+    if (member.vrmCid) result.set(id, member.vrmCid);
+  });
+  for (const peer of active.peers) {
+    if (!peer.memberId) continue;
+    if (peer.vrmCid === "") {
+      result.delete(peer.memberId);
+    } else if (peer.vrmCid) {
+      result.set(peer.memberId, peer.vrmCid);
+    }
+  }
+  return result;
 }
 
 function mirrorJourney(roomId: string): void {
@@ -391,6 +461,48 @@ export function removePin(id: string): void {
   session.transact(() => {
     const arr = session.doc.getArray<EncounterPin>("pins");
     const idx = arr.toArray().findIndex((p) => p.id === id);
+    if (idx >= 0) arr.delete(idx, 1);
+  });
+}
+
+// --- letters ---------------------------------------------------------------
+
+export function useLetters(): Letter[] {
+  useStoreVersion();
+  if (!active) return [];
+  return active.session.doc.getArray<Letter>("letters").toArray().slice().sort((a, b) => b.at - a.at);
+}
+
+export function sendLetter(input: { to: string; subject: string; body: string; seal: string }): void {
+  if (!active) return;
+  const profile = getProfile();
+  const letter: Letter = { id: crypto.randomUUID(), from: profile.id, at: Date.now(), read: false, ...input };
+  const session = active.session;
+  session.transact(() => {
+    session.doc.getArray<Letter>("letters").push([letter]);
+  });
+}
+
+export function markLetterRead(id: string): void {
+  if (!active) return;
+  const session = active.session;
+  session.transact(() => {
+    const arr = session.doc.getArray<Letter>("letters");
+    const list = arr.toArray();
+    const idx = list.findIndex((l) => l.id === id);
+    if (idx < 0) return;
+    const updated: Letter = { ...list[idx], read: true };
+    arr.delete(idx, 1);
+    arr.insert(idx, [updated]);
+  });
+}
+
+export function removeLetter(id: string): void {
+  if (!active) return;
+  const session = active.session;
+  session.transact(() => {
+    const arr = session.doc.getArray<Letter>("letters");
+    const idx = arr.toArray().findIndex((l) => l.id === id);
     if (idx >= 0) arr.delete(idx, 1);
   });
 }

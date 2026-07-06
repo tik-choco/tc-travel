@@ -34,6 +34,7 @@ function loadProfileFromStorage(): Profile {
     color: randomOf(PROFILE_COLORS),
     avatarEmoji: randomOf(AVATAR_EMOJIS),
     language: "auto",
+    theme: "light",
   };
   localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
   return profile;

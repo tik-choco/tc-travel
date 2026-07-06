@@ -7,6 +7,7 @@ import { useProfile, useJourney } from "../../lib/personal";
 import { loadWorld, loadWorldDetailed, lookupCountry, countryName } from "../../lib/geo";
 import type { CountryFeature } from "../../lib/geo";
 import { MAP_W, MAP_H, project, unproject, geometryToPath, geometryCentroid, clamp } from "./geoMath";
+import type { SimpleGeometry } from "./geoMath";
 import { continentOf, CONTINENT_ORDER, type ContinentId } from "./continents";
 import { EncounterSheet, type SheetTarget } from "./EncounterSheet";
 import "./map.i18n";
@@ -22,6 +23,31 @@ interface ViewState {
   x: number;
   y: number;
   scale: number;
+}
+
+/** Projected anchor point for the reveal flourish. A vertex mean of the
+ * largest outer ring, NOT geometryCentroid's bbox center: bbox centers land in
+ * the open ocean for antimeridian-crossing countries (US, RU, FJ) and
+ * multi-territory ones (FR), and the burst is a visible reward — it has to
+ * appear on the landmass the traveller just unlocked. */
+function revealAnchor(geometry: SimpleGeometry): [number, number] | null {
+  let ring: number[][] | null = null;
+  if (geometry.type === "Polygon") {
+    ring = (geometry.coordinates as number[][][])[0] ?? null;
+  } else if (geometry.type === "MultiPolygon") {
+    for (const poly of geometry.coordinates as number[][][][]) {
+      if (poly[0] && (!ring || poly[0].length > ring.length)) ring = poly[0];
+    }
+  }
+  if (!ring || ring.length === 0) return null;
+  let sx = 0;
+  let sy = 0;
+  for (const [lng, lat] of ring) {
+    const [x, y] = project(lng, lat);
+    sx += x;
+    sy += y;
+  }
+  return [sx / ring.length, sy / ring.length];
 }
 
 /** The fog-of-war world map — the app's core retention loop. */
@@ -83,17 +109,32 @@ export function WorldMap() {
 
   // Fog-reveal animation: track which countries newly entered `visited` since
   // the last render and flag them for a short one-shot animation.
+  // `bursting` additionally drives a golden centroid flourish, but skips the
+  // first run: the component remounts on every tab switch, so the initial run
+  // re-flags every visited country — replaying the fill shimmer map-wide is a
+  // nice "atlas wakes up" moment, but a simultaneous star-burst over every
+  // country would drown the real reward of unlocking a NEW one.
   const prevVisitedRef = useRef<Set<string>>(new Set());
+  const firstRevealRef = useRef(true);
   const [revealing, setRevealing] = useState<Set<string>>(new Set());
+  const [bursting, setBursting] = useState<Set<string>>(new Set());
   useEffect(() => {
     const prev = prevVisitedRef.current;
     const fresh = [...visited].filter((c) => !prev.has(c));
     prevVisitedRef.current = new Set(visited);
+    const isFirst = firstRevealRef.current;
+    firstRevealRef.current = false;
     if (fresh.length === 0) return;
     setRevealing((r) => new Set([...r, ...fresh]));
+    if (!isFirst) setBursting((b) => new Set([...b, ...fresh]));
     const timer = setTimeout(() => {
       setRevealing((r) => {
         const next = new Set(r);
+        for (const c of fresh) next.delete(c);
+        return next;
+      });
+      setBursting((b) => {
+        const next = new Set(b);
         for (const c of fresh) next.delete(c);
         return next;
       });
@@ -101,7 +142,26 @@ export function WorldMap() {
     return () => clearTimeout(timer);
   }, [visitedKey]);
 
-  const pct = statsWorld && statsWorld.length > 0 ? Math.round((visited.size / statsWorld.length) * 100) : 0;
+  const exactPct = statsWorld && statsWorld.length > 0 ? (visited.size / statsWorld.length) * 100 : 0;
+  const pct = Math.round(exactPct);
+  // Bar width uses the unrounded value so the very first country moves the
+  // needle (1/177 rounds to 0%) — a sliver of gold beats an empty track.
+  const barPct = visited.size > 0 ? Math.max(exactPct, 1.5) : 0;
+
+  // Dopamine on progress: pulse the stat card whenever explored % rises, with
+  // a stronger gold flourish when it crosses into a new tens bracket. Primed
+  // on the first computed value so mounting doesn't celebrate by itself.
+  const prevPctRef = useRef<number | null>(null);
+  const [celebrate, setCelebrate] = useState<"" | "pulse" | "milestone">("");
+  useEffect(() => {
+    if (!statsWorld) return;
+    const prev = prevPctRef.current;
+    prevPctRef.current = pct;
+    if (prev === null || pct <= prev) return;
+    setCelebrate(Math.floor(pct / 10) > Math.floor(prev / 10) ? "milestone" : "pulse");
+    const timer = setTimeout(() => setCelebrate(""), 1300);
+    return () => clearTimeout(timer);
+  }, [pct, statsWorld]);
 
   const continentStats = useMemo(() => {
     if (!statsWorld) return [] as { id: ContinentId; visited: number; total: number }[];
@@ -135,6 +195,30 @@ export function WorldMap() {
     () => world?.map((f) => ({ key: `${f.code}:${f.name}`, code: f.code, d: geometryToPath(f.geometry) })) ?? [],
     [world],
   );
+
+  // Atlas graticule: the projection is linear, so meridians/parallels are
+  // straight lines — a dozen static <line>s, computed once.
+  const graticule = useMemo(() => {
+    const meridians: number[] = [];
+    for (let lng = -150; lng <= 150; lng += 30) meridians.push(project(lng, 0)[0]);
+    const parallels: number[] = [];
+    for (let lat = -60; lat <= 60; lat += 30) parallels.push(project(0, lat)[1]);
+    return { meridians, parallels };
+  }, []);
+
+  // Reward flourish anchors for freshly-unlocked countries. Empty in steady
+  // state, so this does no work on ordinary re-renders or during pan/zoom.
+  const revealBursts = useMemo(() => {
+    if (!world || bursting.size === 0) return [] as { code: string; x: number; y: number }[];
+    const bursts: { code: string; x: number; y: number }[] = [];
+    for (const code of bursting) {
+      const f = world.find((w) => w.code === code);
+      if (!f) continue;
+      const anchor = revealAnchor(f.geometry);
+      if (anchor) bursts.push({ code, x: anchor[0], y: anchor[1] });
+    }
+    return bursts;
+  }, [world, bursting]);
 
   function applyViewBox() {
     const v = viewRef.current;
@@ -295,7 +379,32 @@ export function WorldMap() {
             onWheel={handleWheel}
             onDblClick={handleDblClick}
           >
+            <defs>
+              {/* Ocean: soft light at the center, deepening toward the map
+                  edges — stop colors live in map.css so they follow the theme. */}
+              <radialGradient id="map-ocean-grad" cx="50%" cy="38%" r="85%">
+                <stop offset="0%" class="map-ocean-stop--core" />
+                <stop offset="55%" class="map-ocean-stop--mid" />
+                <stop offset="100%" class="map-ocean-stop--edge" />
+              </radialGradient>
+              {/* Visited land: one shared world-spanning gradient (userSpaceOnUse)
+                  gives explored terrain a warm north-to-south drift without
+                  per-path filters — every visited path just references it. */}
+              <linearGradient id="map-land-grad" x1={0} y1={0} x2={0} y2={MAP_H} gradientUnits="userSpaceOnUse">
+                <stop offset="0%" class="map-land-stop--north" />
+                <stop offset="55%" class="map-land-stop--mid" />
+                <stop offset="100%" class="map-land-stop--south" />
+              </linearGradient>
+            </defs>
             <rect class="map-ocean" x={0} y={0} width={MAP_W} height={MAP_H} />
+            <g class="map-graticule" aria-hidden="true">
+              {graticule.meridians.map((x) => (
+                <line key={`m${x}`} x1={x} y1={0} x2={x} y2={MAP_H} />
+              ))}
+              {graticule.parallels.map((y) => (
+                <line key={`p${y}`} x1={0} y1={y} x2={MAP_W} y2={y} />
+              ))}
+            </g>
             {countryPaths.map(({ key, code, d }) => (
               <path
                 key={key}
@@ -308,6 +417,13 @@ export function WorldMap() {
                   .join(" ")}
                 d={d}
               />
+            ))}
+            {revealBursts.map((b) => (
+              <g key={b.code} class="map-reveal-burst" aria-hidden="true" transform={`translate(${b.x}, ${b.y})`}>
+                <circle class="map-reveal-burst__ripple" r={6} />
+                <circle class="map-reveal-burst__ripple map-reveal-burst__ripple--late" r={6} />
+                <path class="map-reveal-burst__star" d="M0,-14 L3,-3 L14,0 L3,3 L0,14 L-3,3 L-14,0 L-3,-3 Z" />
+              </g>
             ))}
             {allPins.map((pin) => {
               const [x, y] = project(pin.lng, pin.lat);
@@ -329,9 +445,13 @@ export function WorldMap() {
         )}
 
         {world && (
-          <div class="panel panel-tight map-stat-card">
+          <div class={["panel", "panel-tight", "map-stat-card", celebrate ? `map-stat-card--${celebrate}` : ""].filter(Boolean).join(" ")}>
             <h1 class="map-stat-card__title">{t("map.title")}</h1>
             <p class="map-stat-card__main">{t("map.explored", { count: visited.size, total: world.length, pct })}</p>
+            {/* Decorative: the stat line above already carries the numbers. */}
+            <div class="map-progress" aria-hidden="true">
+              <div class="map-progress__fill" style={{ width: `${barPct}%` }} />
+            </div>
             <div class="map-continents">
               {continentStats.map((c) => (
                 <span class="map-continent-chip" key={c.id}>
@@ -339,6 +459,23 @@ export function WorldMap() {
                 </span>
               ))}
             </div>
+          </div>
+        )}
+
+        {world && (
+          <div class="map-compass" aria-hidden="true">
+            <svg viewBox="0 0 48 48" width="46" height="46">
+              <circle class="map-compass__bg" cx={24} cy={24} r={22} />
+              <circle class="map-compass__ring" cx={24} cy={24} r={19} />
+              <circle class="map-compass__ring map-compass__ring--inner" cx={24} cy={24} r={14.5} />
+              <path
+                class="map-compass__star map-compass__star--minor"
+                d="M24,10 L26,22 L38,24 L26,26 L24,38 L22,26 L10,24 L22,22 Z"
+                transform="rotate(45 24 24)"
+              />
+              <path class="map-compass__star" d="M24,5 L27,21 L43,24 L27,27 L24,43 L21,27 L5,24 L21,21 Z" />
+              <path class="map-compass__north" d="M24,5 L26.5,21.5 L24,19.5 L21.5,21.5 Z" />
+            </svg>
           </div>
         )}
 

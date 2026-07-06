@@ -1,8 +1,9 @@
 import { useRef, useState } from "preact/hooks";
-import { ImagePlus, Trash2 } from "lucide-preact";
-import type { Language, Profile } from "../../lib/types";
+import { ImagePlus, Monitor, Moon, Sun, Trash2 } from "lucide-preact";
+import type { Language, Profile, ThemePref } from "../../lib/types";
 import { LANGUAGES } from "../../lib/types";
 import { LANGUAGE_LABELS, getLanguage, setLanguage, useT } from "../../lib/i18n";
+import { useThemeSetting } from "../../lib/theme";
 import { clearProfileAvatar, setProfileAvatar } from "../../lib/avatar";
 import { Avatar } from "../common/Avatar";
 import { loadAiSettings, saveAiSettings, type AiCompanionSettings } from "../../lib/ai/aiSettings";
@@ -20,12 +21,19 @@ const COLOR_OPTIONS = [
   "#c9a227", "#8c2f28", "#2f5d8c", "#3f7d4a", "#6a3f8c", "#2f8c85", "#c9682f", "#7a7a7a",
 ];
 
+const THEME_OPTIONS: { value: ThemePref; Icon: typeof Sun }[] = [
+  { value: "light", Icon: Sun },
+  { value: "dark", Icon: Moon },
+  { value: "auto", Icon: Monitor },
+];
+
 /** Language / avatar image / emoji / color pickers at the bottom of the Guild screen. */
 export function SettingsSection({ profile, onProfileChange }: SettingsSectionProps) {
   const t = useT();
   const current = getLanguage();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [avatarBusy, setAvatarBusy] = useState(false);
+  const [themePref, setThemePref] = useThemeSetting();
   const [aiSettings, setAiSettings] = useState<AiCompanionSettings>(() => loadAiSettings());
 
   const updateAiSettings = (patch: Partial<AiCompanionSettings>) => {
@@ -70,6 +78,29 @@ export function SettingsSection({ profile, onProfileChange }: SettingsSectionPro
             </option>
           ))}
         </select>
+      </div>
+
+      <div class="settings-row">
+        <span class="settings-label">{t("settings.theme")}</span>
+        <div
+          role="radiogroup"
+          aria-label={t("settings.theme")}
+          style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}
+        >
+          {THEME_OPTIONS.map(({ value, Icon }) => (
+            <button
+              type="button"
+              key={value}
+              role="radio"
+              aria-checked={themePref === value}
+              class={`chip ${themePref === value ? "is-selected" : ""}`}
+              onClick={() => setThemePref(value)}
+            >
+              <Icon size={16} />
+              <span class="chip-text">{t(`settings.theme.${value}`)}</span>
+            </button>
+          ))}
+        </div>
       </div>
 
       <div class="settings-row">
