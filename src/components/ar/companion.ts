@@ -15,6 +15,8 @@ export interface Companion {
   update(deltaSeconds: number, elapsedSeconds: number): void;
   /** Release GPU resources (geometries/materials/textures). */
   dispose(): void;
+  /** 発話リップシンク用の口の開き(0..1)。毎フレーム上書きされる前提の生値。 */
+  setMouthLevel?(level: number): void;
 }
 
 export function clampScale(factor: number): number {

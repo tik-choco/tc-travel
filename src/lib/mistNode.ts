@@ -38,11 +38,49 @@ function getPageNodeId(): string {
 let node: InstanceType<typeof MistNode> | null = null;
 let initPromise: Promise<InstanceType<typeof MistNode>> | null = null;
 
+export type NodeEventHandler = (
+  eventType: number,
+  fromId: string,
+  payload: unknown,
+  roomId?: string,
+) => void;
+
+// mistlib's wrapper exposes only one onEvent slot per node (registering a
+// handler replaces whatever was there before), but this page's single node
+// is shared by multiple independent consumers — collab.ts for Yjs sync/
+// awareness, and the AI companion client, each in their own room. This
+// fan-out dispatcher lets every consumer register independently; it's
+// wired to the node's real onEvent slot exactly once, at node creation
+// (see ensureMistNode below), and never touched again.
+const eventHandlers = new Set<NodeEventHandler>();
+
+/** Registers a handler for all node events; returns an unsubscribe function. Safe to call before the node exists — the actual wiring happens once, at creation, and handlers registered earlier are picked up then. */
+export function addNodeEventHandler(handler: NodeEventHandler): () => void {
+  eventHandlers.add(handler);
+  return () => {
+    eventHandlers.delete(handler);
+  };
+}
+
+/** @internal The actual fan-out, factored out so tests can exercise it directly without spinning up a real (wasm) MistNode — production code only reaches this via the node.onEvent wiring in ensureMistNode below. Not part of this module's public contract. */
+export function dispatchNodeEvent(eventType: number, fromId: string, payload: unknown, roomId?: string): void {
+  for (const handler of eventHandlers) {
+    try {
+      handler(eventType, fromId, payload, roomId);
+    } catch (e) {
+      console.warn("tc-travel: node event handler failed", e);
+    }
+  }
+}
+
 // Resolves once the page's single MistNode is ready to use. Creates it on
-// first call; re-initializes it if a previous collab session's leaveRoom()
-// tore it down — mistlib-wasm's leaveRoom() fully decommissions the node,
-// so the next consumer (storage or a fresh room join) needs to bring it
-// back up.
+// first call, wiring the fan-out dispatcher above into the node's onEvent
+// slot at that point — `_onEvent` is instance state, so this wiring lives
+// on for the node's whole lifetime, surviving any later re-init. collab.ts
+// now leaves rooms via a room-scoped leaveRoom(roomId), which keeps the
+// node initialized, but an unscoped leaveRoom() (the "leave everything"
+// form) still fully decommissions it — this guard re-initializes on the
+// next call if that ever happens.
 export async function ensureMistNode(): Promise<InstanceType<typeof MistNode>> {
   // `initialized` is a real runtime property the vendor JS wrapper sets
   // (flipped back to false by leaveRoom()) but it isn't part of the
@@ -51,7 +89,10 @@ export async function ensureMistNode(): Promise<InstanceType<typeof MistNode>> {
   if (node && (node as unknown as { initialized: boolean }).initialized) return node;
   if (!initPromise) {
     initPromise = (async () => {
-      if (!node) node = new MistNode(getPageNodeId());
+      if (!node) {
+        node = new MistNode(getPageNodeId());
+        node.onEvent(dispatchNodeEvent);
+      }
       await node.init();
       adoptSharedFamilyDid(); // fire-and-forget, never blocks or throws
       return node;

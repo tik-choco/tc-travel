@@ -14,6 +14,7 @@ import {
   HardDrive,
   ImagePlus,
   LoaderCircle,
+  MessageCircle,
   RotateCcw,
   RotateCw,
   Smartphone,
@@ -38,6 +39,9 @@ import { createPlaceholderCompanion } from "./placeholderCompanion";
 import { createVrmCompanion, loadVrmFromBytes } from "./vrmLoader";
 import { attachGestures, rotateStep, zoomStep, type GestureHandle } from "./gestures";
 import { loadVrmBytes, saveVrmBytes, clearVrmBytes } from "./vrmStorage";
+import { isAiConfigured } from "../../lib/ai/aiSettings";
+import { getCompanionClient } from "../../lib/ai/companionClient";
+import { CompanionTalkPanel } from "./CompanionTalkPanel";
 
 const ROTATE_STEP = Math.PI / 12;
 const ZOOM_STEP_FACTOR = 1.15;
@@ -80,6 +84,7 @@ export function ARCameraScreen() {
   const [showHint, setShowHint] = useState(true);
   const [toast, setToast] = useState<string | null>(null);
   const [lastShot, setLastShot] = useState<{ url: string } | null>(null);
+  const [showTalkPanel, setShowTalkPanel] = useState(false);
 
   const showToast = useCallback((message: string, durationMs = TOAST_DEFAULT_MS) => {
     setToast(message);
@@ -90,6 +95,15 @@ export function ARCameraScreen() {
   useEffect(() => {
     return () => {
       if (toastTimerRef.current !== null) window.clearTimeout(toastTimerRef.current);
+    };
+  }, []);
+
+  // The AI companion connection is a page-wide singleton (shared mist node);
+  // it's only torn down when this whole screen unmounts, not when the talk
+  // panel closes or the live scene is recreated — see docs/ai-companion.md.
+  useEffect(() => {
+    return () => {
+      getCompanionClient().disconnect();
     };
   }, []);
 
@@ -538,6 +552,13 @@ export function ARCameraScreen() {
     <div class="ar-screen">
       {fileInput}
       {vrmChooserSheet}
+      {hasVrm && isAiConfigured() && (
+        <CompanionTalkPanel
+          open={showTalkPanel}
+          onClose={() => setShowTalkPanel(false)}
+          companionRef={companionRef}
+        />
+      )}
       {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
       <video ref={videoRef} class="ar-video" playsInline muted autoPlay />
       <div ref={overlayRef} class="ar-overlay" />
@@ -546,9 +567,21 @@ export function ARCameraScreen() {
 
       <div class="ar-topbar">
         <h1 class="ar-title">{t("ar.title")}</h1>
-        <button type="button" class="ar-icon-btn" onClick={handleFlip} aria-label={t("ar.flipCamera")}>
-          <SwitchCamera size={20} />
-        </button>
+        <div class="ar-topbar-actions">
+          {hasVrm && isAiConfigured() && (
+            <button
+              type="button"
+              class="ar-icon-btn"
+              onClick={() => setShowTalkPanel(true)}
+              aria-label={t("ar.talk.open")}
+            >
+              <MessageCircle size={20} />
+            </button>
+          )}
+          <button type="button" class="ar-icon-btn" onClick={handleFlip} aria-label={t("ar.flipCamera")}>
+            <SwitchCamera size={20} />
+          </button>
+        </div>
       </div>
 
       {toast && <div class="ar-toast">{toast}</div>}

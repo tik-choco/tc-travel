@@ -312,3 +312,137 @@
     transition: none;
   }
 }
+
+/* Talk-to-companion button (bottom bar, only shown when a VRM companion is
+   live and the AI is configured) and its bottom-sheet chat panel. */
+.ar-topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ai-talk-panel-inner {
+  display: flex;
+  flex-direction: column;
+  /* own scroll region for the message list; the sheet-handle/header/footer stay put */
+  max-height: 70dvh;
+}
+
+.ai-talk-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 0.5rem 0 1rem;
+}
+
+.ai-talk-header-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.ai-talk-header .title-ornate {
+  margin: 0;
+}
+
+.ai-talk-status-dot {
+  flex: none;
+  width: 9px;
+  height: 9px;
+  border-radius: var(--radius-full);
+  background: var(--on-surface-variant);
+}
+
+.ai-talk-status-dot.is-pending {
+  background: #e0a940;
+  animation: ai-talk-pulse 1.1s ease-in-out infinite;
+}
+
+.ai-talk-status-dot.is-connected {
+  background: #4caf6f;
+}
+
+.ai-talk-status-dot.is-error {
+  background: var(--error);
+}
+
+@keyframes ai-talk-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+.ai-talk-status-text {
+  font-size: 0.75rem;
+  color: var(--on-surface-variant);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ai-talk-error-row {
+  margin: 0 1rem 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--error) 16%, var(--surface-container-low));
+  color: var(--error);
+  font-size: 0.8rem;
+}
+
+.ai-talk-not-configured {
+  margin: 0.5rem 1rem 1rem;
+  color: var(--on-surface-variant);
+  font-size: 0.9rem;
+}
+
+.ai-talk-messages {
+  flex: 1;
+  min-height: 120px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+}
+
+.ai-talk-bubble {
+  max-width: 85%;
+  padding: 0.55rem 0.85rem;
+  border-radius: var(--radius-xl);
+  font-size: 0.9rem;
+  line-height: 1.4;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.ai-talk-bubble.is-user {
+  align-self: flex-end;
+  background: var(--primary-container);
+  color: var(--on-primary-container);
+  border-bottom-right-radius: var(--radius);
+}
+
+.ai-talk-bubble.is-assistant {
+  align-self: flex-start;
+  background: var(--surface-container-high);
+  color: var(--on-surface);
+  border-bottom-left-radius: var(--radius);
+}
+
+.ai-talk-footer {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem 0.25rem;
+}
+
+.ai-talk-footer .input {
+  flex: 1;
+}
+
