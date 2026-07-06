@@ -1,5 +1,18 @@
-import { describe, expect, it } from "vitest";
-import { parseJoinInput } from "../qr";
+import { afterEach, describe, expect, it } from "vitest";
+import { buildJoinUrl, parseJoinInput } from "../qr";
+
+describe("buildJoinUrl", () => {
+  afterEach(() => {
+    delete (globalThis as { location?: unknown }).location;
+  });
+
+  it("emits a hash route parseJoinInput round-trips (regression: a hashless /join/ path 404s on static hosting)", () => {
+    (globalThis as { location?: { origin: string } }).location = { origin: "https://example.com" };
+    const url = buildJoinUrl("room-42");
+    expect(url).toContain("#/join/room-42");
+    expect(parseJoinInput(url)).toBe("room-42");
+  });
+});
 
 describe("parseJoinInput", () => {
   it("extracts the roomId from a full join URL", () => {

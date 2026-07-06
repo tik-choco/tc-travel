@@ -6,7 +6,8 @@ import { TabBar, type RoomTab } from "./components/shell/TabBar";
 import { ProfileSetup } from "./components/room/ProfileSetup";
 import { Home } from "./components/room/Home";
 import { useProfile } from "./lib/personal";
-import { useSession, joinRoom } from "./lib/store";
+import { useSession, usePhotos, joinRoom } from "./lib/store";
+import { autoExportPhotos } from "./lib/drive/autoExport";
 import { parseJoinInput } from "./lib/qr";
 import { WorldMap } from "./components/map/WorldMap";
 import { AlbumScreen } from "./components/album/AlbumScreen";
@@ -17,10 +18,17 @@ import { GuildScreen } from "./components/guild/GuildScreen";
 export function App() {
   const [profile] = useProfile();
   const session = useSession();
+  const photos = usePhotos();
   const [tab, setTab] = useState<RoomTab>("map");
   const [hashHandled, setHashHandled] = useState(false);
 
   const hasProfile = profile.name.trim().length > 0;
+
+  // Keep the drive copy of the album in sync automatically — every photo
+  // (own and received) is exported without the manual PhotoViewer button.
+  useEffect(() => {
+    if (photos.length > 0) autoExportPhotos(photos);
+  }, [photos]);
 
   // Consume a "#/join/<roomId>" deep link once a local profile exists, then
   // clear the hash so it doesn't re-trigger on refresh or back-navigation.
