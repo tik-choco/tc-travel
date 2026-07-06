@@ -7,6 +7,7 @@ import { createRoom, joinRoom } from "../../lib/store";
 import { setProfileAvatar } from "../../lib/avatar";
 import { parseJoinInput } from "../../lib/qr";
 import { loadVrmBytes } from "../ar/vrmStorage";
+import { maybeAdoptFamilyVrm } from "../../lib/familyVrm";
 import { Avatar } from "../common/Avatar";
 import { QrModal } from "./QrModal";
 import { AvatarSheet } from "./AvatarSheet";
@@ -54,8 +55,16 @@ export function Home() {
   useEffect(() => {
     let alive = true;
     loadVrmBytes()
-      .then((bytes) => {
-        if (alive) setVrmBytes(bytes);
+      .then(async (bytes) => {
+        if (bytes) {
+          if (alive) setVrmBytes(bytes);
+          return;
+        }
+        // No local VRM yet — adopt one already shared in the tik-choco family
+        // (e.g. set in tc-vrm-viewer) so it just greets you without re-uploading.
+        const adopted = await maybeAdoptFamilyVrm().catch(() => false);
+        if (!alive) return;
+        setVrmBytes(adopted ? await loadVrmBytes().catch(() => null) : null);
       })
       .catch(() => {
         // IndexedDB unavailable (private mode etc.) — keep the portrait hero.
