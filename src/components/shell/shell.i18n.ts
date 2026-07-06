@@ -2,48 +2,6 @@
 import { registerTranslations } from "../../lib/i18n";
 
 registerTranslations({
-  "tab.map": { en: "Atlas", ja: "地図", zh: "地图", ko: "지도", es: "Atlas", fr: "Atlas", de: "Atlas", pt: "Atlas" },
-  "tab.album": {
-    en: "Grimoire",
-    ja: "写本",
-    zh: "画册",
-    ko: "화첩",
-    es: "Grimorio",
-    fr: "Grimoire",
-    de: "Folianten",
-    pt: "Grimório",
-  },
-  "tab.diary": {
-    en: "Journal",
-    ja: "日誌",
-    zh: "日志",
-    ko: "일지",
-    es: "Diario",
-    fr: "Journal",
-    de: "Tagebuch",
-    pt: "Diário",
-  },
-  "tab.camera": {
-    en: "Camera",
-    ja: "カメラ",
-    zh: "相机",
-    ko: "카메라",
-    es: "Cámara",
-    fr: "Caméra",
-    de: "Kamera",
-    pt: "Câmera",
-  },
-  "tab.guild": {
-    en: "Guild",
-    ja: "ギルド",
-    zh: "公会",
-    ko: "길드",
-    es: "Gremio",
-    fr: "Guilde",
-    de: "Gilde",
-    pt: "Guilda",
-  },
-
   "header.connected": {
     en: "Connected",
     ja: "接続中",
@@ -98,6 +56,7 @@ registerTranslations({
   },
   "header.leaveConfirmYes": { en: "Leave", ja: "退室する", zh: "离开", ko: "나가기", es: "Salir", fr: "Quitter", de: "Verlassen", pt: "Sair" },
   "header.leaveConfirmCancel": { en: "Stay", ja: "とどまる", zh: "留下", ko: "남기", es: "Quedarse", fr: "Rester", de: "Bleiben", pt: "Ficar" },
+  "header.you": { en: "you", ja: "あなた", zh: "你", ko: "나", es: "tú", fr: "toi", de: "du", pt: "você" },
 
   "error.title": {
     en: "The scrying glass cracked",

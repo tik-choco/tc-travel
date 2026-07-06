@@ -106,6 +106,28 @@ registerTranslations({
   "map.sheet.delete": {
     en: "Erase Record", ja: "記録を消す", zh: "删除记录", ko: "기록 삭제", es: "Borrar Registro", fr: "Effacer le Registre", de: "Eintrag Löschen", pt: "Apagar Registro",
   },
+  "map.fab.add": {
+    en: "New Encounter", ja: "出会いを記録", zh: "记录相遇", ko: "새로운 만남",
+    es: "Nuevo Encuentro", fr: "Nouvelle Rencontre", de: "Neue Begegnung", pt: "Novo Encontro",
+  },
+  "map.empty.title": {
+    en: "No Encounters Yet", ja: "まだ出会いがありません", zh: "尚无相遇记录", ko: "아직 만남이 없습니다",
+    es: "Aún No Hay Encuentros", fr: "Aucune Rencontre Pour l'Instant", de: "Noch Keine Begegnungen", pt: "Ainda Sem Encontros",
+  },
+  "map.empty.hint": {
+    en: "Record your first encounter to start revealing the map.",
+    ja: "最初の出会いを記録して、地図を切り開こう。",
+    zh: "记录你的第一次相遇，开始揭开地图的迷雾。",
+    ko: "첫 만남을 기록해 지도를 밝혀보세요.",
+    es: "Registra tu primer encuentro para empezar a revelar el mapa.",
+    fr: "Enregistrez votre première rencontre pour commencer à révéler la carte.",
+    de: "Halte deine erste Begegnung fest, um die Karte aufzudecken.",
+    pt: "Registre seu primeiro encontro para começar a revelar o mapa.",
+  },
+  "map.sheet.companionsAdd": {
+    en: "Add companion", ja: "同行者を追加", zh: "添加同伴", ko: "동행자 추가",
+    es: "Añadir compañero", fr: "Ajouter un compagnon", de: "Gefährten hinzufügen", pt: "Adicionar companheiro",
+  },
   "map.hint.joinRoom": {
     en: "Join or found a fellowship first — encounters are recorded in the party's shared chronicle.",
     ja: "まずパーティに参加するか結成してください。出会いはパーティ共有の記録に刻まれます。",

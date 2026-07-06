@@ -1,21 +1,15 @@
 import { useMemo, useState } from "preact/hooks";
-import { Feather, ScrollText } from "lucide-preact";
+import { PenLine, ScrollText } from "lucide-preact";
 import { useSession, useMembers, useDiary, removeDiaryEntry } from "../../lib/store";
 import { useProfile } from "../../lib/personal";
 import { getLanguage, useT } from "../../lib/i18n";
+import { Avatar } from "../common/Avatar";
 import { DiaryEditor } from "./DiaryEditor";
 import { DiaryReader } from "./DiaryReader";
+import { MoodChip } from "./moodMeta";
 import type { DiaryEntry } from "../../lib/types";
 import "./diary.i18n";
 import "./diary.css";
-
-const MOOD_EMOJI: Record<string, string> = {
-  triumphant: "🏆",
-  merry: "🎉",
-  weary: "😴",
-  wistful: "🌙",
-  inspired: "✨",
-};
 
 const EXCERPT_LEN = 100;
 
@@ -40,9 +34,12 @@ export function DiaryScreen() {
   if (!session) {
     return (
       <div class="screen diary-screen">
-        <div class="panel diary-empty">
-          <ScrollText size={40} />
-          <p>{t("diary.needSession")}</p>
+        <div class="empty-state">
+          <div class="empty-state-icon">
+            <ScrollText size={28} />
+          </div>
+          <p class="empty-state-title">{t("diary.needSessionTitle")}</p>
+          <p class="empty-state-hint">{t("diary.needSession")}</p>
         </div>
       </div>
     );
@@ -50,45 +47,53 @@ export function DiaryScreen() {
 
   return (
     <div class="screen diary-screen">
-      <header class="diary-header">
-        <h1 class="title-ornate">{t("diary.title")}</h1>
-        <button type="button" class="btn btn-primary" onClick={() => setEditing("new")}>
-          <Feather size={18} /> {t("diary.newEntry")}
-        </button>
-      </header>
+      <h1 class="title-ornate">{t("diary.title")}</h1>
 
       {sorted.length === 0 ? (
-        <div class="panel diary-empty">
-          <ScrollText size={40} />
-          <p>{t("diary.emptyState")}</p>
+        <div class="empty-state">
+          <div class="empty-state-icon">
+            <ScrollText size={28} />
+          </div>
+          <p class="empty-state-title">{t("diary.emptyTitle")}</p>
+          <p class="empty-state-hint">{t("diary.emptyState")}</p>
+          <button type="button" class="btn btn-primary" onClick={() => setEditing("new")}>
+            <PenLine size={18} /> {t("diary.newEntry")}
+          </button>
         </div>
       ) : (
         <ul class="diary-list">
           {sorted.map((entry) => {
             const author = memberById.get(entry.by);
-            const authorLabel = author ? `${author.avatarEmoji} ${author.name}` : t("diary.fellowTraveler");
             const dateLabel = new Intl.DateTimeFormat(getLanguage(), { dateStyle: "medium" }).format(
               new Date(entry.at),
             );
             return (
               <li key={entry.id}>
-                <button type="button" class="panel diary-card" onClick={() => setReading(entry)}>
-                  <span class="diary-card-mood" aria-hidden="true">
-                    {MOOD_EMOJI[entry.mood] ?? "📖"}
-                  </span>
-                  <span class="diary-card-body">
-                    <span class="diary-card-title">{entry.title}</span>
-                    <span class="diary-card-excerpt">{excerpt(entry.text)}</span>
-                    <span class="diary-card-meta">
-                      {authorLabel} · {dateLabel}
+                <button type="button" class="list-item diary-card" onClick={() => setReading(entry)}>
+                  {author ? (
+                    <Avatar member={author} size="sm" ringColor={author.color} />
+                  ) : (
+                    <span class="avatar avatar-sm" aria-hidden="true" />
+                  )}
+                  <span class="list-item-body">
+                    <span class="diary-card-title-row">
+                      <span class="list-item-title">{entry.title}</span>
+                      <MoodChip mood={entry.mood} />
                     </span>
+                    <span class="list-item-sub">{excerpt(entry.text)}</span>
                   </span>
+                  <span class="list-item-trailing diary-card-date">{dateLabel}</span>
                 </button>
               </li>
             );
           })}
         </ul>
       )}
+
+      <button type="button" class="fab" onClick={() => setEditing("new")}>
+        <PenLine size={22} />
+        <span class="fab-label">{t("diary.newEntry")}</span>
+      </button>
 
       {editing !== null && (
         <DiaryEditor entry={editing === "new" ? null : editing} onClose={() => setEditing(null)} />

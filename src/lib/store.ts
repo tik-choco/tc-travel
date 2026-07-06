@@ -43,6 +43,57 @@ function useStoreVersion(): void {
   }, []);
 }
 
+/** Decodes a data URL (as stored in Profile.avatarImage) back to raw bytes for upload. */
+function dataUrlToBytes(dataUrl: string): Uint8Array {
+  const base64 = dataUrl.slice(dataUrl.indexOf(",") + 1);
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return bytes;
+}
+
+/** Uploads avatar JPEG bytes to mist storage and sets avatarCid on the local
+ *  member record, if a room is active. Returns the new cid, or null when not
+ *  in a room. Called by avatar.ts on every profile-avatar change and by
+ *  openSession() on join/create (see there for why re-upload-on-join is safe). */
+export async function setMemberAvatarBytes(bytes: Uint8Array): Promise<string | null> {
+  const record = active;
+  if (!record) return null;
+  await ensureMistNode();
+  const cid = await storage_add(`avatar-${crypto.randomUUID()}.jpg`, bytes);
+  // The user may have left or switched rooms while the upload was in flight;
+  // `active` is module-global mutable state, so never stamp whatever room is
+  // active NOW with a cid that was uploaded for the room active back THEN.
+  if (active !== record) return null;
+  const profile = getProfile();
+  const session = record.session;
+  session.transact(() => {
+    const members = session.doc.getMap<Member>("members");
+    const existing = members.get(profile.id);
+    if (existing) members.set(profile.id, { ...existing, avatarCid: cid });
+  });
+  session.setUser({ memberId: profile.id, name: profile.name, color: profile.color, avatarEmoji: profile.avatarEmoji, avatarCid: cid });
+  return cid;
+}
+
+/** Removes avatarCid from the local member record, if a room is active. */
+export function clearMemberAvatarCid(): void {
+  if (!active) return;
+  const session = active.session;
+  const profile = getProfile();
+  session.transact(() => {
+    const members = session.doc.getMap<Member>("members");
+    const existing = members.get(profile.id);
+    if (!existing || existing.avatarCid === undefined) return;
+    const { avatarCid: _drop, ...rest } = existing;
+    members.set(profile.id, rest as Member);
+  });
+  // "" (not undefined) is the explicit "cleared" sentinel: awareness states are
+  // JSON-encoded, so an undefined field is dropped and becomes indistinguishable
+  // from "never sent one" on the receiving side. useMembers treats "" as cleared.
+  session.setUser({ memberId: profile.id, name: profile.name, color: profile.color, avatarEmoji: profile.avatarEmoji, avatarCid: "" });
+}
+
 function mirrorJourney(roomId: string): void {
   if (!active || active.roomId !== roomId) return;
   const doc = active.session.doc;
@@ -109,6 +160,22 @@ async function openSession(roomId: string, seed?: { name: string; emoji: string 
     }
   });
 
+  // Re-upload the profile avatar into this room and stamp the member record
+  // with the fresh cid. Done after (not during) the transact above so a
+  // slow/failed upload never blocks the member record from existing; failure
+  // here is non-fatal to joining the room, just logged.
+  if (profile.avatarImage) {
+    try {
+      await setMemberAvatarBytes(dataUrlToBytes(profile.avatarImage));
+    } catch (err) {
+      console.error("tc-travel: failed to upload avatar on join", err);
+    }
+  } else {
+    // The avatar may have been removed while outside this room — strip any
+    // stale cid left on our member record from a previous visit.
+    clearMemberAvatarCid();
+  }
+
   const roomName = seed?.name ?? (session.doc.getMap<string>("meta").get("name") ?? "");
   touchJoinedRoom(roomId, roomName);
   mirrorJourney(roomId);
@@ -167,6 +234,11 @@ export function useMembers(): Member[] {
       name: peer.name,
       color: peer.color,
       avatarEmoji: peer.avatarEmoji || existing?.avatarEmoji || "\u{1F9ED}",
+      // Three-way merge: "" is the explicit "just cleared" sentinel (awareness
+      // beats the slower Y.Map sync, so honoring it avoids showing a stale
+      // avatar); an ABSENT value means an older peer build or a mid-upload
+      // window, where the members Y.Map entry is the best available answer.
+      avatarCid: peer.avatarCid === "" ? undefined : peer.avatarCid || existing?.avatarCid,
       joinedAt: existing?.joinedAt ?? Date.now(),
     });
   }

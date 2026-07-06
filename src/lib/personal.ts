@@ -48,7 +48,9 @@ export function getProfile(): Profile {
   return cachedProfile;
 }
 
-function setProfile(patch: Partial<Profile>): void {
+/** Non-hook setter for use outside components (avatar.ts, store.ts, etc.) — same
+ *  merge-and-persist behavior as the setter useProfile() returns. */
+export function updateProfile(patch: Partial<Profile>): void {
   cachedProfile = { ...getProfile(), ...patch };
   localStorage.setItem(PROFILE_KEY, JSON.stringify(cachedProfile));
   profileListeners.forEach((fn) => fn());
@@ -63,7 +65,7 @@ export function useProfile(): [Profile, (patch: Partial<Profile>) => void] {
       profileListeners.delete(fn);
     };
   }, []);
-  return [getProfile(), setProfile];
+  return [getProfile(), updateProfile];
 }
 
 // --- joined rooms --------------------------------------------------------

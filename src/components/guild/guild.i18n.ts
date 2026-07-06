@@ -552,6 +552,18 @@ registerTranslations({
     en: "Avatar", ja: "アバター", zh: "头像", ko: "아바타",
     es: "Avatar", fr: "Avatar", de: "Avatar", pt: "Avatar",
   },
+  "settings.avatarImage": {
+    en: "Portrait", ja: "肖像画", zh: "头像照片", ko: "초상화",
+    es: "Retrato", fr: "Portrait", de: "Porträt", pt: "Retrato",
+  },
+  "settings.changeAvatarImage": {
+    en: "Change avatar image", ja: "アバター画像を変更", zh: "更换头像图片", ko: "아바타 이미지 변경",
+    es: "Cambiar imagen de avatar", fr: "Changer l'image d'avatar", de: "Avatarbild ändern", pt: "Alterar imagem do avatar",
+  },
+  "settings.removeAvatarImage": {
+    en: "Remove avatar image", ja: "アバター画像を削除", zh: "移除头像图片", ko: "아바타 이미지 제거",
+    es: "Eliminar imagen de avatar", fr: "Supprimer l'image d'avatar", de: "Avatarbild entfernen", pt: "Remover imagem do avatar",
+  },
   "settings.color": {
     en: "Color", ja: "カラー", zh: "颜色", ko: "색상",
     es: "Color", fr: "Couleur", de: "Farbe", pt: "Cor",

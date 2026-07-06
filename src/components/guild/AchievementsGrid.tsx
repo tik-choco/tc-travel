@@ -1,4 +1,5 @@
 import { useState } from "preact/hooks";
+import { Lock } from "lucide-preact";
 import type { AchievementDef, JourneyStats } from "../../lib/types";
 import { useT } from "../../lib/i18n";
 import { ACHIEVEMENTS } from "../../lib/gamification";
@@ -8,8 +9,9 @@ interface AchievementsGridProps {
   stats: JourneyStats;
 }
 
-/** Grid of every AchievementDef: unlocked = gold-framed with its icon, locked = darkened
- * silhouette with a lock. Tapping a tile opens a detail sheet with the full title/desc. */
+/** Grid of every AchievementDef: unlocked = primary-container tile with its icon,
+ * locked = outlined tile at reduced opacity with a lock hint. Tapping a tile opens
+ * a detail sheet with the full title/desc. */
 export function AchievementsGrid({ stats }: AchievementsGridProps) {
   const t = useT();
   const [selected, setSelected] = useState<AchievementDef | null>(null);
@@ -32,7 +34,7 @@ export function AchievementsGrid({ stats }: AchievementsGridProps) {
               aria-label={title}
             >
               <span class="ach-tile-icon" aria-hidden="true">
-                {unlocked ? def.icon : "🔒"}
+                {unlocked ? def.icon : <Lock size={20} />}
               </span>
               <span class="ach-tile-title">{title}</span>
             </button>
@@ -41,10 +43,11 @@ export function AchievementsGrid({ stats }: AchievementsGridProps) {
       </div>
 
       {selected && (
-        <div class="ach-sheet-backdrop" onClick={() => setSelected(null)}>
-          <div class="ach-sheet panel" onClick={(e) => e.stopPropagation()}>
+        <div class="modal-backdrop" onClick={() => setSelected(null)}>
+          <div class="modal-card ach-sheet" onClick={(e) => e.stopPropagation()}>
+            <div class="sheet-handle" />
             <span class="ach-sheet-icon" aria-hidden="true">
-              {selected.achieved(stats) ? selected.icon : "🔒"}
+              {selected.achieved(stats) ? selected.icon : <Lock size={32} />}
             </span>
             <h3 class="ach-sheet-title">{tWithFallback(t, selected.titleKey, selected.id)}</h3>
             {tOrNull(t, selected.descKey) && <p class="ach-sheet-desc">{tOrNull(t, selected.descKey)}</p>}

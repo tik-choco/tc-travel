@@ -1,6 +1,18 @@
 /* Guild screen — Guild Card, stats, achievements, chronicle, settings.
    Uses design tokens from src/styles/theme.css (owned by the shell agent). */
 
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .guild-screen {
   display: flex;
   flex-direction: column;
@@ -23,43 +35,17 @@
 .guild-card {
   display: flex;
   flex-direction: column;
-  gap: 0.9rem;
+  align-items: center;
+  gap: 0.6rem;
+  text-align: center;
 }
 
 .guild-card-top {
   display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-.guild-medallion {
-  flex: none;
-  width: 4.5rem;
-  height: 4.5rem;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background:
-    radial-gradient(circle at 35% 30%, var(--gold-bright), var(--gold) 55%, var(--seal) 100%);
-  border: 3px solid var(--gold-bright);
-  box-shadow:
-    0 0 0 2px var(--ink),
-    inset 0 0 8px rgba(0, 0, 0, 0.45);
-}
-
-.guild-medallion-emoji {
-  font-size: 2.1rem;
-  line-height: 1;
-  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.4));
-}
-
-.guild-identity {
-  flex: 1;
-  min-width: 0;
-  display: flex;
   flex-direction: column;
-  gap: 0.15rem;
+  align-items: center;
+  gap: 0.4rem;
+  width: 100%;
 }
 
 .guild-name-button {
@@ -70,9 +56,9 @@
   border: none;
   padding: 0;
   font: inherit;
-  font-family: var(--font-display);
-  font-size: 1.15rem;
-  color: var(--ink);
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--on-surface);
   cursor: pointer;
   max-width: 100%;
   min-height: 44px;
@@ -85,89 +71,55 @@
 }
 
 .guild-name-pencil {
-  opacity: 0.55;
-  font-size: 0.85rem;
+  opacity: 0.6;
+  flex-shrink: 0;
 }
 
 .guild-name-input {
-  font: inherit;
-  font-family: var(--font-display);
-  font-size: 1.15rem;
-  color: var(--ink);
-  background: var(--parchment-2);
-  border: 1px solid var(--ink-soft);
-  border-radius: var(--radius);
-  padding: 0.3rem 0.5rem;
-  min-height: 44px;
-  max-width: 100%;
+  font-weight: 700;
+  font-size: 1.1rem;
+  text-align: center;
+  max-width: 220px;
 }
 
 .guild-rank-title {
-  font-family: var(--font-display);
-  color: var(--seal);
+  color: var(--tertiary);
   font-size: 0.95rem;
+  font-weight: 600;
 }
 
 .guild-level-badge {
-  display: inline-block;
-  width: fit-content;
   font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.03em;
   text-transform: uppercase;
-  color: var(--ink);
-  background: linear-gradient(180deg, var(--gold-bright), var(--gold));
-  border: 1px solid var(--ink-soft);
-  border-radius: 999px;
-  padding: 0.15rem 0.6rem;
+  color: var(--on-primary-container);
+  background: var(--primary-container);
+  min-height: auto;
+  min-width: auto;
+  padding: 0.2rem 0.75rem;
 }
 
 .guild-xp-track {
   position: relative;
-  height: 0.85rem;
-  border-radius: 999px;
-  background: var(--parchment-2);
-  border: 1px solid var(--ink-soft);
+  width: 100%;
+  height: 0.75rem;
+  border-radius: var(--radius-full);
+  background: var(--surface-container-highest);
   overflow: hidden;
 }
 
 .guild-xp-fill {
-  position: relative;
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, var(--gold), var(--gold-bright));
+  background: var(--primary);
   transition: width 0.4s ease;
-  overflow: hidden;
-}
-
-.guild-xp-fill::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    115deg,
-    transparent 0%,
-    rgba(255, 255, 255, 0.55) 45%,
-    transparent 60%
-  );
-  background-size: 200% 100%;
-  animation: guild-xp-shimmer 2.4s linear infinite;
-}
-
-@keyframes guild-xp-shimmer {
-  from {
-    background-position: 150% 0;
-  }
-  to {
-    background-position: -50% 0;
-  }
 }
 
 .guild-xp-label {
+  align-self: flex-end;
   font-size: 0.75rem;
-  color: var(--ink-soft);
-  text-align: right;
-  margin-top: -0.4rem;
+  color: var(--on-surface-variant);
 }
 
 .guild-streak {
@@ -175,11 +127,7 @@
   align-items: center;
   gap: 0.4rem;
   font-size: 0.85rem;
-  color: var(--ink-soft);
-}
-
-.guild-streak-flame {
-  font-size: 1rem;
+  color: var(--on-surface-variant);
 }
 
 /* --- Stats grid --- */
@@ -194,28 +142,23 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.2rem;
-  padding: 0.6rem 0.4rem;
-  background: var(--parchment-2);
-  border: 1px solid var(--ink-soft);
+  gap: 0.3rem;
+  padding: 0.75rem 0.4rem;
+  background: var(--surface-container);
   border-radius: var(--radius);
+  color: var(--primary);
   text-align: center;
 }
 
-.stat-tile-icon {
-  font-size: 1.3rem;
-}
-
 .stat-tile-value {
-  font-family: var(--font-display);
-  font-size: 1.1rem;
+  font-size: 1.15rem;
   font-weight: 700;
-  color: var(--ink);
+  color: var(--on-surface);
 }
 
 .stat-tile-label {
   font-size: 0.7rem;
-  color: var(--ink-soft);
+  color: var(--on-surface-variant);
 }
 
 /* --- Achievements --- */
@@ -223,7 +166,7 @@
 .ach-progress {
   margin: 0 0 0.75rem;
   font-size: 0.85rem;
-  color: var(--ink-soft);
+  color: var(--on-surface-variant);
 }
 
 .ach-grid {
@@ -236,38 +179,34 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.3rem;
-  padding: 0.7rem 0.4rem;
+  gap: 0.35rem;
+  padding: 0.75rem 0.4rem;
   border-radius: var(--radius);
   cursor: pointer;
   font: inherit;
   min-height: 44px;
   text-align: center;
+  transition: background-color 0.15s ease, opacity 0.15s ease;
 }
 
 .ach-tile-unlocked {
-  background: linear-gradient(180deg, var(--parchment), var(--parchment-2));
-  border: 2px solid var(--gold);
-  box-shadow: 0 0 6px rgba(201, 162, 39, 0.5);
+  background: var(--primary-container);
+  border: none;
+  color: var(--on-primary-container);
 }
 
 .ach-tile-locked {
-  background: var(--bg-raised);
-  border: 2px solid var(--ink-soft);
-  filter: grayscale(1);
-  opacity: 0.65;
+  background: transparent;
+  border: 1px solid var(--outline-variant);
+  color: var(--on-surface-variant);
+  opacity: 0.6;
 }
 
 .ach-tile-icon {
-  font-size: 1.5rem;
-}
-
-.ach-tile-unlocked .ach-tile-title {
-  color: var(--ink);
-}
-
-.ach-tile-locked .ach-tile-title {
-  color: var(--text-soft);
+  font-size: 1.4rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .ach-tile-title {
@@ -275,44 +214,38 @@
   line-height: 1.2;
 }
 
-.ach-sheet-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.55);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 1.5rem;
-  z-index: 50;
-}
-
 .ach-sheet {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 0.6rem;
-  max-width: 22rem;
+  padding: 0 1.5rem 1.5rem;
   text-align: center;
 }
 
 .ach-sheet-icon {
   font-size: 2.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--primary);
 }
 
 .ach-sheet-title {
   margin: 0;
-  font-family: var(--font-display);
+  font-weight: 700;
+  color: var(--on-surface);
 }
 
 .ach-sheet-desc {
   margin: 0;
-  color: var(--ink-soft);
+  color: var(--on-surface-variant);
   font-size: 0.9rem;
 }
 
 .ach-sheet-locked {
   margin: 0;
-  color: var(--seal);
+  color: var(--on-surface-variant);
   font-weight: 700;
   font-size: 0.8rem;
   text-transform: uppercase;
@@ -322,7 +255,7 @@
 /* --- Chronicle --- */
 
 .guild-chronicle-empty {
-  color: var(--ink-soft);
+  color: var(--on-surface-variant);
   font-size: 0.9rem;
   line-height: 1.5;
 }
@@ -334,39 +267,23 @@
 }
 
 .chronicle-day-header {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  font-family: var(--font-display);
-  font-size: 0.85rem;
-  color: var(--seal);
-  margin-bottom: 0.5rem;
+  margin: 0 0 0.5rem;
 }
 
-.chronicle-day-flourish {
-  opacity: 0.7;
+.chronicle-row {
+  cursor: default;
+  margin-bottom: 0.4rem;
 }
-
-.chronicle-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.6rem;
-  padding: 0.35rem 0;
-  border-left: 2px solid var(--gold);
-  padding-left: 0.7rem;
-  margin-left: 0.3rem;
+.chronicle-row:last-child {
+  margin-bottom: 0;
 }
-
-.chronicle-item-icon {
-  font-size: 1.05rem;
-  flex: none;
+.chronicle-row:hover {
+  background: var(--surface-container);
 }
 
 .chronicle-item-summary {
-  font-size: 0.9rem;
-  color: var(--ink);
-  line-height: 1.4;
+  color: var(--on-surface);
+  white-space: normal;
 }
 
 /* --- Settings --- */
@@ -385,20 +302,22 @@
 .settings-label {
   font-size: 0.8rem;
   font-weight: 700;
-  color: var(--ink-soft);
+  color: var(--on-surface-variant);
   text-transform: uppercase;
   letter-spacing: 0.03em;
 }
 
-.settings-language-list {
+.settings-avatar-image-row {
   display: flex;
+  align-items: center;
+  gap: 1rem;
   flex-wrap: wrap;
-  gap: 0.4rem;
 }
 
-.settings-lang-btn-active {
-  outline: 2px solid var(--seal);
-  outline-offset: 1px;
+.settings-avatar-image-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
 }
 
 .settings-avatar-grid,
@@ -417,24 +336,24 @@
   font-size: 1.3rem;
   border-radius: var(--radius);
   border: 2px solid transparent;
-  background: var(--parchment-2);
+  background: var(--surface-container);
   cursor: pointer;
 }
 
 .settings-avatar-btn-active {
-  border-color: var(--seal);
+  border-color: var(--primary);
 }
 
 .settings-swatch {
   width: 36px;
   height: 36px;
-  border-radius: 50%;
-  border: 2px solid var(--ink-soft);
+  border-radius: var(--radius-full);
+  border: 2px solid var(--outline-variant);
   cursor: pointer;
   padding: 0;
 }
 
 .settings-swatch-active {
-  border-color: var(--seal);
-  box-shadow: 0 0 0 2px var(--gold-bright);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 45%, transparent);
 }

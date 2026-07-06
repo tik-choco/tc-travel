@@ -1,20 +1,26 @@
 import "./shell.i18n";
 import { useState } from "preact/hooks";
-import { Share, LogOut } from "lucide-preact";
+import { Share, LogOut, X } from "lucide-preact";
 import { useT } from "../../lib/i18n";
 import { useSession, useMembers, leaveRoom } from "../../lib/store";
+import { useProfile } from "../../lib/personal";
+import { Avatar } from "../common/Avatar";
 import { QrModal } from "../room/QrModal";
+
+const STACK_LIMIT = 4;
 
 export function Header() {
   const t = useT();
   const session = useSession();
   const members = useMembers();
+  const [profile] = useProfile();
   const [showQr, setShowQr] = useState(false);
+  const [showMembers, setShowMembers] = useState(false);
   const [confirmLeave, setConfirmLeave] = useState(false);
 
   if (!session) return null;
 
-  const shownMembers = members.slice(0, 4);
+  const shownMembers = members.slice(0, STACK_LIMIT);
   const overflow = members.length - shownMembers.length;
 
   return (
@@ -29,23 +35,25 @@ export function Header() {
           {session.connected ? t("header.connected") : t("header.disconnected")}
         </span>
       </div>
-      <div class="app-header-members" aria-label={t("header.membersLabel")}>
+
+      <button
+        type="button"
+        class="app-header-stack"
+        aria-label={t("header.membersLabel")}
+        onClick={() => setShowMembers(true)}
+      >
         {shownMembers.map((m) => (
-          <span
-            key={m.id}
-            class="avatar avatar-sm"
-            style={{ borderColor: m.color }}
-            title={m.name}
-          >
-            {m.avatarEmoji}
-          </span>
+          <Avatar key={m.id} member={m} size="sm" ringColor={m.color} />
         ))}
-        {overflow > 0 && <span class="avatar avatar-sm">+{overflow}</span>}
-      </div>
+        {overflow > 0 && (
+          <span class="avatar avatar-sm app-header-overflow">+{overflow}</span>
+        )}
+      </button>
+
       <div class="app-header-actions">
         <button
           type="button"
-          class="btn btn-icon"
+          class="btn btn-icon btn-tonal"
           aria-label={t("header.share")}
           onClick={() => setShowQr(true)}
         >
@@ -63,25 +71,58 @@ export function Header() {
 
       {showQr && <QrModal roomId={session.roomId} onClose={() => setShowQr(false)} />}
 
-      {confirmLeave && (
-        <div class="confirm-popover" role="alertdialog">
-          <div class="panel confirm-popover-body">
-            <p class="title-ornate">{t("header.leaveConfirmTitle")}</p>
-            <p>{t("header.leaveConfirmBody")}</p>
-            <div class="confirm-popover-actions">
-              <button type="button" class="btn" onClick={() => setConfirmLeave(false)}>
-                {t("header.leaveConfirmCancel")}
-              </button>
+      {showMembers && (
+        <div class="modal-backdrop" onClick={() => setShowMembers(false)}>
+          <div class="modal-card" onClick={(e) => e.stopPropagation()}>
+            <div class="sheet-handle" />
+            <div class="sheet-header">
+              <p class="title-ornate">{t("header.membersLabel")}</p>
               <button
                 type="button"
-                class="btn btn-danger"
-                onClick={() => {
-                  setConfirmLeave(false);
-                  void leaveRoom();
-                }}
+                class="btn btn-icon"
+                aria-label={t("qr.close")}
+                onClick={() => setShowMembers(false)}
               >
-                {t("header.leaveConfirmYes")}
+                <X aria-hidden="true" />
               </button>
+            </div>
+            <div class="sheet-body">
+              {members.map((m) => (
+                <div key={m.id} class="list-item">
+                  <Avatar member={m} size="md" ringColor={m.color} />
+                  <div class="list-item-body">
+                    <span class="list-item-title">{m.name}</span>
+                  </div>
+                  {m.id === profile.id && <span class="chip chip-text app-header-you">{t("header.you")}</span>}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {confirmLeave && (
+        <div class="modal-backdrop" onClick={() => setConfirmLeave(false)}>
+          <div class="modal-card" onClick={(e) => e.stopPropagation()}>
+            <div class="sheet-handle" />
+            <div class="sheet-body">
+              <p class="title-ornate">{t("header.leaveConfirmTitle")}</p>
+              <p class="sheet-hint">{t("header.leaveConfirmBody")}</p>
+              <div class="sheet-actions">
+                <button type="button" class="btn btn-block" onClick={() => setConfirmLeave(false)}>
+                  {t("header.leaveConfirmCancel")}
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-danger btn-block"
+                  onClick={() => {
+                    setConfirmLeave(false);
+                    void leaveRoom();
+                  }}
+                >
+                  {t("header.leaveConfirmYes")}
+                </button>
+              </div>
             </div>
           </div>
         </div>

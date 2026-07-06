@@ -24,48 +24,29 @@
   flex-wrap: wrap;
 }
 
-.album-add-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 44px;
-}
-
-.album-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-  padding: 32px 20px;
-  text-align: center;
-  color: var(--ink-soft);
-}
-
 .album-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 6px;
+  gap: 5px;
 }
 
 .photo-thumb {
   position: relative;
   aspect-ratio: 1 / 1;
-  padding: 4px;
-  border: 1px solid var(--gold);
-  border-radius: var(--radius);
-  background: var(--parchment);
-  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.35);
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--surface-container);
   overflow: hidden;
   cursor: pointer;
   display: block;
   min-height: 44px;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .photo-thumb img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  border-radius: 2px;
   display: block;
 }
 
@@ -75,7 +56,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--ink-soft);
+  color: var(--on-surface-variant);
 }
 
 .photo-ar-badge {
@@ -87,26 +68,9 @@
   justify-content: center;
   width: 18px;
   height: 18px;
-  border-radius: 50%;
-  background: var(--gold-bright);
-  color: var(--ink);
-  box-shadow: 0 0 0 1px var(--ink);
-}
-
-.photo-thumb-pending {
-  position: relative;
-  cursor: default;
-}
-
-.photo-thumb-status {
-  position: absolute;
-  inset: auto 0 0 0;
-  font-size: 10px;
-  line-height: 1.2;
-  text-align: center;
-  padding: 2px 4px;
-  background: rgba(23, 16, 8, 0.75);
-  color: var(--text);
+  border-radius: var(--radius-full);
+  background: var(--tertiary);
+  color: var(--on-tertiary);
 }
 
 .spin {
@@ -119,27 +83,21 @@
   }
 }
 
-/* Add-photo sheet */
-.sheet-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(10, 7, 3, 0.6);
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  z-index: 40;
+@media (prefers-reduced-motion: reduce) {
+  .spin {
+    animation: none;
+  }
 }
+
+/* Add-photo sheet */
 
 .sheet {
   width: 100%;
   max-width: 480px;
-  max-height: 85vh;
-  overflow-y: auto;
-  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-  padding: 16px 16px calc(16px + env(safe-area-inset-bottom, 0px));
   display: flex;
   flex-direction: column;
   gap: 12px;
+  padding: 0 1.25rem calc(1rem + env(safe-area-inset-bottom, 0px));
 }
 
 .sheet-title {
@@ -170,7 +128,7 @@
   display: flex;
   gap: 10px;
   align-items: flex-start;
-  border-bottom: 1px dashed var(--ink-soft);
+  border-bottom: 1px solid var(--outline-variant);
   padding-bottom: 10px;
 }
 
@@ -179,8 +137,7 @@
   height: 64px;
   flex: none;
   object-fit: cover;
-  border-radius: var(--radius);
-  border: 1px solid var(--gold);
+  border-radius: var(--radius-sm);
 }
 
 .pending-body {
@@ -196,18 +153,13 @@
   align-items: center;
   gap: 6px;
   font-size: 12px;
-  color: var(--ink-soft);
+  color: var(--on-surface-variant);
 }
 
 .pending-caption-input {
   width: 100%;
-  min-height: 44px;
-  border-radius: var(--radius);
-  border: 1px solid var(--ink-soft);
-  background: var(--parchment-2);
-  color: var(--ink);
-  padding: 6px 8px;
-  font: inherit;
+  min-height: 40px;
+  padding: 6px 10px;
 }
 
 .pending-remove {
@@ -217,7 +169,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--seal);
+  color: var(--error);
 }
 
 .sheet-actions {
@@ -226,14 +178,15 @@
   justify-content: flex-end;
 }
 
-/* Viewer */
+/* Viewer — dark immersive full-screen photo view */
+
 .viewer-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(6, 4, 2, 0.92);
+  background: rgba(0, 0, 0, 0.94);
   display: flex;
   flex-direction: column;
-  z-index: 50;
+  z-index: 100;
 }
 
 .viewer-topbar {
@@ -249,9 +202,13 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--text);
+  color: var(--on-surface);
   background: transparent;
   border: none;
+  border-radius: var(--radius-full);
+}
+.viewer-icon-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .viewer-stage {
@@ -284,12 +241,16 @@
   flex: none;
   min-width: 44px;
   min-height: 44px;
-  color: var(--text);
+  color: var(--on-surface);
   background: transparent;
   border: none;
+  border-radius: var(--radius-full);
   display: flex;
   align-items: center;
   justify-content: center;
+}
+.viewer-nav-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .viewer-nav-btn:disabled {
@@ -298,22 +259,22 @@
 
 .viewer-info {
   padding: 12px 16px calc(16px + env(safe-area-inset-bottom, 0px));
-  color: var(--text);
+  color: var(--on-surface);
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
 }
 
 .viewer-author {
   font-weight: 600;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
 }
 
 .viewer-meta {
   font-size: 13px;
-  color: var(--text-soft);
+  color: var(--on-surface-variant);
   display: flex;
   align-items: center;
   gap: 6px;
@@ -322,7 +283,19 @@
 
 .viewer-caption {
   font-size: 14px;
-  color: var(--text);
+  color: var(--on-surface);
+}
+
+.viewer-ar-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  background: var(--tertiary-container);
+  color: var(--on-tertiary-container);
+  font-size: 0.72rem;
+  font-weight: 600;
 }
 
 .viewer-actions {

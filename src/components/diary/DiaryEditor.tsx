@@ -3,16 +3,8 @@ import { Check, LoaderCircle, X } from "lucide-preact";
 import { addDiaryEntry, updateDiaryEntry } from "../../lib/store";
 import { lookupCountry, countryName } from "../../lib/geo";
 import { getLanguage, useT } from "../../lib/i18n";
+import { MOODS, MOOD_EMOJI } from "./moodMeta";
 import type { DiaryEntry, GeoPoint } from "../../lib/types";
-
-const MOODS = ["triumphant", "merry", "weary", "wistful", "inspired"] as const;
-const MOOD_EMOJI: Record<string, string> = {
-  triumphant: "🏆",
-  merry: "🎉",
-  weary: "😴",
-  wistful: "🌙",
-  inspired: "✨",
-};
 
 interface DiaryEditorProps {
   /** null = creating a new entry; otherwise editing an existing one of the user's own. */
@@ -70,56 +62,60 @@ export function DiaryEditor({ entry, onClose }: DiaryEditorProps) {
   };
 
   return (
-    <div class="diary-modal-backdrop" role="dialog" aria-modal="true">
-      <div class="diary-modal panel">
-        <h2 class="title-ornate">{entry ? t("diary.editorTitleEdit") : t("diary.editorTitleNew")}</h2>
+    <div class="modal-backdrop" role="dialog" aria-modal="true">
+      <div class="modal-card diary-sheet">
+        <div class="sheet-handle" />
 
-        <div class="diary-field">
-          <input
-            type="text"
-            class="diary-title-input"
-            placeholder={t("diary.titlePlaceholder")}
-            value={title}
-            onInput={(e) => setTitle((e.target as HTMLInputElement).value)}
-          />
+        <div class="diary-editor-header">
+          <h2 class="diary-editor-title">{entry ? t("diary.editorTitleEdit") : t("diary.editorTitleNew")}</h2>
+          <button type="button" class="btn btn-icon" onClick={onClose} disabled={saving} aria-label={t("diary.cancel")}>
+            <X size={18} />
+          </button>
         </div>
 
-        <div class="diary-field">
-          <textarea
-            class="diary-text-input"
-            placeholder={t("diary.textPlaceholder")}
-            value={text}
-            onInput={(e) => setText((e.target as HTMLTextAreaElement).value)}
-          />
-        </div>
+        <input
+          type="text"
+          class="input"
+          placeholder={t("diary.titlePlaceholder")}
+          aria-label={t("diary.titlePlaceholder")}
+          value={title}
+          onInput={(e) => setTitle((e.target as HTMLInputElement).value)}
+        />
 
-        <div class="diary-field">
-          <span>{t("diary.moodLabel")}</span>
+        <textarea
+          class="input diary-text-input"
+          placeholder={t("diary.textPlaceholder")}
+          aria-label={t("diary.textPlaceholder")}
+          value={text}
+          onInput={(e) => setText((e.target as HTMLTextAreaElement).value)}
+        />
+
+        <div class="field">
+          <span class="settings-label">{t("diary.moodLabel")}</span>
           <div class="diary-mood-picker">
             {MOODS.map((m) => (
               <button
                 type="button"
                 key={m}
-                class={`diary-mood-btn${mood === m ? " is-selected" : ""}`}
+                class={`chip mood-chip${mood === m ? " is-selected" : ""}`}
                 onClick={() => setMood(m)}
               >
-                <span aria-hidden="true">{MOOD_EMOJI[m]}</span> {t(`mood.${m}`)}
+                <span aria-hidden="true">{MOOD_EMOJI[m]}</span>
+                <span class="chip-text">{t(`mood.${m}`)}</span>
               </button>
             ))}
           </div>
         </div>
 
-        <div class="diary-field">
+        <div class="diary-location-row">
           {entry ? (
             entry.geo?.countryCode ? (
-              <span class="diary-location-row">
-                {t("diary.locationAttached", { place: countryName(entry.geo.countryCode, getLanguage()) })}
-              </span>
+              <span>{t("diary.locationAttached", { place: countryName(entry.geo.countryCode, getLanguage()) })}</span>
             ) : (
-              <span class="diary-location-row">{t("diary.locationLockedNote")}</span>
+              <span>{t("diary.locationLockedNote")}</span>
             )
           ) : (
-            <label class="diary-location-row">
+            <label class="diary-location-label">
               <input
                 type="checkbox"
                 checked={attachLocation}
@@ -130,11 +126,11 @@ export function DiaryEditor({ entry, onClose }: DiaryEditorProps) {
           )}
         </div>
 
-        {showValidation && <span class="diary-validation">{t("diary.validationRequired")}</span>}
+        {showValidation && <p class="diary-validation">{t("diary.validationRequired")}</p>}
 
-        <div class="diary-modal-actions">
-          <button type="button" class="btn" onClick={onClose} disabled={saving}>
-            <X size={16} /> {t("diary.cancel")}
+        <div class="diary-editor-actions">
+          <button type="button" class="btn btn-outlined" onClick={onClose} disabled={saving}>
+            {t("diary.cancel")}
           </button>
           <button type="button" class="btn btn-primary" onClick={handleSave} disabled={saving}>
             {saving ? <LoaderCircle class="spin" size={16} /> : <Check size={16} />}

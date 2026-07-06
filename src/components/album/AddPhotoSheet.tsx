@@ -143,21 +143,22 @@ export function AddPhotoSheet({ onClose }: AddPhotoSheetProps) {
   };
 
   return (
-    <div class="sheet-backdrop" role="dialog" aria-modal="true">
-      <div class="sheet panel">
+    <div class="modal-backdrop" role="dialog" aria-modal="true">
+      <div class="modal-card sheet">
+        <div class="sheet-handle" />
         <h2 class="sheet-title title-ornate">{t("album.pickerTitle")}</h2>
 
         <div class="sheet-choice-row">
           <button
             type="button"
-            class="btn sheet-choice-btn"
+            class="btn btn-tonal sheet-choice-btn"
             onClick={() => cameraInputRef.current?.click()}
           >
             <Camera size={18} /> {t("album.pickCamera")}
           </button>
           <button
             type="button"
-            class="btn sheet-choice-btn"
+            class="btn btn-tonal sheet-choice-btn"
             onClick={() => filesInputRef.current?.click()}
           >
             <ImagePlus size={18} /> {t("album.pickFiles")}
@@ -195,7 +196,7 @@ export function AddPhotoSheet({ onClose }: AddPhotoSheetProps) {
                 <div class="pending-body">
                   <input
                     type="text"
-                    class="pending-caption-input"
+                    class="input pending-caption-input"
                     placeholder={t("album.captionPlaceholder")}
                     value={item.caption}
                     disabled={item.status === "saving" || item.status === "done"}

@@ -1,5 +1,5 @@
 import { useState } from "preact/hooks";
-import { X } from "lucide-preact";
+import { Plus, X } from "lucide-preact";
 import { useT } from "../../lib/i18n";
 import "./map.i18n";
 
@@ -41,6 +41,7 @@ export function ChipInput({ values, onChange, placeholder }: ChipInputProps) {
       )}
       <div class="map-chipinput__row">
         <input
+          class="input"
           type="text"
           value={draft}
           placeholder={placeholder}
@@ -52,8 +53,13 @@ export function ChipInput({ values, onChange, placeholder }: ChipInputProps) {
             }
           }}
         />
-        <button type="button" class="btn map-chipinput__add" onClick={commit}>
-          +
+        <button
+          type="button"
+          class="btn btn-icon map-chipinput__add"
+          onClick={commit}
+          aria-label={t("map.sheet.companionsAdd")}
+        >
+          <Plus size={18} />
         </button>
       </div>
     </div>

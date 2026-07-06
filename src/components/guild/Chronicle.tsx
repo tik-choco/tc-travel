@@ -1,4 +1,6 @@
 import { useMemo } from "preact/hooks";
+import { BookText, Camera, MapPin, Sparkles } from "lucide-preact";
+import type { ComponentType } from "preact";
 import type { Language } from "../../lib/types";
 import { getLanguage, useT } from "../../lib/i18n";
 import { useJourney } from "../../lib/personal";
@@ -9,7 +11,7 @@ type Translate = (key: string, params?: Record<string, string | number>) => stri
 interface ChronicleItem {
   id: string;
   at: number;
-  icon: string;
+  icon: ComponentType<{ size?: number | string }>;
   summary: string;
 }
 
@@ -25,8 +27,8 @@ const INTL_LOCALE: Record<Language, string> = {
   pt: "pt",
 };
 
-/** Vertical quest-log timeline: journey.pins/photos/diary merged, sorted newest-first,
- * grouped under ornate day-separator headers. */
+/** Chronicle timeline: journey.pins/photos/diary merged, sorted newest-first,
+ * grouped under day headers, rendered as `.list-item` rows. */
 export function Chronicle() {
   const t = useT();
   const journey = useJourney();
@@ -44,23 +46,18 @@ export function Chronicle() {
         <div class="chronicle-list">
           {groups.map(([dayLabel, dayItems]) => (
             <div class="chronicle-day" key={dayLabel}>
-              <div class="chronicle-day-header">
-                <span class="chronicle-day-flourish" aria-hidden="true">
-                  ❧
-                </span>
-                <span>{dayLabel}</span>
-                <span class="chronicle-day-flourish" aria-hidden="true">
-                  ❧
-                </span>
-              </div>
-              {dayItems.map((item) => (
-                <div class="chronicle-item" key={item.id}>
-                  <span class="chronicle-item-icon" aria-hidden="true">
-                    {item.icon}
-                  </span>
-                  <span class="chronicle-item-summary">{item.summary}</span>
-                </div>
-              ))}
+              <h3 class="section-title chronicle-day-header">{dayLabel}</h3>
+              {dayItems.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <div class="list-item chronicle-row" key={item.id}>
+                    <Icon size={18} aria-hidden="true" />
+                    <span class="list-item-body">
+                      <span class="list-item-sub chronicle-item-summary">{item.summary}</span>
+                    </span>
+                  </div>
+                );
+              })}
             </div>
           ))}
         </div>
@@ -83,7 +80,7 @@ function buildItems(journey: ReturnType<typeof useJourney>, t: Translate, lang: 
         ? t("chronicle.pinTitle", { title: pin.title, country })
         : t("chronicle.pinTitleNoCountry", { title: pin.title });
     }
-    items.push({ id: `pin:${pin.id}`, at: pin.at, icon: "📍", summary });
+    items.push({ id: `pin:${pin.id}`, at: pin.at, icon: MapPin, summary });
   }
 
   for (const photo of journey.photos) {
@@ -96,14 +93,14 @@ function buildItems(journey: ReturnType<typeof useJourney>, t: Translate, lang: 
     } else {
       summary = country ? t("chronicle.photoWithCountry", { country }) : t("chronicle.photoPlain");
     }
-    items.push({ id: `photo:${photo.id}`, at: photo.at, icon: photo.arShot ? "✨" : "📸", summary });
+    items.push({ id: `photo:${photo.id}`, at: photo.at, icon: photo.arShot ? Sparkles : Camera, summary });
   }
 
   for (const entry of journey.diary) {
     items.push({
       id: `diary:${entry.id}`,
       at: entry.at,
-      icon: "📔",
+      icon: BookText,
       summary: t("chronicle.diary", { title: entry.title }),
     });
   }

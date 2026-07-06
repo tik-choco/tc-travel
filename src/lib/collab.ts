@@ -43,6 +43,8 @@ export interface CollabUser {
   name: string;
   color: string;
   avatarEmoji: string;
+  /** mist storage cid of this user's avatar portrait, if any (see avatar.ts). */
+  avatarCid?: string;
 }
 
 export interface PeerInfo {
@@ -52,6 +54,7 @@ export interface PeerInfo {
   name: string;
   color: string;
   avatarEmoji: string;
+  avatarCid?: string;
 }
 
 export type CollabStatus = "idle" | "connecting" | "connected" | "error";
@@ -98,6 +101,7 @@ interface AwarenessState {
   name: string;
   color: string;
   avatarEmoji: string;
+  avatarCid?: string;
 }
 
 // How a CollabSession obtains the page's mistlib node — the real
@@ -158,7 +162,13 @@ export class CollabSession {
     this.user = user;
     const state = this.awareness.getLocalState() as AwarenessState | null;
     if (state) {
-      this.awareness.setLocalState({ ...state, name: user.name, color: user.color, avatarEmoji: user.avatarEmoji });
+      this.awareness.setLocalState({
+        ...state,
+        name: user.name,
+        color: user.color,
+        avatarEmoji: user.avatarEmoji,
+        avatarCid: user.avatarCid,
+      });
     }
   }
 
@@ -197,6 +207,7 @@ export class CollabSession {
         name: clampUserName(s.name ?? "Anonymous"),
         color: normalizeColor(s.color ?? FALLBACK_COLOR),
         avatarEmoji: s.avatarEmoji || FALLBACK_EMOJI,
+        avatarCid: s.avatarCid || undefined,
       });
       if (s.peerId) this.peerIdByClientId.set(clientId, s.peerId);
     });
@@ -317,6 +328,7 @@ export class CollabSession {
         name: this.user.name,
         color: this.user.color,
         avatarEmoji: this.user.avatarEmoji,
+        avatarCid: this.user.avatarCid,
       } satisfies AwarenessState);
 
       node.joinRoom(roomId);
