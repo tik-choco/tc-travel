@@ -4,7 +4,7 @@ import { getLanguage, useT } from "../../lib/i18n";
 import type { EncounterPin } from "../../lib/types";
 import { useSession, useMembers, usePins, addPin, removePin } from "../../lib/store";
 import { useProfile, useJourney } from "../../lib/personal";
-import { loadWorld, lookupCountry, countryName } from "../../lib/geo";
+import { loadWorld, loadWorldDetailed, lookupCountry, countryName } from "../../lib/geo";
 import type { CountryFeature } from "../../lib/geo";
 import { MAP_W, MAP_H, project, unproject, geometryToPath, geometryCentroid, clamp } from "./geoMath";
 import { continentOf, CONTINENT_ORDER, type ContinentId } from "./continents";
@@ -35,6 +35,12 @@ export function WorldMap() {
   const journey = useJourney();
 
   const [world, setWorld] = useState<CountryFeature[] | null>(null);
+  // Stats (explored %, per-continent counts) stay on the 110m atlas: that's
+  // the dataset lookupCountry() marks visits against, so it's the only
+  // denominator every territory of which is actually reachable. The detailed
+  // 50m set is for RENDERING only — it carries ~60 extra small territories
+  // a visit can never resolve to, which would silently deflate the counts.
+  const [statsWorld, setStatsWorld] = useState<CountryFeature[] | null>(null);
   const [worldError, setWorldError] = useState(false);
   const [sheet, setSheet] = useState<SheetTarget | null>(null);
 
@@ -46,9 +52,16 @@ export function WorldMap() {
 
   useEffect(() => {
     let cancelled = false;
-    loadWorld()
+    loadWorldDetailed()
       .then((w) => {
         if (!cancelled) setWorld(w.features);
+      })
+      .catch(() => {
+        if (!cancelled) setWorldError(true);
+      });
+    loadWorld()
+      .then((w) => {
+        if (!cancelled) setStatsWorld(w.features);
       })
       .catch(() => {
         if (!cancelled) setWorldError(true);
@@ -88,13 +101,13 @@ export function WorldMap() {
     return () => clearTimeout(timer);
   }, [visitedKey]);
 
-  const pct = world && world.length > 0 ? Math.round((visited.size / world.length) * 100) : 0;
+  const pct = statsWorld && statsWorld.length > 0 ? Math.round((visited.size / statsWorld.length) * 100) : 0;
 
   const continentStats = useMemo(() => {
-    if (!world) return [] as { id: ContinentId; visited: number; total: number }[];
+    if (!statsWorld) return [] as { id: ContinentId; visited: number; total: number }[];
     const totals = new Map<ContinentId, number>();
     const seen = new Map<ContinentId, number>();
-    for (const f of world) {
+    for (const f of statsWorld) {
       const cont = continentOf(f.code, geometryCentroid(f.geometry));
       totals.set(cont, (totals.get(cont) ?? 0) + 1);
       if (visited.has(f.code)) seen.set(cont, (seen.get(cont) ?? 0) + 1);
@@ -104,7 +117,7 @@ export function WorldMap() {
       visited: seen.get(c) ?? 0,
       total: totals.get(c) ?? 0,
     }));
-  }, [world, visitedKey]);
+  }, [statsWorld, visitedKey]);
 
   const allPins = useMemo(() => {
     const map = new Map<string, EncounterPin>();
@@ -115,7 +128,13 @@ export function WorldMap() {
 
   // Path strings only depend on the (immutable-once-loaded) world geometry,
   // not on fog/reveal state, so compute them once instead of on every render.
-  const countryPaths = useMemo(() => world?.map((f) => ({ code: f.code, d: geometryToPath(f.geometry) })) ?? [], [world]);
+  // key must combine code and name: the atlas maps some disputed territories
+  // onto their claimant's code (Somaliland→so, N. Cyprus→cy) and leaves a
+  // couple with no code at all, so neither field alone is unique.
+  const countryPaths = useMemo(
+    () => world?.map((f) => ({ key: `${f.code}:${f.name}`, code: f.code, d: geometryToPath(f.geometry) })) ?? [],
+    [world],
+  );
 
   function applyViewBox() {
     const v = viewRef.current;
@@ -277,9 +296,9 @@ export function WorldMap() {
             onDblClick={handleDblClick}
           >
             <rect class="map-ocean" x={0} y={0} width={MAP_W} height={MAP_H} />
-            {countryPaths.map(({ code, d }) => (
+            {countryPaths.map(({ key, code, d }) => (
               <path
-                key={code}
+                key={key}
                 class={[
                   "map-country",
                   visited.has(code) ? "map-country--visited" : "map-country--fog",

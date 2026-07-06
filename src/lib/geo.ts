@@ -81,27 +81,49 @@ function resolveCode(f: Feature<Polygon | MultiPolygon, GeoJsonProperties>): str
   return NAME_OVERRIDES[name] ?? "";
 }
 
+function parseWorldTopology(raw: string): { features: CountryFeature[] } {
+  const topology = JSON.parse(raw) as Topology;
+  const countries = topology.objects.countries as GeometryCollection<GeoJsonProperties>;
+  const collection = feature(topology, countries);
+  const features: CountryFeature[] = [];
+  for (const f of collection.features) {
+    if (f.geometry?.type !== "Polygon" && f.geometry?.type !== "MultiPolygon") continue;
+    features.push({
+      code: resolveCode(f as Feature<Polygon | MultiPolygon, GeoJsonProperties>),
+      name: (f.properties?.name as string | undefined) ?? "",
+      geometry: f.geometry,
+    });
+  }
+  return { features };
+}
+
 let cachedWorld: Promise<{ features: CountryFeature[] }> | null = null;
 
 export function loadWorld(): Promise<{ features: CountryFeature[] }> {
   if (!cachedWorld) {
-    cachedWorld = Promise.resolve().then(() => {
-      const topology = JSON.parse(worldRaw) as Topology;
-      const countries = topology.objects.countries as GeometryCollection<GeoJsonProperties>;
-      const collection = feature(topology, countries);
-      const features: CountryFeature[] = [];
-      for (const f of collection.features) {
-        if (f.geometry?.type !== "Polygon" && f.geometry?.type !== "MultiPolygon") continue;
-        features.push({
-          code: resolveCode(f as Feature<Polygon | MultiPolygon, GeoJsonProperties>),
-          name: (f.properties?.name as string | undefined) ?? "",
-          geometry: f.geometry,
-        });
-      }
-      return { features };
-    });
+    cachedWorld = Promise.resolve().then(() => parseWorldTopology(worldRaw));
   }
   return cachedWorld;
+}
+
+let cachedDetailedWorld: Promise<{ features: CountryFeature[] }> | null = null;
+
+/** Higher-resolution coastlines/borders (countries-50m) for map rendering.
+ *  Dynamically imported so the ~7x larger topojson lands in its own lazy
+ *  chunk instead of the main bundle; country lookup (point-in-polygon) stays
+ *  on the bundled 110m, which is accurate enough for that and always offline.
+ *  Falls back to the 110m data if the chunk can't be fetched. */
+export function loadWorldDetailed(): Promise<{ features: CountryFeature[] }> {
+  if (!cachedDetailedWorld) {
+    cachedDetailedWorld = import("world-atlas/countries-50m.json?raw")
+      .then((mod) => parseWorldTopology(mod.default))
+      .catch((err) => {
+        console.warn("tc-travel: detailed world data unavailable, using low-res fallback", err);
+        cachedDetailedWorld = null; // allow a later retry once back online
+        return loadWorld();
+      });
+  }
+  return cachedDetailedWorld;
 }
 
 // Even-odd ray-casting across every ring of a polygon: a crossing of the

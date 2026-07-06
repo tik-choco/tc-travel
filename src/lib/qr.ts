@@ -19,7 +19,10 @@ export async function renderQr(canvas: HTMLCanvasElement, text: string): Promise
 
 export function buildJoinUrl(roomId: string): string {
   const base = import.meta.env.BASE_URL || "/";
-  return `${location.origin}${base}${JOIN_HASH.slice(1)}${roomId}`;
+  // The "#" is load-bearing: without it the link is a real sub-path, which a
+  // static host (GitHub Pages) 404s instead of serving the SPA. public/404.html
+  // rescues previously-shared hashless links by rewriting them to this form.
+  return `${location.origin}${base}${JOIN_HASH}${roomId}`;
 }
 
 /** Accepts a full join URL (containing "#/join/<roomId>") or a bare valid roomId; null if neither parses. */
