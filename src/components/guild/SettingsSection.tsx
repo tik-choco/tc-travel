@@ -5,6 +5,7 @@ import { LANGUAGES } from "../../lib/types";
 import { LANGUAGE_LABELS, getLanguage, setLanguage, useT } from "../../lib/i18n";
 import { clearProfileAvatar, setProfileAvatar } from "../../lib/avatar";
 import { Avatar } from "../common/Avatar";
+import { loadAiSettings, saveAiSettings, type AiCompanionSettings } from "../../lib/ai/aiSettings";
 
 interface SettingsSectionProps {
   profile: Profile;
@@ -25,6 +26,15 @@ export function SettingsSection({ profile, onProfileChange }: SettingsSectionPro
   const current = getLanguage();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [avatarBusy, setAvatarBusy] = useState(false);
+  const [aiSettings, setAiSettings] = useState<AiCompanionSettings>(() => loadAiSettings());
+
+  const updateAiSettings = (patch: Partial<AiCompanionSettings>) => {
+    setAiSettings((prev) => {
+      const next = { ...prev, ...patch };
+      saveAiSettings(next);
+      return next;
+    });
+  };
 
   const handleAvatarFile = async (e: Event) => {
     const file = (e.target as HTMLInputElement).files?.[0];
@@ -123,6 +133,64 @@ export function SettingsSection({ profile, onProfileChange }: SettingsSectionPro
             />
           ))}
         </div>
+      </div>
+
+      <h2 class="title-ornate guild-section-title">{t("settings.ai.title")}</h2>
+
+      <div class="field">
+        <label for="settings-ai-room">{t("settings.ai.roomId")}</label>
+        <input
+          id="settings-ai-room"
+          class="input"
+          type="text"
+          value={aiSettings.roomId}
+          onInput={(e) => updateAiSettings({ roomId: (e.target as HTMLInputElement).value })}
+        />
+        <span class="settings-label">{t("settings.ai.roomIdHint")}</span>
+      </div>
+
+      <div class="field">
+        <label for="settings-ai-model">{t("settings.ai.model")}</label>
+        <input
+          id="settings-ai-model"
+          class="input"
+          type="text"
+          value={aiSettings.model ?? ""}
+          onInput={(e) => updateAiSettings({ model: (e.target as HTMLInputElement).value })}
+        />
+      </div>
+
+      <div class="field">
+        <label for="settings-ai-voice">{t("settings.ai.voice")}</label>
+        <input
+          id="settings-ai-voice"
+          class="input"
+          type="text"
+          value={aiSettings.voice ?? ""}
+          onInput={(e) => updateAiSettings({ voice: (e.target as HTMLInputElement).value })}
+        />
+      </div>
+
+      <div class="field">
+        <label for="settings-ai-persona">{t("settings.ai.persona")}</label>
+        <textarea
+          id="settings-ai-persona"
+          class="input"
+          rows={3}
+          value={aiSettings.persona ?? ""}
+          onInput={(e) => updateAiSettings({ persona: (e.target as HTMLTextAreaElement).value })}
+        />
+      </div>
+
+      <div class="settings-row">
+        <label style={{ display: "flex", alignItems: "center", gap: "0.6rem", cursor: "pointer" }}>
+          <input
+            type="checkbox"
+            checked={aiSettings.ttsEnabled}
+            onChange={(e) => updateAiSettings({ ttsEnabled: (e.target as HTMLInputElement).checked })}
+          />
+          <span class="settings-label">{t("settings.ai.ttsEnabled")}</span>
+        </label>
       </div>
     </section>
   );

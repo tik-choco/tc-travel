@@ -6,9 +6,16 @@
 // since the Y.Doc's actual shape (meta/members/photos/diary/pins) is owned
 // by store.ts — this class only wires the transport.
 //
-// mistlib only exposes one event slot at a time (onEvent/onRawMessage both
-// just replace `_onEvent`), so we register one onEvent handler here that
-// dispatches on eventType ourselves instead of trying to use both helpers.
+// mistlib exposes only one onEvent slot per node, and that node is shared
+// with other consumers on this page — the AI companion client joins its own
+// room on the same node (SPEC-15 multi-room support). So this module
+// registers through mistNode.ts's fan-out dispatcher (addNodeEventHandler)
+// rather than claiming node.onEvent directly, and still dispatches on
+// eventType itself once its own handler fires. And because a plain
+// sendMessage/leaveRoom on the shared node is unscoped (it would hit every
+// room the node has joined), every send and the eventual leave here are
+// scoped to this.roomId so collab's Yjs traffic never leaks into another
+// room sharing the node.
 
 import * as Y from "yjs";
 import * as syncProtocol from "y-protocols/sync";
@@ -22,7 +29,7 @@ import {
   EVENT_PEER_DISCONNECTED,
   DELIVERY_RELIABLE,
 } from "../vendor/mistlib/wrappers/web/index.js";
-import { ensureMistNode, currentNodeId } from "./mistNode";
+import { ensureMistNode, currentNodeId, addNodeEventHandler } from "./mistNode";
 
 const MSG_SYNC = 0;
 const MSG_AWARENESS = 1;
@@ -128,6 +135,7 @@ export class CollabSession {
   private status: CollabStatus = "idle";
   private disposed = false;
   private peerIdByClientId = new Map<number, string>();
+  private unsubscribeEvents: (() => void) | null = null;
   private user: CollabUser;
   private readonly callbacks: CollabCallbacks;
   private readonly nodeAccess: MistNodeAccess;
@@ -219,7 +227,7 @@ export class CollabSession {
     const encoder = encoding.createEncoder();
     encoding.writeVarUint(encoder, MSG_SYNC);
     syncProtocol.writeUpdate(encoder, update);
-    this.node.sendMessage(null, encoding.toUint8Array(encoder), DELIVERY_RELIABLE);
+    this.node.sendMessage(null, encoding.toUint8Array(encoder), DELIVERY_RELIABLE, this.roomId ?? undefined);
   }
 
   private broadcastAwareness(clientIds: number[]): void {
@@ -230,7 +238,7 @@ export class CollabSession {
       encoder,
       awarenessProtocol.encodeAwarenessUpdate(this.awareness, clientIds),
     );
-    this.node.sendMessage(null, encoding.toUint8Array(encoder), DELIVERY_RELIABLE);
+    this.node.sendMessage(null, encoding.toUint8Array(encoder), DELIVERY_RELIABLE, this.roomId ?? undefined);
   }
 
   private sendSyncStep1(toId: string): void {
@@ -238,7 +246,7 @@ export class CollabSession {
     const encoder = encoding.createEncoder();
     encoding.writeVarUint(encoder, MSG_SYNC);
     syncProtocol.writeSyncStep1(encoder, this.doc);
-    this.node.sendMessage(toId, encoding.toUint8Array(encoder), DELIVERY_RELIABLE);
+    this.node.sendMessage(toId, encoding.toUint8Array(encoder), DELIVERY_RELIABLE, this.roomId ?? undefined);
   }
 
   private sendFullAwareness(toId: string): void {
@@ -251,7 +259,7 @@ export class CollabSession {
       encoder,
       awarenessProtocol.encodeAwarenessUpdate(this.awareness, clientIds),
     );
-    this.node.sendMessage(toId, encoding.toUint8Array(encoder), DELIVERY_RELIABLE);
+    this.node.sendMessage(toId, encoding.toUint8Array(encoder), DELIVERY_RELIABLE, this.roomId ?? undefined);
   }
 
   private handleRawMessage(fromId: string, payload: Uint8Array): void {
@@ -270,7 +278,7 @@ export class CollabSession {
       // step2); step2/update messages produce no reply, so skip sending an
       // empty frame.
       if (replyType === syncProtocol.messageYjsSyncStep1) {
-        this.node?.sendMessage(fromId, encoding.toUint8Array(encoder), DELIVERY_RELIABLE);
+        this.node?.sendMessage(fromId, encoding.toUint8Array(encoder), DELIVERY_RELIABLE, this.roomId ?? undefined);
       }
     } else if (msgType === MSG_AWARENESS) {
       const update = decoding.readVarUint8Array(decoder);
@@ -306,11 +314,17 @@ export class CollabSession {
       this.node = node;
       this.roomId = roomId;
 
-      node.onEvent((eventType, fromId, payload) => {
+      this.unsubscribeEvents = addNodeEventHandler((eventType, fromId, payload, roomId) => {
         // Guard against a callback firing after this session moved on
-        // (destroyed, or joined a different room/node) in case mistlib
-        // doesn't fully detach the event slot on leaveRoom().
+        // (destroyed, or joined a different room/node) — the event slot is
+        // now a shared fan-out dispatcher (mistNode.ts) rather than
+        // exclusively owned by this session, so a stale handler can linger
+        // until unsubscribeEvents() runs in leave().
         if (this.disposed || this.node !== node) return;
+        // Ignore events tagged for a different room sharing this node
+        // (e.g. the AI companion's); events with no room attached are
+        // processed as before, for backward compatibility.
+        if (roomId !== undefined && roomId !== this.roomId) return;
         if (eventType === EVENT_RAW) {
           const bytes = payload instanceof Uint8Array ? payload : new Uint8Array(payload as ArrayBuffer);
           this.handleRawMessage(fromId, bytes);
@@ -342,9 +356,14 @@ export class CollabSession {
   leave(): void {
     if (this.node) {
       awarenessProtocol.removeAwarenessStates(this.awareness, [this.doc.clientID], LOCAL_ORIGIN);
-      this.node.leaveRoom();
+      // Scoped to this.roomId: the unscoped leaveRoom() form would tear down
+      // the whole shared node, decommissioning any other room on it (e.g.
+      // the AI companion's). This leaves the node itself initialized.
+      this.node.leaveRoom(this.roomId ?? undefined);
       this.node = null;
     }
+    this.unsubscribeEvents?.();
+    this.unsubscribeEvents = null;
     this.roomId = null;
     this.peerIdByClientId.clear();
     this.setStatus("idle");

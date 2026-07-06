@@ -568,4 +568,38 @@ registerTranslations({
     en: "Color", ja: "カラー", zh: "颜色", ko: "색상",
     es: "Color", fr: "Couleur", de: "Farbe", pt: "Cor",
   },
+  "settings.ai.title": {
+    en: "AI Companion", ja: "AI使い魔", zh: "AI伙伴", ko: "AI 동료",
+    es: "Compañero IA", fr: "Compagnon IA", de: "KI-Gefährte", pt: "Companheiro IA",
+  },
+  "settings.ai.roomId": {
+    en: "Room ID", ja: "ルームID", zh: "房间ID", ko: "방 ID",
+    es: "ID de Sala", fr: "ID de Salle", de: "Raum-ID", pt: "ID da Sala",
+  },
+  "settings.ai.roomIdHint": {
+    en: "The mist room your AI provider is announced on.",
+    ja: "AIプロバイダーが告知しているmistルームです。",
+    zh: "AI 提供方公告所在的 mist 房间。",
+    ko: "AI 제공자가 알리는 mist 방입니다.",
+    es: "La sala mist donde tu proveedor de IA se anuncia.",
+    fr: "La salle mist où votre fournisseur d'IA est annoncé.",
+    de: "Der Mist-Raum, in dem dein KI-Anbieter angekündigt wird.",
+    pt: "A sala mist onde seu provedor de IA é anunciado.",
+  },
+  "settings.ai.model": {
+    en: "Model (optional)", ja: "モデル（任意）", zh: "模型（可选）", ko: "모델 (선택 사항)",
+    es: "Modelo (opcional)", fr: "Modèle (facultatif)", de: "Modell (optional)", pt: "Modelo (opcional)",
+  },
+  "settings.ai.voice": {
+    en: "Voice (optional)", ja: "ボイス（任意）", zh: "声音（可选）", ko: "음성 (선택 사항)",
+    es: "Voz (opcional)", fr: "Voix (facultative)", de: "Stimme (optional)", pt: "Voz (opcional)",
+  },
+  "settings.ai.persona": {
+    en: "Personality (optional)", ja: "キャラクター設定（任意）", zh: "性格设定（可选）", ko: "성격 설정 (선택 사항)",
+    es: "Personalidad (opcional)", fr: "Personnalité (facultative)", de: "Persönlichkeit (optional)", pt: "Personalidade (opcional)",
+  },
+  "settings.ai.ttsEnabled": {
+    en: "Speak replies aloud", ja: "音声で喋る", zh: "语音朗读回复", ko: "음성으로 대답하기",
+    es: "Leer respuestas en voz alta", fr: "Lire les réponses à voix haute", de: "Antworten laut vorlesen", pt: "Falar as respostas em voz alta",
+  },
 });

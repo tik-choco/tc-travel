@@ -77,11 +77,19 @@ function createIdleAnimator(vrm: VRM): (deltaSeconds: number, elapsedSeconds: nu
 
 export function createVrmCompanion(vrm: VRM): Companion {
   const stepIdle = createIdleAnimator(vrm);
+  const hasMouth = Boolean(vrm.expressionManager?.expressionMap["aa"]);
+  let mouthLevel = 0;
   return {
     root: vrm.scene,
     update(deltaSeconds, elapsedSeconds) {
       stepIdle(deltaSeconds, elapsedSeconds);
+      // expressionManager applies queued values inside vrm.update(), so "aa"
+      // must be set before that call.
+      if (hasMouth) vrm.expressionManager?.setValue("aa", mouthLevel);
       vrm.update(deltaSeconds);
+    },
+    setMouthLevel(level) {
+      if (hasMouth) mouthLevel = level;
     },
     dispose() {
       VRMUtils.deepDispose(vrm.scene);
