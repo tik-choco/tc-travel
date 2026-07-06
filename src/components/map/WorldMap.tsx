@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "preact/hooks";
-import { Compass, MapPin } from "lucide-preact";
+import { ChevronRight, Compass, MapPin, Sparkles } from "lucide-preact";
 import { getLanguage, useT } from "../../lib/i18n";
 import type { EncounterPin } from "../../lib/types";
 import { useSession, useMembers, usePins, addPin, removePin } from "../../lib/store";
@@ -10,6 +10,9 @@ import { MAP_W, MAP_H, project, unproject, geometryToPath, geometryCentroid, cla
 import type { SimpleGeometry } from "./geoMath";
 import { continentOf, CONTINENT_ORDER, type ContinentId } from "./continents";
 import { EncounterSheet, type SheetTarget } from "./EncounterSheet";
+import { useJapanCollection } from "./japanGeo";
+import { JapanMap } from "./JapanMap";
+import { BragCard } from "./BragCard";
 import "./map.i18n";
 import "./map.css";
 
@@ -69,6 +72,8 @@ export function WorldMap() {
   const [statsWorld, setStatsWorld] = useState<CountryFeature[] | null>(null);
   const [worldError, setWorldError] = useState(false);
   const [sheet, setSheet] = useState<SheetTarget | null>(null);
+  const [jpOpen, setJpOpen] = useState(false);
+  const [bragOpen, setBragOpen] = useState(false);
 
   const svgRef = useRef<SVGSVGElement | null>(null);
   const viewRef = useRef<ViewState>({ x: 0, y: 0, scale: 1 });
@@ -106,6 +111,11 @@ export function WorldMap() {
   }, [journey.pins, journey.photos, journey.diary]);
 
   const visitedKey = useMemo(() => [...visited].sort().join(","), [visited]);
+
+  // Japan drill-down: the prefecture geojson is only fetched once the
+  // traveller actually has a Japan visit — until then this hook is inert.
+  const japanUnlocked = visited.has("jp");
+  const japan = useJapanCollection(japanUnlocked);
 
   // Fog-reveal animation: track which countries newly entered `visited` since
   // the last render and flag them for a short one-shot animation.
@@ -459,6 +469,20 @@ export function WorldMap() {
                 </span>
               ))}
             </div>
+            {japanUnlocked && (
+              <div class="map-japan-row">
+                <button type="button" class="map-continent-chip map-japan-chip" onClick={() => setJpOpen(true)}>
+                  🇯🇵 {t("map.jp.open")}
+                  {japan.prefs ? ` ${japan.visited.size}/${japan.prefs.length}` : ""}
+                  <ChevronRight size={12} />
+                </button>
+                {japan.visited.size > 0 && (
+                  <button type="button" class="map-continent-chip map-japan-chip" onClick={() => setBragOpen(true)}>
+                    <Sparkles size={12} /> {t("map.brag.make")}
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         )}
 
@@ -493,14 +517,19 @@ export function WorldMap() {
             </div>
           </div>
         )}
+
+        {jpOpen && <JapanMap onClose={() => setJpOpen(false)} onBrag={() => setBragOpen(true)} />}
       </div>
 
-      {world && !worldError && (
+      {/* FAB hides while the Japan overlay is open — it targets the world map. */}
+      {world && !worldError && !jpOpen && (
         <button type="button" class="fab" onClick={handleAddAtCenter}>
           <MapPin size={22} />
           <span class="fab-label">{t("map.fab.add")}</span>
         </button>
       )}
+
+      {bragOpen && <BragCard onClose={() => setBragOpen(false)} />}
 
       {sheet && (
         <EncounterSheet
