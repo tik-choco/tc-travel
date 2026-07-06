@@ -1,7 +1,9 @@
 .ar-screen {
   position: relative;
   width: 100%;
-  height: calc(100dvh - var(--tabbar-h));
+  /* fill .app-content exactly — sizing against the viewport here would
+     overflow past the tab bar and paint the camera controls on top of it */
+  height: 100%;
   overflow: hidden;
   background: var(--surface-dim);
   touch-action: none;
@@ -251,6 +253,43 @@
 
 .ar-file-input {
   display: none;
+}
+
+/* VRM source chooser sheet — "from device" vs. "from TC Storage" */
+.ar-chooser-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 0.5rem 0 1rem;
+}
+
+.ar-chooser-header .title-ornate {
+  margin: 0;
+}
+
+.ar-chooser-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem 1rem;
+}
+
+.ar-chooser-section-label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0.75rem 0 0.1rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--on-surface-variant);
+}
+
+.ar-chooser-body .list-item:disabled {
+  opacity: 0.5;
+  cursor: default;
 }
 
 /* Reused by loading icon buttons (LoaderCircle) — mirrors the pattern used
