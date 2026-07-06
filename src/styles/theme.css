@@ -1,0 +1,392 @@
+/*
+ * tc-travel — Fantasy UI design tokens + shared component classes.
+ * Dark leather-and-parchment theme (see docs/DESIGN.md "Fantasy UI theme").
+ * Every feature module should build on these tokens/classes rather than
+ * inventing new colors, so the app reads as one consistent world.
+ */
+
+:root {
+  color-scheme: dark;
+
+  /* Dark leather/ink background (app chrome, screens) */
+  --bg: #171008;
+  --bg-raised: #241708;
+
+  /* Parchment surfaces (cards, panels, modals) */
+  --parchment: #f0e2c4;
+  --parchment-2: #e3d0a5;
+
+  /* Text on parchment */
+  --ink: #2b1d0e;
+  --ink-soft: #5a452a;
+
+  /* Text on dark background */
+  --text: #f0e2c4;
+  --text-soft: #b09a6e;
+
+  /* Gold accents */
+  --gold: #c9a227;
+  --gold-bright: #e8c547;
+
+  /* Wax-seal red accent */
+  --seal: #8c2f28;
+
+  /* An emerald used only for "connected"/success states; keep sparing */
+  --success: #4caf6b;
+
+  --font-display: Georgia, "Iowan Old Style", "Times New Roman", serif;
+
+  --radius: 6px;
+  --radius-lg: 12px;
+
+  /* Bottom tab bar height, content + safe area */
+  --tabbar-h: calc(58px + env(safe-area-inset-bottom, 0px));
+
+  --shadow-panel: 0 4px 18px rgba(0, 0, 0, 0.5);
+}
+
+/* ---------------------------------------------------------------------- */
+/* Focus & tap targets                                                     */
+/* ---------------------------------------------------------------------- */
+
+:focus {
+  outline: none;
+}
+:focus-visible {
+  outline: 2px solid var(--gold-bright);
+  outline-offset: 2px;
+  border-radius: var(--radius);
+}
+
+/* ---------------------------------------------------------------------- */
+/* Typography                                                              */
+/* ---------------------------------------------------------------------- */
+
+.title-ornate {
+  margin: 0 0 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  letter-spacing: 0.03em;
+  color: var(--gold-bright);
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.6);
+}
+.title-ornate::before,
+.title-ornate::after {
+  content: "\2726";
+  font-size: 0.7em;
+  color: var(--gold);
+  opacity: 0.85;
+}
+
+/* ---------------------------------------------------------------------- */
+/* .panel — parchment card with ornate double border + corner flourishes  */
+/* ---------------------------------------------------------------------- */
+
+.panel {
+  position: relative;
+  background: linear-gradient(160deg, var(--parchment), var(--parchment-2));
+  color: var(--ink);
+  border: 2px solid var(--gold);
+  border-radius: var(--radius-lg);
+  padding: 1rem;
+  box-shadow: var(--shadow-panel), inset 0 0 0 1px rgba(43, 29, 14, 0.15);
+}
+/* inner hairline — reads as a "double border" frame */
+.panel::before {
+  content: "";
+  position: absolute;
+  inset: 6px;
+  border: 1px solid var(--gold);
+  border-radius: calc(var(--radius-lg) - 4px);
+  opacity: 0.6;
+  pointer-events: none;
+}
+/* gilded corner studs — the "flourish" */
+.panel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  opacity: 0.85;
+  pointer-events: none;
+  background: radial-gradient(circle at 11px 11px, transparent 3px, var(--gold) 3.5px, transparent 4.5px)
+      top left / 26px 26px no-repeat,
+    radial-gradient(circle at calc(100% - 11px) 11px, transparent 3px, var(--gold) 3.5px, transparent 4.5px)
+      top right / 26px 26px no-repeat,
+    radial-gradient(circle at 11px calc(100% - 11px), transparent 3px, var(--gold) 3.5px, transparent 4.5px)
+      bottom left / 26px 26px no-repeat,
+    radial-gradient(circle at calc(100% - 11px) calc(100% - 11px), transparent 3px, var(--gold) 3.5px, transparent 4.5px)
+      bottom right / 26px 26px no-repeat;
+}
+.panel-tight {
+  padding: 0.75rem;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Buttons — embossed leather / brass                                     */
+/* ---------------------------------------------------------------------- */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 1.15rem;
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--text);
+  background: linear-gradient(180deg, #3d2c15, #241708);
+  border: 1px solid rgba(0, 0, 0, 0.55);
+  border-radius: var(--radius);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), inset 0 -2px 3px rgba(0, 0, 0, 0.5),
+    0 2px 4px rgba(0, 0, 0, 0.4);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  transition: transform 0.08s ease, box-shadow 0.08s ease, filter 0.15s ease;
+}
+.btn:hover {
+  filter: brightness(1.1);
+}
+.btn:active {
+  transform: translateY(1px);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.55);
+}
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  filter: none;
+  transform: none;
+}
+.btn-primary {
+  color: var(--ink);
+  background: linear-gradient(180deg, var(--gold-bright), var(--gold) 65%, #a9820f);
+  border-color: #7a5e12;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55), inset 0 -2px 3px rgba(0, 0, 0, 0.35),
+    0 2px 6px rgba(0, 0, 0, 0.5);
+}
+.btn-primary:active {
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.4);
+}
+.btn-danger {
+  color: var(--text);
+  background: linear-gradient(180deg, #a8453b, var(--seal) 65%, #5f1f19);
+  border-color: #4a1712;
+}
+.btn-ghost {
+  background: transparent;
+  border-color: rgba(240, 226, 196, 0.3);
+  box-shadow: none;
+}
+.btn-block {
+  width: 100%;
+}
+.btn-icon {
+  padding: 0;
+  width: 44px;
+}
+
+/* ---------------------------------------------------------------------- */
+/* .screen — scrollable page content area, sits above the tab bar          */
+/* ---------------------------------------------------------------------- */
+
+.screen {
+  box-sizing: border-box;
+  height: 100%;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 1rem max(1rem, env(safe-area-inset-right)) calc(1.5rem + var(--tabbar-h))
+    max(1rem, env(safe-area-inset-left));
+  max-width: 720px;
+  margin-inline: auto;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Small shared primitives reused across feature modules                   */
+/* ---------------------------------------------------------------------- */
+
+.avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  font-size: 1.1rem;
+  background: var(--bg-raised);
+  border: 2px solid var(--gold);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+.avatar-sm {
+  width: 26px;
+  height: 26px;
+  font-size: 0.85rem;
+}
+
+.status-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--seal);
+  box-shadow: 0 0 4px currentColor;
+  transition: background-color 0.2s ease;
+}
+.status-dot.is-connected {
+  background: var(--success);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-bottom: 1rem;
+}
+.field > label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-soft);
+}
+.input {
+  min-height: 44px;
+  padding: 0.6rem 0.8rem;
+  border-radius: var(--radius);
+  border: 1px solid rgba(201, 162, 39, 0.4);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text);
+  font: inherit;
+}
+.input::placeholder {
+  color: var(--text-soft);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: var(--radius);
+  border: 2px solid transparent;
+  background: rgba(255, 255, 255, 0.06);
+  font-size: 1.35rem;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.chip.is-selected {
+  border-color: var(--gold-bright);
+  box-shadow: 0 0 0 2px rgba(232, 197, 71, 0.3);
+}
+.chip-color {
+  min-width: 36px;
+  min-height: 36px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  cursor: pointer;
+}
+.chip-color.is-selected {
+  border-color: var(--gold-bright);
+  box-shadow: 0 0 0 3px rgba(232, 197, 71, 0.35);
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgba(10, 7, 3, 0.72);
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom)
+    env(safe-area-inset-left);
+}
+.modal-card {
+  width: 100%;
+  max-width: 480px;
+  max-height: 88dvh;
+  overflow-y: auto;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  animation: modal-rise 0.22s ease-out;
+}
+@media (min-width: 560px) {
+  .modal-backdrop {
+    align-items: center;
+  }
+  .modal-card {
+    border-radius: var(--radius-lg);
+  }
+}
+@keyframes modal-rise {
+  from {
+    transform: translateY(16px);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+/* ---------------------------------------------------------------------- */
+/* Reusable animation utilities                                            */
+/* ---------------------------------------------------------------------- */
+
+/* Fog-of-war reveal: apply when a country/region/card first comes into
+   view (e.g. WorldMap country reveal, a newly-unlocked achievement). */
+@keyframes fog-reveal {
+  0% {
+    filter: grayscale(1) brightness(0.3) blur(6px);
+    opacity: 0.35;
+  }
+  60% {
+    filter: grayscale(0.3) brightness(0.85) blur(2px);
+    opacity: 0.85;
+  }
+  100% {
+    filter: grayscale(0) brightness(1) blur(0);
+    opacity: 1;
+  }
+}
+.fog-reveal {
+  animation: fog-reveal 1.2s ease-out both;
+}
+
+/* Gold shimmer sweep: apply to badges, rank-up banners, achievement icons. */
+@keyframes gold-shimmer-sweep {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+.gold-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+.gold-shimmer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(115deg, transparent 30%, rgba(232, 197, 71, 0.55) 50%, transparent 70%);
+  background-size: 200% 100%;
+  animation: gold-shimmer-sweep 2.2s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fog-reveal,
+  .gold-shimmer::after {
+    animation: none;
+  }
+}

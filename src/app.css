@@ -1,0 +1,296 @@
+/* App shell chrome (header/tab bar) + layout for the room/ screens.
+   Design tokens & shared primitives (.panel, .btn, .screen, ...) live in
+   styles/theme.css — this file only arranges them. */
+
+.app-shell {
+  height: 100dvh;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: radial-gradient(ellipse at 50% -10%, var(--bg-raised), var(--bg) 70%);
+}
+
+.app-content {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Header                                                                  */
+/* ---------------------------------------------------------------------- */
+
+.app-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: max(0.6rem, env(safe-area-inset-top)) max(0.85rem, env(safe-area-inset-right)) 0.6rem
+    max(0.85rem, env(safe-area-inset-left));
+  background: linear-gradient(180deg, var(--bg-raised), var(--bg));
+  border-bottom: 1px solid rgba(201, 162, 39, 0.35);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+.app-header-emoji {
+  font-size: 1.6rem;
+  line-height: 1;
+}
+.app-header-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+.app-header-name {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.app-header-status {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+  color: var(--text-soft);
+}
+.app-header-members {
+  display: flex;
+}
+.app-header-members .avatar {
+  margin-left: -10px;
+}
+.app-header-members .avatar:first-child {
+  margin-left: 0;
+}
+.app-header-actions {
+  display: flex;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+.confirm-popover {
+  position: fixed;
+  z-index: 200;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(10, 7, 3, 0.72);
+  padding: 1.25rem;
+}
+.confirm-popover-body {
+  max-width: 340px;
+  width: 100%;
+  text-align: center;
+}
+.confirm-popover-actions {
+  display: flex;
+  gap: 0.6rem;
+  margin-top: 1rem;
+}
+.confirm-popover-actions .btn {
+  flex: 1;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Tab bar                                                                 */
+/* ---------------------------------------------------------------------- */
+
+.tab-bar {
+  display: flex;
+  height: var(--tabbar-h);
+  padding-bottom: env(safe-area-inset-bottom);
+  background: linear-gradient(0deg, var(--bg-raised), var(--bg));
+  border-top: 1px solid rgba(201, 162, 39, 0.35);
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.35);
+}
+.tab-bar-btn {
+  flex: 1;
+  min-height: 44px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2rem;
+  background: none;
+  border: none;
+  color: var(--text-soft);
+  font: inherit;
+  font-size: 0.68rem;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.tab-bar-btn.is-active {
+  color: var(--gold-bright);
+}
+.tab-bar-btn svg {
+  width: 22px;
+  height: 22px;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Error boundary                                                          */
+/* ---------------------------------------------------------------------- */
+
+.error-boundary-screen {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+}
+.error-boundary-panel {
+  max-width: 420px;
+  text-align: center;
+}
+.error-boundary-panel p {
+  margin: 0.5rem 0 1rem;
+  color: var(--ink-soft);
+}
+
+/* ---------------------------------------------------------------------- */
+/* Profile setup                                                           */
+/* ---------------------------------------------------------------------- */
+
+.profile-setup {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 100%;
+}
+.emoji-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
+  gap: 0.5rem;
+}
+.color-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+.language-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 0.5rem;
+}
+.language-grid .chip {
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 0 0.6rem;
+  width: 100%;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Home / quest board                                                      */
+/* ---------------------------------------------------------------------- */
+
+.quest-board {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-bottom: 1.5rem;
+}
+.quest-card {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  font: inherit;
+}
+.quest-card-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.quest-card-name {
+  font-family: var(--font-display);
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.quest-card-meta {
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+}
+.quest-board-empty {
+  text-align: center;
+  color: var(--ink-soft);
+  padding: 1rem 0;
+}
+
+.home-section {
+  margin-bottom: 1.5rem;
+}
+.home-section h2 {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  color: var(--gold-bright);
+  margin-bottom: 0.6rem;
+}
+.join-row {
+  display: flex;
+  gap: 0.5rem;
+}
+.join-row .input {
+  flex: 1;
+}
+
+/* ---------------------------------------------------------------------- */
+/* QR modal                                                                 */
+/* ---------------------------------------------------------------------- */
+
+.qr-modal-body {
+  padding: 1.25rem;
+}
+.qr-tabs {
+  display: flex;
+  gap: 0.4rem;
+  margin-bottom: 1rem;
+}
+.qr-tabs .btn {
+  flex: 1;
+}
+.qr-canvas-wrap {
+  display: flex;
+  justify-content: center;
+  padding: 1rem 0;
+}
+.qr-canvas-wrap canvas {
+  border-radius: var(--radius);
+  background: #fff;
+  padding: 8px;
+}
+.qr-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+.qr-actions .btn {
+  flex: 1;
+}
+.qr-scan-video {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  border-radius: var(--radius);
+  background: #000;
+}
+.qr-scan-error {
+  margin-top: 0.75rem;
+  color: var(--seal);
+  font-size: 0.85rem;
+  text-align: center;
+}
+.qr-modal-close {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 0.25rem;
+}

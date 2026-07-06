@@ -1,0 +1,221 @@
+.ar-screen {
+  position: relative;
+  width: 100%;
+  height: calc(100dvh - var(--tabbar-h, 64px));
+  overflow: hidden;
+  background: var(--bg, #171008);
+  touch-action: none;
+}
+
+.ar-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: #000;
+}
+
+.ar-overlay {
+  position: absolute;
+  inset: 0;
+}
+
+.ar-topbar {
+  position: absolute;
+  top: max(env(safe-area-inset-top), 12px);
+  left: max(env(safe-area-inset-left), 12px);
+  right: max(env(safe-area-inset-right), 12px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  z-index: 3;
+}
+
+.ar-title {
+  font-family: var(--font-display, Georgia, serif);
+  color: var(--gold-bright, #e8c547);
+  font-size: 1rem;
+  letter-spacing: 0.03em;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
+  margin: 0;
+}
+
+.ar-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  border: 1px solid rgba(232, 197, 71, 0.5);
+  background: rgba(23, 16, 8, 0.6);
+  backdrop-filter: blur(4px);
+  color: var(--gold-bright, #e8c547);
+  cursor: pointer;
+}
+
+.ar-icon-btn:active {
+  background: rgba(23, 16, 8, 0.85);
+}
+
+.ar-icon-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.ar-hint {
+  position: absolute;
+  top: max(env(safe-area-inset-top), 12px);
+  left: 50%;
+  transform: translateX(-50%);
+  color: var(--text, #f0e2c4);
+  background: rgba(23, 16, 8, 0.55);
+  border-radius: var(--radius, 6px);
+  padding: 6px 12px;
+  font-size: 0.8rem;
+  text-align: center;
+  z-index: 3;
+  pointer-events: none;
+  transition: opacity 0.6s ease;
+  margin-top: 40px;
+}
+
+.ar-hint.hidden {
+  opacity: 0;
+}
+
+.ar-bottombar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: max(env(safe-area-inset-bottom), 16px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  z-index: 3;
+}
+
+.ar-side-controls {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.ar-shutter-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+}
+
+.ar-shutter {
+  width: 74px;
+  height: 74px;
+  border-radius: 999px;
+  border: 4px solid var(--gold, #c9a227);
+  background: radial-gradient(circle at 35% 30%, var(--gold-bright, #e8c547), var(--gold, #c9a227) 70%);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #2b1d0e;
+  cursor: pointer;
+}
+
+.ar-shutter:active {
+  transform: scale(0.94);
+}
+
+.ar-shutter:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.ar-flash {
+  position: absolute;
+  inset: 0;
+  background: #fff;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 5;
+  transition: opacity 0.12s ease;
+}
+
+.ar-flash.active {
+  opacity: 0.85;
+  transition: opacity 0.02s ease;
+}
+
+.ar-toast {
+  position: absolute;
+  bottom: calc(max(env(safe-area-inset-bottom), 16px) + 130px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(23, 16, 8, 0.85);
+  color: var(--text, #f0e2c4);
+  border: 1px solid rgba(232, 197, 71, 0.4);
+  border-radius: var(--radius, 6px);
+  padding: 8px 16px;
+  font-size: 0.85rem;
+  z-index: 4;
+  white-space: nowrap;
+  max-width: 90vw;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ar-save-pill {
+  position: absolute;
+  bottom: calc(max(env(safe-area-inset-bottom), 16px) + 96px);
+  left: 50%;
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--parchment, #f0e2c4);
+  color: var(--ink, #2b1d0e);
+  border: 1px solid var(--gold, #c9a227);
+  border-radius: var(--radius-lg, 12px);
+  padding: 8px 16px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  z-index: 4;
+}
+
+.ar-permission-panel {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  z-index: 6;
+  background: rgba(10, 7, 3, 0.85);
+}
+
+.ar-permission-panel .panel {
+  max-width: 340px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 24px;
+}
+
+.ar-permission-panel h2 {
+  font-family: var(--font-display, Georgia, serif);
+  margin: 0;
+}
+
+.ar-permission-panel p {
+  margin: 0;
+  color: var(--ink-soft, #5a452a);
+}
+
+.ar-file-input {
+  display: none;
+}
