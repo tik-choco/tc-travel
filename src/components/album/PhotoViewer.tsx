@@ -1,9 +1,10 @@
 import { useRef } from "preact/hooks";
-import { ChevronLeft, ChevronRight, Download, LoaderCircle, MapPin, Trash2, X } from "lucide-preact";
+import { ChevronLeft, ChevronRight, Download, LoaderCircle, MapPin, Sparkles, Trash2, X } from "lucide-preact";
 import { usePhotoUrl } from "../../lib/store";
 import { countryName } from "../../lib/geo";
 import { getLanguage, useT } from "../../lib/i18n";
 import type { Member, Photo } from "../../lib/types";
+import { Avatar } from "../common/Avatar";
 
 interface PhotoViewerProps {
   photos: Photo[];
@@ -37,7 +38,7 @@ export function PhotoViewer({
   if (!photo) return null;
 
   const author = memberById.get(photo.by);
-  const authorLabel = author ? `${author.avatarEmoji} ${author.name}` : t("album.fellowTraveler");
+  const authorName = author?.name ?? t("album.fellowTraveler");
   const dateLabel = new Intl.DateTimeFormat(getLanguage(), { dateStyle: "medium", timeStyle: "short" }).format(
     new Date(photo.at),
   );
@@ -96,7 +97,7 @@ export function PhotoViewer({
           <ChevronLeft size={28} />
         </button>
         <div class="viewer-image-wrap" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
-          {url ? <img src={url} alt="" /> : <LoaderCircle class="spin" size={32} color="var(--text)" />}
+          {url ? <img src={url} alt="" /> : <LoaderCircle class="spin" size={32} color="var(--on-surface)" />}
         </div>
         <button
           type="button"
@@ -109,7 +110,15 @@ export function PhotoViewer({
         </button>
       </div>
       <div class="viewer-info">
-        <span class="viewer-author">{authorLabel}</span>
+        <span class="viewer-author">
+          <Avatar member={author ?? null} size="sm" ringColor={author?.color} />
+          {authorName}
+          {photo.arShot && (
+            <span class="viewer-ar-badge">
+              <Sparkles size={11} /> {t("album.arBadge")}
+            </span>
+          )}
+        </span>
         <span class="viewer-meta">
           <span>{dateLabel}</span>
           {locationLabel && (
@@ -120,11 +129,11 @@ export function PhotoViewer({
         </span>
         {photo.caption && <span class="viewer-caption">{photo.caption}</span>}
         <span class="viewer-actions">
-          <button type="button" class="btn" onClick={handleDownload} disabled={!url}>
+          <button type="button" class="btn btn-tonal" onClick={handleDownload} disabled={!url}>
             <Download size={16} /> {t("album.download")}
           </button>
           {isOwn && (
-            <button type="button" class="btn" onClick={handleDelete}>
+            <button type="button" class="btn btn-danger" onClick={handleDelete}>
               <Trash2 size={16} /> {t("album.delete")}
             </button>
           )}

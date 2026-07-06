@@ -18,10 +18,9 @@ html {
 
 body {
   margin: 0;
-  background: var(--bg);
-  color: var(--text);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial,
-    sans-serif;
+  background: var(--surface-dim);
+  color: var(--on-surface);
+  font-family: var(--font);
   -webkit-font-smoothing: antialiased;
   overscroll-behavior: none;
 }
@@ -37,7 +36,7 @@ button {
 }
 
 a {
-  color: var(--gold-bright);
+  color: var(--primary);
 }
 
 img,

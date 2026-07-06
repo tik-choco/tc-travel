@@ -11,6 +11,8 @@ export interface Member {
   name: string;
   color: string; // css color used for pins/awareness
   avatarEmoji: string;
+  /** mist storage cid of a small square JPEG avatar portrait; fallback is avatarEmoji */
+  avatarCid?: string;
   joinedAt: number; // epoch ms
 }
 
@@ -73,6 +75,9 @@ export interface Profile {
   name: string;
   color: string;
   avatarEmoji: string;
+  /** small (≤256px) cover-cropped square JPEG data URL; users are attached to
+   *  their avatars — this is the primary identity image (VRM portrait or upload) */
+  avatarImage?: string;
   language: Language | "auto";
 }
 

@@ -9,9 +9,11 @@ const ROOM_ID_PATTERN = /^[A-Za-z0-9_-]{1,128}$/;
 const JOIN_HASH = "#/join/";
 
 export async function renderQr(canvas: HTMLCanvasElement, text: string): Promise<void> {
+  // Plain black-on-white regardless of app theme (docs/REDESIGN.md's "QR on
+  // a white rounded tile") — max contrast for camera scan reliability.
   await QRCode.toCanvas(canvas, text, {
     errorCorrectionLevel: "H",
-    color: { dark: "#2b1d0e", light: "#f0e2c4" },
+    color: { dark: "#000000", light: "#ffffff" },
   });
 }
 

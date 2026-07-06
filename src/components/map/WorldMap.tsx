@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "preact/hooks";
+import { Compass, MapPin } from "lucide-preact";
 import { getLanguage, useT } from "../../lib/i18n";
 import type { EncounterPin } from "../../lib/types";
 import { useSession, useMembers, usePins, addPin, removePin } from "../../lib/store";
@@ -165,12 +166,27 @@ export function WorldMap() {
     applyViewBox();
   }
 
-  async function handleTap(clientX: number, clientY: number) {
+  function openEncounterSheetAt(lat: number, lng: number) {
+    setSheet({ mode: "new", lat, lng, countryCode: "", resolving: true });
+    void lookupCountry(lat, lng).then((code) => {
+      setSheet((s) => (s && s.mode === "new" && s.lat === lat && s.lng === lng ? { ...s, countryCode: code, resolving: false } : s));
+    });
+  }
+
+  function handleTap(clientX: number, clientY: number) {
     const pt = screenToSvg(clientX, clientY);
     const { lat, lng } = unproject(clamp(pt.x, 0, MAP_W), clamp(pt.y, 0, MAP_H));
-    setSheet({ mode: "new", lat, lng, countryCode: "", resolving: true });
-    const code = await lookupCountry(lat, lng);
-    setSheet((s) => (s && s.mode === "new" && s.lat === lat && s.lng === lng ? { ...s, countryCode: code, resolving: false } : s));
+    openEncounterSheetAt(lat, lng);
+  }
+
+  /** FAB / empty-state CTA: record an encounter at the current viewport center,
+   * so the action works without requiring a precise tap on the map first. */
+  function handleAddAtCenter() {
+    const v = viewRef.current;
+    const w = MAP_W / v.scale;
+    const h = MAP_H / v.scale;
+    const { lat, lng } = unproject(clamp(v.x + w / 2, 0, MAP_W), clamp(v.y + h / 2, 0, MAP_H));
+    openEncounterSheetAt(lat, lng);
   }
 
   function handlePointerDown(e: PointerEvent) {
@@ -222,7 +238,7 @@ export function WorldMap() {
       const drag = dragRef.current;
       dragRef.current = null;
       const duration = performance.now() - drag.startTime;
-      if (!drag.moved && duration < TAP_MAX_DURATION) void handleTap(e.clientX, e.clientY);
+      if (!drag.moved && duration < TAP_MAX_DURATION) handleTap(e.clientX, e.clientY);
     }
   }
 
@@ -244,23 +260,6 @@ export function WorldMap() {
 
   return (
     <div class="screen map-screen">
-      <header class="map-header panel">
-        <h1 class="title-ornate">{t("map.title")}</h1>
-        <p class="map-tagline">{t("map.tagline")}</p>
-        {world && (
-          <>
-            <p class="map-header__stat">{t("map.explored", { count: visited.size, total: world.length, pct })}</p>
-            <div class="map-continents">
-              {continentStats.map((c) => (
-                <span class="map-continent-chip" key={c.id}>
-                  {t(`map.continent.${c.id}`)} {c.visited}/{c.total}
-                </span>
-              ))}
-            </div>
-          </>
-        )}
-      </header>
-
       <div class="map-viewport">
         {!world && !worldError && <p class="map-loading">{t("map.loading")}</p>}
         {worldError && <p class="map-error">{t("map.error")}</p>}
@@ -302,14 +301,50 @@ export function WorldMap() {
                   onPointerDown={(e) => e.stopPropagation()}
                   onClick={() => setSheet({ mode: "view", pin })}
                 >
-                  <circle class="map-pin__ring" r={7} stroke={member?.color ?? "var(--gold)"} />
+                  <circle class="map-pin__ring" r={7} stroke={member?.color ?? "var(--primary)"} />
                   <circle class="map-pin__seal" r={4.5} />
                 </g>
               );
             })}
           </svg>
         )}
+
+        {world && (
+          <div class="panel panel-tight map-stat-card">
+            <h1 class="map-stat-card__title">{t("map.title")}</h1>
+            <p class="map-stat-card__main">{t("map.explored", { count: visited.size, total: world.length, pct })}</p>
+            <div class="map-continents">
+              {continentStats.map((c) => (
+                <span class="map-continent-chip" key={c.id}>
+                  {t(`map.continent.${c.id}`)} {c.visited}/{c.total}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {world && allPins.length === 0 && (
+          <div class="map-empty-overlay">
+            <div class="empty-state panel map-empty-card">
+              <div class="empty-state-icon">
+                <Compass size={28} />
+              </div>
+              <p class="empty-state-title">{t("map.empty.title")}</p>
+              <p class="empty-state-hint">{t("map.empty.hint")}</p>
+              <button type="button" class="btn btn-primary" onClick={handleAddAtCenter}>
+                {t("map.fab.add")}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
+
+      {world && !worldError && (
+        <button type="button" class="fab" onClick={handleAddAtCenter}>
+          <MapPin size={22} />
+          <span class="fab-label">{t("map.fab.add")}</span>
+        </button>
+      )}
 
       {sheet && (
         <EncounterSheet

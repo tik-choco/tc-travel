@@ -1,6 +1,6 @@
 import "./room.i18n";
 import { useEffect, useRef, useState } from "preact/hooks";
-import { X } from "lucide-preact";
+import { X, Copy, Check, Share } from "lucide-preact";
 import { useT } from "../../lib/i18n";
 import { renderQr, buildJoinUrl, parseJoinInput, startQrScan } from "../../lib/qr";
 import { joinRoom } from "../../lib/store";
@@ -92,61 +92,70 @@ export function QrModal({ roomId, onClose, initialTab = "show" }: Props) {
   };
 
   return (
-    <div class="modal-backdrop" onClick={onClose}>
-      <div class="modal-card panel" onClick={(e) => e.stopPropagation()}>
-        <div class="qr-modal-body">
-          <div class="qr-modal-close">
-            <button type="button" class="btn btn-icon" aria-label={t("qr.close")} onClick={onClose}>
-              <X aria-hidden="true" />
+    <div class="modal-backdrop" onClick={onClose} role="dialog" aria-modal="true" aria-label={t("qr.title")}>
+      <div class="modal-card" onClick={(e) => e.stopPropagation()}>
+        <div class="sheet-handle" />
+        <div class="qr-modal-header">
+          <p class="title-ornate">{t("qr.title")}</p>
+          <button type="button" class="btn btn-icon" aria-label={t("qr.close")} onClick={onClose}>
+            <X aria-hidden="true" />
+          </button>
+        </div>
+
+        {canShow && (
+          <div class="qr-tabs">
+            <button
+              type="button"
+              class={`btn${tab === "show" ? " btn-primary" : ""}`}
+              onClick={() => setTab("show")}
+            >
+              {t("qr.tabShow")}
+            </button>
+            <button
+              type="button"
+              class={`btn${tab === "scan" ? " btn-primary" : ""}`}
+              onClick={() => setTab("scan")}
+            >
+              {t("qr.tabScan")}
             </button>
           </div>
-          <p class="title-ornate">{t("qr.title")}</p>
+        )}
 
-          {canShow && (
-            <div class="qr-tabs">
-              <button
-                type="button"
-                class={`btn${tab === "show" ? " btn-primary" : ""}`}
-                onClick={() => setTab("show")}
-              >
-                {t("qr.tabShow")}
-              </button>
-              <button
-                type="button"
-                class={`btn${tab === "scan" ? " btn-primary" : ""}`}
-                onClick={() => setTab("scan")}
-              >
-                {t("qr.tabScan")}
-              </button>
+        {tab === "show" ? (
+          <div class="qr-modal-body">
+            <div class="qr-tile">
+              <canvas ref={canvasRef} />
             </div>
-          )}
-
-          {tab === "show" ? (
-            <>
-              <div class="qr-canvas-wrap">
-                <canvas ref={canvasRef} />
-              </div>
-              <div class="qr-actions">
-                <button type="button" class="btn" onClick={handleCopy}>
-                  {copied ? t("qr.copied") : t("qr.copyLink")}
+            <div class="qr-actions">
+              <button type="button" class="btn btn-outlined" onClick={handleCopy}>
+                {copied ? <Check aria-hidden="true" /> : <Copy aria-hidden="true" />}
+                {copied ? t("qr.copied") : t("qr.copyLink")}
+              </button>
+              {typeof navigator.share === "function" && (
+                <button type="button" class="btn btn-primary" onClick={handleShare}>
+                  <Share aria-hidden="true" />
+                  {t("qr.share")}
                 </button>
-                {typeof navigator.share === "function" && (
-                  <button type="button" class="btn btn-primary" onClick={handleShare}>
-                    {t("qr.share")}
-                  </button>
-                )}
-              </div>
-            </>
-          ) : (
-            <>
+              )}
+            </div>
+          </div>
+        ) : (
+          <>
+            <div class="qr-scan-frame">
               <video ref={videoRef} class="qr-scan-video" muted playsInline autoPlay />
-              <p style={{ textAlign: "center", marginTop: "0.5rem", color: "var(--ink-soft)" }}>
-                {t("qr.scanHint")}
-              </p>
+              <div class="qr-scan-guides" aria-hidden="true">
+                <span class="qr-scan-corner qr-scan-corner-tl" />
+                <span class="qr-scan-corner qr-scan-corner-tr" />
+                <span class="qr-scan-corner qr-scan-corner-bl" />
+                <span class="qr-scan-corner qr-scan-corner-br" />
+              </div>
+            </div>
+            <div class="qr-modal-body qr-scan-footer">
+              <p class="qr-scan-hint">{t("qr.scanHint")}</p>
               {scanError && <p class="qr-scan-error">{t("qr.cameraError")}</p>}
-            </>
-          )}
-        </div>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

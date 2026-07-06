@@ -23,9 +23,12 @@ export function AlbumScreen() {
   if (!session) {
     return (
       <div class="screen album-screen">
-        <div class="panel album-empty">
-          <ScrollText size={40} />
-          <p>{t("album.needSession")}</p>
+        <div class="empty-state panel">
+          <div class="empty-state-icon">
+            <ScrollText size={28} />
+          </div>
+          <p class="empty-state-title">{t("album.needSessionTitle")}</p>
+          <p class="empty-state-hint">{t("album.needSession")}</p>
         </div>
       </div>
     );
@@ -35,15 +38,15 @@ export function AlbumScreen() {
     <div class="screen album-screen">
       <header class="album-header">
         <h1 class="title-ornate">{t("album.title")}</h1>
-        <button type="button" class="btn btn-primary album-add-btn" onClick={() => setAddOpen(true)}>
-          <Plus size={18} /> {t("album.addPhoto")}
-        </button>
       </header>
 
       {photos.length === 0 ? (
-        <div class="panel album-empty">
-          <ImageOff size={40} />
-          <p>{t("album.emptyState")}</p>
+        <div class="empty-state panel">
+          <div class="empty-state-icon">
+            <ImageOff size={28} />
+          </div>
+          <p class="empty-state-title">{t("album.empty.title")}</p>
+          <p class="empty-state-hint">{t("album.empty.hint")}</p>
         </div>
       ) : (
         <div class="album-grid">
@@ -52,6 +55,11 @@ export function AlbumScreen() {
           ))}
         </div>
       )}
+
+      <button type="button" class="fab" onClick={() => setAddOpen(true)} aria-label={t("album.addPhoto")}>
+        <Plus size={22} />
+        <span class="fab-label">{t("album.addPhoto")}</span>
+      </button>
 
       {addOpen && <AddPhotoSheet onClose={() => setAddOpen(false)} />}
 

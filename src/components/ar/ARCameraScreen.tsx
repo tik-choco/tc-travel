@@ -1,5 +1,9 @@
-// The "Summoning Circle": camera-video + transparent WebGL VRM overlay,
-// composited into a group photo. No WebXR (iOS Safari lacks it).
+// Avatar hub: your companion's home. No VRM yet → a welcoming empty-state
+// hero. Once summoned (or the placeholder golem is entered explicitly), the
+// camera + three.js overlay becomes "home base" — gestures, the AR composite
+// photo capture, and a NEW "set as profile portrait" action that renders the
+// companion (over a plain backdrop, no camera feed) into the user's identity
+// image everywhere else in the app.
 
 import "./ar.i18n";
 import "./ar.css";
@@ -7,9 +11,13 @@ import { useCallback, useEffect, useRef, useState } from "preact/hooks";
 import {
   Camera as CameraIcon,
   Download,
+  ImagePlus,
+  LoaderCircle,
   RotateCcw,
   RotateCw,
+  Sparkles,
   SwitchCamera,
+  Trash2,
   Upload,
   ZoomIn,
   ZoomOut,
@@ -18,18 +26,24 @@ import { useT } from "../../lib/i18n";
 import { useSession, addPhoto } from "../../lib/store";
 import { compressImage } from "../../lib/photo";
 import { lookupCountry } from "../../lib/geo";
+import { setProfileAvatar } from "../../lib/avatar";
 import type { GeoPoint } from "../../lib/types";
 import type { Companion } from "./companion";
 import { createArScene, type ArScene } from "./arScene";
 import { createPlaceholderCompanion } from "./placeholderCompanion";
 import { createVrmCompanion, loadVrmFromBytes } from "./vrmLoader";
 import { attachGestures, rotateStep, zoomStep, type GestureHandle } from "./gestures";
-import { loadVrmBytes, saveVrmBytes } from "./vrmStorage";
+import { loadVrmBytes, saveVrmBytes, clearVrmBytes } from "./vrmStorage";
 
 const ROTATE_STEP = Math.PI / 12;
 const ZOOM_STEP_FACTOR = 1.15;
+const TOAST_DEFAULT_MS = 3200;
+const TOAST_SHORT_MS = 2000;
 
 type FacingMode = "environment" | "user";
+/** "checking" = reading IndexedDB for a stored VRM; "empty" = the welcoming
+ *  hero with no companion loaded yet; "live" = camera + 3D view is mounted. */
+type ScreenMode = "checking" | "empty" | "live";
 
 export function ARCameraScreen() {
   const t = useT();
@@ -42,21 +56,27 @@ export function ARCameraScreen() {
   const companionRef = useRef<Companion | null>(null);
   const gestureRef = useRef<GestureHandle | null>(null);
   const toastTimerRef = useRef<number | null>(null);
+  /** VRM bytes found in storage (or just picked) before the scene exists yet;
+   *  the scene-creation effect consumes this once it mounts. */
+  const pendingVrmBytesRef = useRef<Uint8Array | null>(null);
 
+  const [mode, setMode] = useState<ScreenMode>("checking");
+  const [hasVrm, setHasVrm] = useState(false);
   const [facingMode, setFacingMode] = useState<FacingMode>("environment");
   const [retryToken, setRetryToken] = useState(0);
   const [cameraError, setCameraError] = useState(false);
   const [vrmLoading, setVrmLoading] = useState(false);
   const [capturing, setCapturing] = useState(false);
+  const [settingPortrait, setSettingPortrait] = useState(false);
   const [flash, setFlash] = useState(false);
   const [showHint, setShowHint] = useState(true);
   const [toast, setToast] = useState<string | null>(null);
   const [lastShot, setLastShot] = useState<{ url: string } | null>(null);
 
-  const showToast = useCallback((message: string) => {
+  const showToast = useCallback((message: string, durationMs = TOAST_DEFAULT_MS) => {
     setToast(message);
     if (toastTimerRef.current !== null) window.clearTimeout(toastTimerRef.current);
-    toastTimerRef.current = window.setTimeout(() => setToast(null), 3200);
+    toastTimerRef.current = window.setTimeout(() => setToast(null), durationMs);
   }, []);
 
   useEffect(() => {
@@ -67,9 +87,11 @@ export function ARCameraScreen() {
 
   // Fade the gesture hint after a few seconds.
   useEffect(() => {
+    if (mode !== "live") return;
+    setShowHint(true);
     const id = window.setTimeout(() => setShowHint(false), 4000);
     return () => window.clearTimeout(id);
-  }, []);
+  }, [mode]);
 
   // Revoke the previous save-to-device object URL whenever it's replaced or on unmount.
   useEffect(() => {
@@ -78,8 +100,33 @@ export function ARCameraScreen() {
     };
   }, [lastShot]);
 
-  // Acquire the camera stream; re-runs on facing-mode flip or manual retry.
+  // Check for a previously-stored VRM once on mount. No bytes → land on the
+  // empty-state hero instead of eagerly requesting camera permission for a
+  // feature the user hasn't opted into yet.
   useEffect(() => {
+    let cancelled = false;
+    loadVrmBytes()
+      .then((bytes) => {
+        if (cancelled) return;
+        if (bytes) {
+          pendingVrmBytesRef.current = bytes;
+          setHasVrm(true);
+          setMode("live");
+        } else {
+          setMode("empty");
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setMode("empty");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Acquire the camera stream once live; re-runs on facing-mode flip or manual retry.
+  useEffect(() => {
+    if (mode !== "live") return;
     let cancelled = false;
     let activeStream: MediaStream | null = null;
     setCameraError(false);
@@ -102,7 +149,7 @@ export function ARCameraScreen() {
       cancelled = true;
       activeStream?.getTracks().forEach((track) => track.stop());
     };
-  }, [facingMode, retryToken]);
+  }, [mode, facingMode, retryToken]);
 
   const swapCompanion = useCallback(async (factory: () => Promise<Companion>) => {
     const next = await factory();
@@ -117,8 +164,9 @@ export function ARCameraScreen() {
     prev?.dispose();
   }, []);
 
-  // Set up the three.js overlay once, load any stored VRM, wire gestures.
+  // Set up the three.js overlay once live, load any pending VRM, wire gestures.
   useEffect(() => {
+    if (mode !== "live") return;
     const container = overlayRef.current;
     if (!container) return;
 
@@ -132,14 +180,13 @@ export function ARCameraScreen() {
     const gestures = attachGestures(arScene.canvas, arScene.camera, () => companionRef.current?.root ?? null);
     gestureRef.current = gestures;
 
-    loadVrmBytes()
-      .then((bytes) => {
-        if (!bytes) return;
-        return swapCompanion(() => loadVrmFromBytes(bytes).then(createVrmCompanion));
-      })
-      .catch(() => {
-        // Corrupt or unreadable stored VRM — keep the placeholder companion.
+    const pending = pendingVrmBytesRef.current;
+    pendingVrmBytesRef.current = null;
+    if (pending) {
+      swapCompanion(() => loadVrmFromBytes(pending).then(createVrmCompanion)).catch(() => {
+        showToast(t("ar.summonError"));
       });
+    }
 
     return () => {
       gestures.dispose();
@@ -149,7 +196,7 @@ export function ARCameraScreen() {
       arScene.dispose();
       arSceneRef.current = null;
     };
-  }, [swapCompanion]);
+  }, [mode, swapCompanion, showToast, t]);
 
   function handleFlip(): void {
     setFacingMode((prev) => (prev === "environment" ? "user" : "environment"));
@@ -171,14 +218,29 @@ export function ARCameraScreen() {
     setVrmLoading(true);
     try {
       const bytes = new Uint8Array(await file.arrayBuffer());
-      await swapCompanion(() => loadVrmFromBytes(bytes).then(createVrmCompanion));
+      if (mode === "live" && arSceneRef.current) {
+        await swapCompanion(() => loadVrmFromBytes(bytes).then(createVrmCompanion));
+      } else {
+        // Scene isn't mounted yet (coming from the empty-state hero) — stash
+        // the bytes and the scene-creation effect will pick them up.
+        pendingVrmBytesRef.current = bytes;
+        setMode("live");
+      }
       await saveVrmBytes(bytes).catch(() => undefined);
+      setHasVrm(true);
     } catch (err) {
       console.error(err);
       showToast(t("ar.summonError"));
     } finally {
       setVrmLoading(false);
     }
+  }
+
+  async function handleRemoveVrm(): Promise<void> {
+    await clearVrmBytes().catch(() => undefined);
+    await swapCompanion(() => Promise.resolve(createPlaceholderCompanion()));
+    setHasVrm(false);
+    showToast(t("ar.removed"));
   }
 
   function handleRotate(direction: 1 | -1): void {
@@ -294,8 +356,82 @@ export function ARCameraScreen() {
     showToast(t("ar.toastSaved"));
   }
 
+  // Renders the companion alone (no camera feed) over a plain token-colored
+  // backdrop, cropped to a top-anchored square so the head is never clipped,
+  // and hands the blob to the shared avatar pipeline (further compression /
+  // cover-crop to <=256px happens there) — this is the emotional payoff: the
+  // avatar users are attached to becomes their identity across the app.
+  async function handleSetProfilePortrait(): Promise<void> {
+    const arScene = arSceneRef.current;
+    if (!arScene || !hasVrm || settingPortrait) return;
+
+    setSettingPortrait(true);
+    try {
+      const source = arScene.canvas;
+      const side = Math.min(source.width, source.height);
+      const sx = Math.round((source.width - side) / 2);
+
+      const canvas = document.createElement("canvas");
+      canvas.width = side;
+      canvas.height = side;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) throw new Error("2D context unavailable");
+
+      const backdrop = getComputedStyle(document.documentElement).getPropertyValue("--surface-container-high").trim();
+      ctx.fillStyle = backdrop || "#24242f";
+      ctx.fillRect(0, 0, side, side);
+      ctx.drawImage(source, sx, 0, side, side, 0, 0, side, side);
+
+      const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.9));
+      if (!blob) throw new Error("toBlob failed");
+      await setProfileAvatar(blob);
+      showToast(t("ar.portraitSaved"), TOAST_SHORT_MS);
+    } catch (err) {
+      console.error(err);
+      showToast(t("ar.portraitError"), TOAST_SHORT_MS);
+    } finally {
+      setSettingPortrait(false);
+    }
+  }
+
+  const fileInput = (
+    <input ref={fileInputRef} type="file" accept=".vrm" class="ar-file-input" onChange={handleFileChange} />
+  );
+
+  if (mode === "checking") {
+    return (
+      <div class="ar-screen ar-screen-loading">
+        {fileInput}
+        <LoaderCircle class="spin" size={28} />
+      </div>
+    );
+  }
+
+  if (mode === "empty") {
+    return (
+      <div class="ar-screen ar-screen-empty">
+        {fileInput}
+        <div class="empty-state">
+          <span class="empty-state-icon" aria-hidden="true">
+            <Sparkles />
+          </span>
+          <p class="empty-state-title">{t("ar.emptyTitle")}</p>
+          <p class="empty-state-hint">{t("ar.emptyHint")}</p>
+          <button type="button" class="btn btn-primary" onClick={handleLoadClick} disabled={vrmLoading}>
+            {vrmLoading ? <LoaderCircle class="spin" size={18} /> : <Upload size={18} />}
+            {t("ar.summonBtn")}
+          </button>
+          <button type="button" class="btn btn-ghost" onClick={() => setMode("live")} disabled={vrmLoading}>
+            {t("ar.tryPlaceholder")}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div class="ar-screen">
+      {fileInput}
       {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
       <video ref={videoRef} class="ar-video" playsInline muted autoPlay />
       <div ref={overlayRef} class="ar-overlay" />
@@ -304,17 +440,10 @@ export function ARCameraScreen() {
 
       <div class="ar-topbar">
         <h1 class="ar-title">{t("ar.title")}</h1>
-        <div style={{ display: "flex", gap: "8px" }}>
-          <button type="button" class="ar-icon-btn" onClick={handleLoadClick} disabled={vrmLoading} aria-label={t("ar.summonBtn")}>
-            <Upload size={20} />
-          </button>
-          <button type="button" class="ar-icon-btn" onClick={handleFlip} aria-label={t("ar.flipCamera")}>
-            <SwitchCamera size={20} />
-          </button>
-        </div>
+        <button type="button" class="ar-icon-btn" onClick={handleFlip} aria-label={t("ar.flipCamera")}>
+          <SwitchCamera size={20} />
+        </button>
       </div>
-
-      <input ref={fileInputRef} type="file" accept=".vrm" class="ar-file-input" onChange={handleFileChange} />
 
       {toast && <div class="ar-toast">{toast}</div>}
       {vrmLoading && <div class="ar-toast">{t("ar.summonLoading")}</div>}
@@ -341,10 +470,29 @@ export function ARCameraScreen() {
             <RotateCw size={18} />
           </button>
         </div>
-        <div class="ar-shutter-row">
+        <div class="ar-action-row">
+          <button type="button" class="ar-icon-btn" onClick={handleLoadClick} disabled={vrmLoading} aria-label={t("ar.summonBtn")}>
+            <Upload size={20} />
+          </button>
+          {hasVrm && (
+            <button
+              type="button"
+              class="ar-icon-btn"
+              onClick={handleSetProfilePortrait}
+              disabled={settingPortrait}
+              aria-label={t("ar.setPortrait")}
+            >
+              {settingPortrait ? <LoaderCircle class="spin" size={20} /> : <ImagePlus size={20} />}
+            </button>
+          )}
           <button type="button" class="ar-shutter" onClick={handleCapture} disabled={capturing} aria-label={t("ar.capture")}>
             <CameraIcon size={28} />
           </button>
+          {hasVrm && (
+            <button type="button" class="ar-icon-btn" onClick={handleRemoveVrm} aria-label={t("ar.removeVrm")}>
+              <Trash2 size={20} />
+            </button>
+          )}
         </div>
       </div>
 

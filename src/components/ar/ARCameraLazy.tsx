@@ -2,8 +2,10 @@
 // are only downloaded when the Summoning Circle tab is first opened.
 import { useEffect, useState } from "preact/hooks";
 import type { ComponentType } from "preact";
+import { LoaderCircle } from "lucide-preact";
 import { useT } from "../../lib/i18n";
 import "./ar.i18n";
+import "./ar.css";
 
 let cached: ComponentType | null = null;
 
@@ -30,15 +32,15 @@ export function ARCameraLazy() {
 
   if (failed) {
     return (
-      <div class="screen">
+      <div class="ar-screen ar-screen-loading">
         <div class="panel">{t("error.connection")}</div>
       </div>
     );
   }
   if (!Screen) {
     return (
-      <div class="screen ar-lazy-loading">
-        <div class="panel">{t("ar.summonLoading")}</div>
+      <div class="ar-screen ar-screen-loading">
+        <LoaderCircle class="spin" size={28} />
       </div>
     );
   }

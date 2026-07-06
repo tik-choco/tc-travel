@@ -18,8 +18,8 @@ registerTranslations({
     es: "Diario del Viajero", fr: "Journal du Voyageur", de: "Reisetagebuch", pt: "Diário do Viajante",
   },
   "tab.camera": {
-    en: "Summoning Circle", ja: "召喚の陣", zh: "召唤法阵", ko: "소환의 진",
-    es: "Círculo de Invocación", fr: "Cercle d'Invocation", de: "Beschwörungskreis", pt: "Círculo de Invocação",
+    en: "Avatar", ja: "アバター", zh: "化身", ko: "아바타",
+    es: "Avatar", fr: "Avatar", de: "Avatar", pt: "Avatar",
   },
   "tab.guild": {
     en: "Guild Card", ja: "ギルドカード", zh: "公会卡", ko: "길드 카드",

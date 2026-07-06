@@ -1,8 +1,11 @@
 import "./room.i18n";
-import { useState } from "preact/hooks";
+import { useRef, useState } from "preact/hooks";
+import { Camera } from "lucide-preact";
 import { useT, LANGUAGE_LABELS, getLanguage, setLanguage } from "../../lib/i18n";
 import { LANGUAGES, type Language } from "../../lib/types";
 import { useProfile } from "../../lib/personal";
+import { setProfileAvatar } from "../../lib/avatar";
+import { Avatar } from "../common/Avatar";
 
 const EMOJI_CHOICES = [
   "🧙", "🧝", "🗡️", "🛡️", "🏹", "🐉", "🦄", "🔮",
@@ -27,6 +30,8 @@ export function ProfileSetup() {
   const [avatarEmoji, setAvatarEmoji] = useState(profile.avatarEmoji || EMOJI_CHOICES[0]);
   const [color, setColor] = useState(profile.color || COLOR_CHOICES[0]);
   const [showError, setShowError] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleSave = (e: Event) => {
     e.preventDefault();
@@ -36,6 +41,21 @@ export function ProfileSetup() {
       return;
     }
     patchProfile({ name: trimmed, avatarEmoji, color });
+  };
+
+  const handleFile = async (e: Event) => {
+    const input = e.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      await setProfileAvatar(file);
+    } catch (err) {
+      console.error("tc-travel: setProfileAvatar failed", err);
+    } finally {
+      setUploading(false);
+      input.value = "";
+    }
   };
 
   return (
@@ -57,11 +77,35 @@ export function ProfileSetup() {
               setName((e.target as HTMLInputElement).value);
             }}
           />
-          {showError && <span style={{ color: "var(--seal)" }}>{t("profile.nameRequired")}</span>}
+          {showError && <span class="profile-field-error">{t("profile.nameRequired")}</span>}
         </div>
 
         <div class="field">
           <label>{t("profile.avatarLabel")}</label>
+          <div class="profile-avatar-picker">
+            <button
+              type="button"
+              class="profile-avatar-btn"
+              aria-label={t("profile.uploadCta")}
+              disabled={uploading}
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <Avatar self size="xl" />
+              <span class="profile-avatar-badge" aria-hidden="true">
+                <Camera />
+              </span>
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              class="visually-hidden"
+              onChange={handleFile}
+            />
+          </div>
+          <p class="profile-avatar-hint">{t("profile.avatarHint")}</p>
+
+          <p class="section-title">{t("profile.emojiFallbackLabel")}</p>
           <div class="emoji-grid">
             {EMOJI_CHOICES.map((emoji) => (
               <button

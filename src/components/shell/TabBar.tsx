@@ -1,14 +1,16 @@
 import "./shell.i18n";
-import { Map, Images, BookOpen, Camera, Shield } from "lucide-preact";
+import { Map, Images, BookOpen, UserRound, Shield } from "lucide-preact";
 import { useT } from "../../lib/i18n";
 
+// Tab id `camera` is kept for backward compat (see docs/REDESIGN.md) even
+// though the tab is now framed as the "Avatar" hub, not a camera tool.
 export type RoomTab = "map" | "album" | "diary" | "camera" | "guild";
 
 const TABS: { id: RoomTab; icon: typeof Map; labelKey: string }[] = [
   { id: "map", icon: Map, labelKey: "tab.map" },
   { id: "album", icon: Images, labelKey: "tab.album" },
   { id: "diary", icon: BookOpen, labelKey: "tab.diary" },
-  { id: "camera", icon: Camera, labelKey: "tab.camera" },
+  { id: "camera", icon: UserRound, labelKey: "tab.camera" },
   { id: "guild", icon: Shield, labelKey: "tab.guild" },
 ];
 
@@ -29,7 +31,9 @@ export function TabBar({ active, onSelect }: Props) {
           aria-current={active === id ? "page" : undefined}
           onClick={() => onSelect(id)}
         >
-          <Icon aria-hidden="true" />
+          <span class="tab-bar-indicator" aria-hidden="true">
+            <Icon aria-hidden="true" />
+          </span>
           <span class="tab-bar-label">{t(labelKey)}</span>
         </button>
       ))}
