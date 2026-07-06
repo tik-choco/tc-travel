@@ -8,7 +8,7 @@
 //   - tc-note:       src/lib/sharedBus.ts
 //   - tc-storage:    src/storage/sharedBus.ts
 //   - tc-pdf-viewer: src/services/sharedBus.js
-//   - tc-travel:     src/lib/tcstorage/sharedBus.ts
+//   - tc-travel:     src/lib/drive/sharedBus.ts
 // See also protocol/docs/data-contracts/docs/SHARED_BUS.md for the full spec.
 // Contract version: v1
 //

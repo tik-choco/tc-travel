@@ -30,7 +30,7 @@ import { useSession, addPhoto } from "../../lib/store";
 import { compressImage } from "../../lib/photo";
 import { lookupCountry } from "../../lib/geo";
 import { setProfileAvatar } from "../../lib/avatar";
-import { listTcStorageFiles, loadTcStorageFileBytes, type TcStorageFileEntry } from "../../lib/tcstorage/reader";
+import { listDriveFiles, loadDriveFileBytes, type DriveFileEntry } from "../../lib/drive/reader";
 import type { GeoPoint } from "../../lib/types";
 import type { Companion } from "./companion";
 import { createArScene, type ArScene } from "./arScene";
@@ -71,8 +71,8 @@ export function ARCameraScreen() {
   const [cameraError, setCameraError] = useState(false);
   const [vrmLoading, setVrmLoading] = useState(false);
   /** Populated right before the sheet opens (handleLoadClick), from
-   *  listTcStorageFiles — see the tc-storage source picker below. */
-  const [tcStorageEntries, setTcStorageEntries] = useState<TcStorageFileEntry[]>([]);
+   *  listDriveFiles — see the drive source picker below. */
+  const [driveEntries, setDriveEntries] = useState<DriveFileEntry[]>([]);
   const [showVrmChooser, setShowVrmChooser] = useState(false);
   const [capturing, setCapturing] = useState(false);
   const [settingPortrait, setSettingPortrait] = useState(false);
@@ -216,7 +216,7 @@ export function ARCameraScreen() {
 
   // Adopts freshly-picked VRM bytes into the live scene (or stashes them for
   // the scene-creation effect if it isn't mounted yet) and persists them —
-  // shared by both the device file input and the tc-storage picker below.
+  // shared by both the device file input and the drive picker below.
   const applyVrmBytes = useCallback(
     async (bytes: Uint8Array): Promise<void> => {
       if (mode === "live" && arSceneRef.current) {
@@ -234,13 +234,13 @@ export function ARCameraScreen() {
   );
 
   // Both the empty-state hero button and the live-mode upload button land
-  // here. A tc-storage workspace with at least one .vrm file gets a chooser
-  // sheet (device vs. TC Storage); otherwise behavior is unchanged — straight
-  // to the native file picker.
+  // here. A drive with at least one .vrm file gets a chooser sheet (device
+  // vs. drive); otherwise behavior is unchanged — straight to the native
+  // file picker.
   function handleLoadClick(): void {
-    const entries = listTcStorageFiles({ extensions: [".vrm"] });
+    const entries = listDriveFiles({ extensions: [".vrm"] });
     if (entries.length > 0) {
-      setTcStorageEntries(entries);
+      setDriveEntries(entries);
       setShowVrmChooser(true);
       return;
     }
@@ -252,12 +252,11 @@ export function ARCameraScreen() {
     fileInputRef.current?.click();
   }
 
-  async function handleChooseTcStorageEntry(entry: TcStorageFileEntry): Promise<void> {
-    if (!entry.file.lastCid || !entry.passphrase) return;
+  async function handleChooseDriveEntry(entry: DriveFileEntry): Promise<void> {
     setShowVrmChooser(false);
     setVrmLoading(true);
     try {
-      const bytes = await loadTcStorageFileBytes(entry);
+      const bytes = await loadDriveFileBytes(entry);
       await applyVrmBytes(bytes);
     } catch (err) {
       console.error(err);
@@ -446,9 +445,9 @@ export function ARCameraScreen() {
     <input ref={fileInputRef} type="file" accept=".vrm" class="ar-file-input" onChange={handleFileChange} />
   );
 
-  // "Device" vs. "TC Storage" source picker — only ever opened when
-  // tcStorageEntries is non-empty (handleLoadClick skips straight to the
-  // native file input otherwise).
+  // "Device" vs. "Drive" source picker — only ever opened when driveEntries
+  // is non-empty (handleLoadClick skips straight to the native file input
+  // otherwise).
   const vrmChooserSheet = showVrmChooser && (
     <div
       class="modal-backdrop"
@@ -480,22 +479,20 @@ export function ARCameraScreen() {
 
           <p class="ar-chooser-section-label">
             <HardDrive size={14} aria-hidden="true" />
-            {t("ar.chooserFromTcStorage")}
+            {t("ar.chooserFromDrive")}
           </p>
-          {tcStorageEntries.map((entry) => {
-            const disabled = !entry.file.lastCid || !entry.passphrase;
+          {driveEntries.map((entry) => {
             const sub = entry.path || t("ar.chooserRootFolder");
             return (
               <button
-                key={entry.file.id}
+                key={entry.id}
                 type="button"
                 class="list-item"
-                disabled={disabled}
-                onClick={() => handleChooseTcStorageEntry(entry)}
+                onClick={() => handleChooseDriveEntry(entry)}
               >
                 <span class="list-item-body">
-                  <span class="list-item-title">{entry.file.name}</span>
-                  <span class="list-item-sub">{disabled ? `${sub} · ${t("ar.chooserUnavailable")}` : sub}</span>
+                  <span class="list-item-title">{entry.name}</span>
+                  <span class="list-item-sub">{sub}</span>
                 </span>
               </button>
             );
