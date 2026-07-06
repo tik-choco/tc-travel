@@ -6,12 +6,13 @@
 // failure, which keeps three.js out of this sheet's bundle.
 
 import { useRef, useState } from "preact/hooks";
-import { Box, Eye, ImagePlus, Trash2, X } from "lucide-preact";
+import { Box, Eye, HardDrive, ImagePlus, Trash2, X } from "lucide-preact";
 import { useT } from "../../lib/i18n";
 import { useProfile } from "../../lib/personal";
 import { setProfileAvatar } from "../../lib/avatar";
 import { setMemberVrmBytes } from "../../lib/store";
 import { clearVrmBytes, saveVrmBytes } from "../ar/vrmStorage";
+import { listFamilyVrms, importFamilyVrm, type DriveFileEntry } from "../../lib/familyVrm";
 import { Avatar } from "../common/Avatar";
 
 interface AvatarSheetProps {
@@ -27,6 +28,21 @@ export function AvatarSheet({ hasVrm, onClose, onVrmChanged }: AvatarSheetProps)
   const photoInputRef = useRef<HTMLInputElement>(null);
   const vrmInputRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
+  // null = haven't browsed the family drive yet; [] = browsed, none shared.
+  const [familyVrms, setFamilyVrms] = useState<DriveFileEntry[] | null>(null);
+
+  const handleImportFamily = async (entry: DriveFileEntry) => {
+    setBusy(true);
+    try {
+      await importFamilyVrm(entry);
+      onVrmChanged();
+      setFamilyVrms(null);
+    } catch (err) {
+      console.error("tc-travel: import family VRM failed", err);
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const handlePhotoFile = async (e: Event) => {
     const file = (e.target as HTMLInputElement).files?.[0];
@@ -113,6 +129,41 @@ export function AvatarSheet({ hasVrm, onClose, onVrmChanged }: AvatarSheetProps)
               <span class="avatar-sheet-option-hint">{t("home.vrmHint")}</span>
             </span>
           </button>
+
+          <button
+            type="button"
+            class="avatar-sheet-option"
+            disabled={busy}
+            onClick={() => setFamilyVrms(listFamilyVrms())}
+          >
+            <span class="avatar-sheet-option-icon" aria-hidden="true">
+              <HardDrive />
+            </span>
+            <span class="avatar-sheet-option-label">
+              {t("home.importFromDrive")}
+              <span class="avatar-sheet-option-hint">{t("home.driveVrmHint")}</span>
+            </span>
+          </button>
+
+          {familyVrms !== null &&
+            (familyVrms.length === 0 ? (
+              <p class="sheet-hint">{t("home.driveVrmEmpty")}</p>
+            ) : (
+              familyVrms.map((entry) => (
+                <button
+                  type="button"
+                  key={entry.id}
+                  class="avatar-sheet-option avatar-sheet-drive-item"
+                  disabled={busy}
+                  onClick={() => handleImportFamily(entry)}
+                >
+                  <span class="avatar-sheet-option-icon" aria-hidden="true">
+                    <Box />
+                  </span>
+                  <span class="avatar-sheet-option-label">{entry.name}</span>
+                </button>
+              ))
+            ))}
 
           {hasVrm && (
             <>
