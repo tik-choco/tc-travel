@@ -11,14 +11,17 @@ import { useCallback, useEffect, useRef, useState } from "preact/hooks";
 import {
   Camera as CameraIcon,
   Download,
+  HardDrive,
   ImagePlus,
   LoaderCircle,
   RotateCcw,
   RotateCw,
+  Smartphone,
   Sparkles,
   SwitchCamera,
   Trash2,
   Upload,
+  X,
   ZoomIn,
   ZoomOut,
 } from "lucide-preact";
@@ -27,6 +30,7 @@ import { useSession, addPhoto } from "../../lib/store";
 import { compressImage } from "../../lib/photo";
 import { lookupCountry } from "../../lib/geo";
 import { setProfileAvatar } from "../../lib/avatar";
+import { listTcStorageFiles, loadTcStorageFileBytes, type TcStorageFileEntry } from "../../lib/tcstorage/reader";
 import type { GeoPoint } from "../../lib/types";
 import type { Companion } from "./companion";
 import { createArScene, type ArScene } from "./arScene";
@@ -66,6 +70,10 @@ export function ARCameraScreen() {
   const [retryToken, setRetryToken] = useState(0);
   const [cameraError, setCameraError] = useState(false);
   const [vrmLoading, setVrmLoading] = useState(false);
+  /** Populated right before the sheet opens (handleLoadClick), from
+   *  listTcStorageFiles — see the tc-storage source picker below. */
+  const [tcStorageEntries, setTcStorageEntries] = useState<TcStorageFileEntry[]>([]);
+  const [showVrmChooser, setShowVrmChooser] = useState(false);
   const [capturing, setCapturing] = useState(false);
   const [settingPortrait, setSettingPortrait] = useState(false);
   const [flash, setFlash] = useState(false);
@@ -206,18 +214,11 @@ export function ARCameraScreen() {
     setRetryToken((n) => n + 1);
   }
 
-  function handleLoadClick(): void {
-    fileInputRef.current?.click();
-  }
-
-  async function handleFileChange(e: Event): Promise<void> {
-    const input = e.currentTarget as HTMLInputElement;
-    const file = input.files?.[0] ?? null;
-    input.value = "";
-    if (!file) return;
-    setVrmLoading(true);
-    try {
-      const bytes = new Uint8Array(await file.arrayBuffer());
+  // Adopts freshly-picked VRM bytes into the live scene (or stashes them for
+  // the scene-creation effect if it isn't mounted yet) and persists them —
+  // shared by both the device file input and the tc-storage picker below.
+  const applyVrmBytes = useCallback(
+    async (bytes: Uint8Array): Promise<void> => {
       if (mode === "live" && arSceneRef.current) {
         await swapCompanion(() => loadVrmFromBytes(bytes).then(createVrmCompanion));
       } else {
@@ -228,6 +229,53 @@ export function ARCameraScreen() {
       }
       await saveVrmBytes(bytes).catch(() => undefined);
       setHasVrm(true);
+    },
+    [mode, swapCompanion],
+  );
+
+  // Both the empty-state hero button and the live-mode upload button land
+  // here. A tc-storage workspace with at least one .vrm file gets a chooser
+  // sheet (device vs. TC Storage); otherwise behavior is unchanged — straight
+  // to the native file picker.
+  function handleLoadClick(): void {
+    const entries = listTcStorageFiles({ extensions: [".vrm"] });
+    if (entries.length > 0) {
+      setTcStorageEntries(entries);
+      setShowVrmChooser(true);
+      return;
+    }
+    fileInputRef.current?.click();
+  }
+
+  function handleChooseFromDevice(): void {
+    setShowVrmChooser(false);
+    fileInputRef.current?.click();
+  }
+
+  async function handleChooseTcStorageEntry(entry: TcStorageFileEntry): Promise<void> {
+    if (!entry.file.lastCid || !entry.passphrase) return;
+    setShowVrmChooser(false);
+    setVrmLoading(true);
+    try {
+      const bytes = await loadTcStorageFileBytes(entry);
+      await applyVrmBytes(bytes);
+    } catch (err) {
+      console.error(err);
+      showToast(t("ar.summonError"));
+    } finally {
+      setVrmLoading(false);
+    }
+  }
+
+  async function handleFileChange(e: Event): Promise<void> {
+    const input = e.currentTarget as HTMLInputElement;
+    const file = input.files?.[0] ?? null;
+    input.value = "";
+    if (!file) return;
+    setVrmLoading(true);
+    try {
+      const bytes = new Uint8Array(await file.arrayBuffer());
+      await applyVrmBytes(bytes);
     } catch (err) {
       console.error(err);
       showToast(t("ar.summonError"));
@@ -398,6 +446,65 @@ export function ARCameraScreen() {
     <input ref={fileInputRef} type="file" accept=".vrm" class="ar-file-input" onChange={handleFileChange} />
   );
 
+  // "Device" vs. "TC Storage" source picker — only ever opened when
+  // tcStorageEntries is non-empty (handleLoadClick skips straight to the
+  // native file input otherwise).
+  const vrmChooserSheet = showVrmChooser && (
+    <div
+      class="modal-backdrop"
+      onClick={() => setShowVrmChooser(false)}
+      role="dialog"
+      aria-modal="true"
+      aria-label={t("ar.chooserTitle")}
+    >
+      <div class="modal-card" onClick={(e) => e.stopPropagation()}>
+        <div class="sheet-handle" />
+        <div class="ar-chooser-header">
+          <p class="title-ornate">{t("ar.chooserTitle")}</p>
+          <button
+            type="button"
+            class="btn btn-icon"
+            aria-label={t("ar.chooserClose")}
+            onClick={() => setShowVrmChooser(false)}
+          >
+            <X aria-hidden="true" />
+          </button>
+        </div>
+        <div class="ar-chooser-body">
+          <button type="button" class="list-item" onClick={handleChooseFromDevice}>
+            <Smartphone size={20} aria-hidden="true" />
+            <span class="list-item-body">
+              <span class="list-item-title">{t("ar.chooserFromDevice")}</span>
+            </span>
+          </button>
+
+          <p class="ar-chooser-section-label">
+            <HardDrive size={14} aria-hidden="true" />
+            {t("ar.chooserFromTcStorage")}
+          </p>
+          {tcStorageEntries.map((entry) => {
+            const disabled = !entry.file.lastCid || !entry.passphrase;
+            const sub = entry.path || t("ar.chooserRootFolder");
+            return (
+              <button
+                key={entry.file.id}
+                type="button"
+                class="list-item"
+                disabled={disabled}
+                onClick={() => handleChooseTcStorageEntry(entry)}
+              >
+                <span class="list-item-body">
+                  <span class="list-item-title">{entry.file.name}</span>
+                  <span class="list-item-sub">{disabled ? `${sub} · ${t("ar.chooserUnavailable")}` : sub}</span>
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+
   if (mode === "checking") {
     return (
       <div class="ar-screen ar-screen-loading">
@@ -411,6 +518,7 @@ export function ARCameraScreen() {
     return (
       <div class="ar-screen ar-screen-empty">
         {fileInput}
+        {vrmChooserSheet}
         <div class="empty-state">
           <span class="empty-state-icon" aria-hidden="true">
             <Sparkles />
@@ -432,6 +540,7 @@ export function ARCameraScreen() {
   return (
     <div class="ar-screen">
       {fileInput}
+      {vrmChooserSheet}
       {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
       <video ref={videoRef} class="ar-video" playsInline muted autoPlay />
       <div ref={overlayRef} class="ar-overlay" />

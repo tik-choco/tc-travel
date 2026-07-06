@@ -13,13 +13,19 @@ config({ path: path.join(rootDir, ".env") });
 const repo = process.env.MISTLIB_REPO;
 const ref = process.env.MISTLIB_REF || "develop";
 
+const cacheDir = path.join(rootDir, ".mistlib-src");
+const vendorDir = path.join(rootDir, "src", "vendor", "mistlib");
+
 if (!repo) {
+  // CI (GitHub Pages deploy) and fresh clones have no .env — the vendored
+  // build is committed, so a missing MISTLIB_REPO only blocks *updating* it.
+  if (existsSync(path.join(vendorDir, "pkg", "mistlib_wasm.js"))) {
+    console.log("MISTLIB_REPO not set — using the committed vendored mistlib as-is.");
+    process.exit(0);
+  }
   console.error("MISTLIB_REPO is not set in .env — copy .env.example to .env and fill it in.");
   process.exit(1);
 }
-
-const cacheDir = path.join(rootDir, ".mistlib-src");
-const vendorDir = path.join(rootDir, "src", "vendor", "mistlib");
 
 function run(cmd, args, cwd, env) {
   console.log(`$ ${cmd} ${args.join(" ")}`);

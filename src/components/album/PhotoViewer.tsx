@@ -1,10 +1,15 @@
-import { useRef } from "preact/hooks";
-import { ChevronLeft, ChevronRight, Download, LoaderCircle, MapPin, Sparkles, Trash2, X } from "lucide-preact";
+import { useEffect, useRef, useState } from "preact/hooks";
+import { Check, ChevronLeft, ChevronRight, Download, HardDriveDownload, LoaderCircle, MapPin, Sparkles, Trash2, X } from "lucide-preact";
 import { usePhotoUrl } from "../../lib/store";
 import { countryName } from "../../lib/geo";
 import { getLanguage, useT } from "../../lib/i18n";
+import { ensureMistNode } from "../../lib/mistNode";
+import { exportPhotoToTcStorage, isPhotoExported } from "../../lib/tcstorage/export";
+import { storage_get } from "../../vendor/mistlib/wrappers/web/index.js";
 import type { Member, Photo } from "../../lib/types";
 import { Avatar } from "../common/Avatar";
+
+const TOAST_MS = 3200;
 
 interface PhotoViewerProps {
   photos: Photo[];
@@ -34,8 +39,70 @@ export function PhotoViewer({
   const photo = photos[index];
   const url = usePhotoUrl(photo);
   const touchStartX = useRef<number | null>(null);
+  const toastTimerRef = useRef<number | null>(null);
+  // Which photo the viewer is showing right now / whether we're still mounted —
+  // consulted after the async export so a slow export can't stamp its result
+  // onto a different photo the user has swiped to (or an unmounted viewer).
+  const shownPhotoIdRef = useRef<string | null>(null);
+  const mountedRef = useRef(true);
+
+  const [exporting, setExporting] = useState(false);
+  const [exported, setExported] = useState(() => (photo ? isPhotoExported(photo.id) : false));
+  const [toast, setToast] = useState<string | null>(null);
+
+  shownPhotoIdRef.current = photo?.id ?? null;
+
+  // Re-sync the "saved" state and clear any leftover toast when navigating
+  // to a different photo (this component instance is reused across index changes).
+  useEffect(() => {
+    setExported(photo ? isPhotoExported(photo.id) : false);
+    setExporting(false);
+    setToast(null);
+  }, [photo?.id]);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      if (toastTimerRef.current !== null) window.clearTimeout(toastTimerRef.current);
+    };
+  }, []);
 
   if (!photo) return null;
+
+  const showToast = (message: string) => {
+    setToast(message);
+    if (toastTimerRef.current !== null) window.clearTimeout(toastTimerRef.current);
+    toastTimerRef.current = window.setTimeout(() => setToast(null), TOAST_MS);
+  };
+
+  const handleExportToTcStorage = async () => {
+    const exportingId = photo.id;
+    setExporting(true);
+    try {
+      await ensureMistNode();
+      const raw = await storage_get(photo.cid);
+      await exportPhotoToTcStorage({
+        photoId: exportingId,
+        bytes: new Uint8Array(raw),
+        caption: photo.caption ?? "",
+        at: photo.at,
+      });
+      // Only surface the result if this photo is still the one on screen —
+      // navigating back later re-syncs "saved" from isPhotoExported anyway.
+      if (mountedRef.current && shownPhotoIdRef.current === exportingId) {
+        setExported(true);
+        showToast(t("album.tcStorage.saved"));
+      }
+    } catch (err) {
+      console.warn("tc-travel: failed to export photo to TC Storage", err);
+      if (mountedRef.current && shownPhotoIdRef.current === exportingId) {
+        showToast(t("album.tcStorage.error"));
+      }
+    } finally {
+      if (mountedRef.current && shownPhotoIdRef.current === exportingId) setExporting(false);
+    }
+  };
 
   const author = memberById.get(photo.by);
   const authorName = author?.name ?? t("album.fellowTraveler");
@@ -132,6 +199,21 @@ export function PhotoViewer({
           <button type="button" class="btn btn-tonal" onClick={handleDownload} disabled={!url}>
             <Download size={16} /> {t("album.download")}
           </button>
+          <button
+            type="button"
+            class="btn btn-tonal"
+            onClick={handleExportToTcStorage}
+            disabled={exporting || exported}
+          >
+            {exporting ? (
+              <LoaderCircle class="spin" size={16} />
+            ) : exported ? (
+              <Check size={16} />
+            ) : (
+              <HardDriveDownload size={16} />
+            )}
+            {exported ? t("album.tcStorage.saved") : t("album.tcStorage.save")}
+          </button>
           {isOwn && (
             <button type="button" class="btn btn-danger" onClick={handleDelete}>
               <Trash2 size={16} /> {t("album.delete")}
@@ -139,6 +221,7 @@ export function PhotoViewer({
           )}
         </span>
       </div>
+      {toast && <div class="viewer-toast">{toast}</div>}
     </div>
   );
 }
