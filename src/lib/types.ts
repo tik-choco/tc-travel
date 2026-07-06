@@ -65,21 +65,23 @@ export interface EncounterPin {
   note: string;
 }
 
-/** A personal letter mailed between two members of a room (`letters` Y.Array).
- *  Delivered peer-to-peer via Yjs sync, so sender and recipient must share a
- *  room for it to arrive — "friends" here are the people you've met in a party.
- *  Unlike Photo, a letter carries its whole content in the Y.Doc (no cid). */
-export interface Letter {
+/** A message card swapped FACE-TO-FACE via QR — like exchanging business cards.
+ *  You can only receive one by physically scanning the other person's screen,
+ *  so a card is proof you met that person in the real world. The whole card
+ *  travels inside the QR (see lib/cardQr.ts); received cards are kept locally as
+ *  a keepsake collection (lib/cards.ts), independent of any room. */
+export interface Card {
+  /** the sender's stable profile id — also the dedupe key in a collection */
   id: string;
-  from: string; // sender member id
-  to: string; // recipient member id
-  at: number; // epoch ms sent
-  subject: string;
-  body: string;
-  /** decorative wax-seal / stationery emoji chosen by the sender */
-  seal: string;
-  /** true once the recipient has opened it (set by the recipient) */
-  read: boolean;
+  name: string;
+  avatarEmoji: string;
+  color: string;
+  /** the personal message the sender wrote on their card (may be empty) */
+  message: string;
+  /** epoch ms the sender minted/last-edited the card (travels in the QR) */
+  at: number;
+  /** epoch ms you received it by scanning — set locally on receipt, never in the QR */
+  receivedAt?: number;
 }
 
 export interface RoomMeta {
@@ -107,6 +109,8 @@ export interface Profile {
   /** Show the 3D VRM companion (the one from vrmStorage) on the Home screen.
    *  Unset is treated as ON — a VRM, once set, greets you on Home by default. */
   showHomeVrm?: boolean;
+  /** The personal message on your own exchangeable card (see Card / lib/cardQr.ts). */
+  cardMessage?: string;
 }
 
 export interface JoinedRoom {

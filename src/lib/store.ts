@@ -16,7 +16,7 @@ import { ensureMistNode } from "./mistNode";
 import { CollabSession, isValidRoomId, type PeerInfo, type CompanionPose } from "./collab";
 export type { CompanionPose };
 import { getProfile, recordJourney, touchJoinedRoom } from "./personal";
-import type { DiaryEntry, EncounterPin, Letter, Member, Photo, RoomMeta } from "./types";
+import type { DiaryEntry, EncounterPin, Member, Photo, RoomMeta } from "./types";
 
 // --- session singleton ------------------------------------------------
 
@@ -461,48 +461,6 @@ export function removePin(id: string): void {
   session.transact(() => {
     const arr = session.doc.getArray<EncounterPin>("pins");
     const idx = arr.toArray().findIndex((p) => p.id === id);
-    if (idx >= 0) arr.delete(idx, 1);
-  });
-}
-
-// --- letters ---------------------------------------------------------------
-
-export function useLetters(): Letter[] {
-  useStoreVersion();
-  if (!active) return [];
-  return active.session.doc.getArray<Letter>("letters").toArray().slice().sort((a, b) => b.at - a.at);
-}
-
-export function sendLetter(input: { to: string; subject: string; body: string; seal: string }): void {
-  if (!active) return;
-  const profile = getProfile();
-  const letter: Letter = { id: crypto.randomUUID(), from: profile.id, at: Date.now(), read: false, ...input };
-  const session = active.session;
-  session.transact(() => {
-    session.doc.getArray<Letter>("letters").push([letter]);
-  });
-}
-
-export function markLetterRead(id: string): void {
-  if (!active) return;
-  const session = active.session;
-  session.transact(() => {
-    const arr = session.doc.getArray<Letter>("letters");
-    const list = arr.toArray();
-    const idx = list.findIndex((l) => l.id === id);
-    if (idx < 0) return;
-    const updated: Letter = { ...list[idx], read: true };
-    arr.delete(idx, 1);
-    arr.insert(idx, [updated]);
-  });
-}
-
-export function removeLetter(id: string): void {
-  if (!active) return;
-  const session = active.session;
-  session.transact(() => {
-    const arr = session.doc.getArray<Letter>("letters");
-    const idx = arr.toArray().findIndex((l) => l.id === id);
     if (idx >= 0) arr.delete(idx, 1);
   });
 }
