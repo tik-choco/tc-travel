@@ -1,5 +1,5 @@
 import "./shell.i18n";
-import { Map, Images, BookOpen, Mail, UserRound, Shield } from "lucide-preact";
+import { Map, Images, BookOpen, IdCard, UserRound, Shield } from "lucide-preact";
 import { useT } from "../../lib/i18n";
 
 // Tab id `camera` is kept for backward compat (see docs/REDESIGN.md) even
@@ -11,7 +11,7 @@ const TABS: { id: RoomTab; icon: typeof Map; labelKey: string }[] = [
   { id: "album", icon: Images, labelKey: "tab.album" },
   { id: "diary", icon: BookOpen, labelKey: "tab.diary" },
   { id: "camera", icon: UserRound, labelKey: "tab.camera" },
-  { id: "post", icon: Mail, labelKey: "tab.post" },
+  { id: "post", icon: IdCard, labelKey: "tab.post" },
   { id: "guild", icon: Shield, labelKey: "tab.guild" },
 ];
 

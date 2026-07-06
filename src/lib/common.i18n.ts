@@ -22,8 +22,8 @@ registerTranslations({
     es: "Avatar", fr: "Avatar", de: "Avatar", pt: "Avatar",
   },
   "tab.post": {
-    en: "Post", ja: "郵便", zh: "邮政", ko: "우편",
-    es: "Correo", fr: "Courrier", de: "Post", pt: "Correio",
+    en: "Cards", ja: "名刺", zh: "名片", ko: "명함",
+    es: "Tarjetas", fr: "Cartes", de: "Karten", pt: "Cartões",
   },
   "tab.guild": {
     en: "Guild Card", ja: "ギルドカード", zh: "公会卡", ko: "길드 카드",

@@ -1,141 +1,79 @@
-import { useMemo, useState } from "preact/hooks";
-import { Feather, Mailbox } from "lucide-preact";
-import { useSession, useMembers, useLetters, removeLetter } from "../../lib/store";
-import { useProfile } from "../../lib/personal";
-import { partitionLetters } from "../../lib/letters";
+import { useState } from "preact/hooks";
+import { Contact, QrCode } from "lucide-preact";
+import { removeCard, useCards } from "../../lib/cards";
 import { getLanguage, useT } from "../../lib/i18n";
-import { Avatar } from "../common/Avatar";
-import { LetterComposer } from "./LetterComposer";
-import { LetterReader } from "./LetterReader";
-import type { Letter } from "../../lib/types";
+import { CardExchange } from "./CardExchange";
+import { CardView } from "./CardView";
+import type { Card } from "../../lib/types";
 import "./post.i18n";
 import "./post.css";
 
+/** The card book (名刺帳): every card here was received by physically scanning
+ *  its owner's screen (see CardExchange), so the collection doubles as a
+ *  record of real-world meetings. Local-only — no room or session required. */
 export function PostScreen() {
   const t = useT();
-  const session = useSession();
-  const letters = useLetters();
-  const members = useMembers();
-  const [profile] = useProfile();
-  const [composing, setComposing] = useState(false);
-  const [reading, setReading] = useState<Letter | null>(null);
-
-  const memberById = useMemo(() => new Map(members.map((m) => [m.id, m])), [members]);
-  // useLetters is already sorted by `at` DESC and partitionLetters preserves
-  // order, so both piles come out newest-first.
-  const { inbox, sent, unreadCount } = useMemo(
-    () => partitionLetters(letters, profile.id),
-    [letters, profile.id],
-  );
-
-  if (!session) {
-    return (
-      <div class="screen post-screen">
-        <div class="empty-state">
-          <div class="empty-state-icon">
-            <Mailbox size={28} />
-          </div>
-          <p class="empty-state-title">{t("post.needSessionTitle")}</p>
-          <p class="empty-state-hint">{t("post.needSession")}</p>
-        </div>
-      </div>
-    );
-  }
+  const cards = useCards();
+  const [exchanging, setExchanging] = useState(false);
+  const [viewing, setViewing] = useState<Card | null>(null);
 
   const dateFmt = new Intl.DateTimeFormat(getLanguage(), { dateStyle: "medium" });
-
-  // One row for either pile; `counterpartId` is the other person on the
-  // envelope (sender for inbox letters, recipient for sent ones).
-  const renderLetter = (letter: Letter, counterpartId: string, unread: boolean) => {
-    const counterpart = memberById.get(counterpartId);
-    return (
-      <li key={letter.id}>
-        <button
-          type="button"
-          class={`list-item post-letter${unread ? " is-unread" : ""}`}
-          onClick={() => setReading(letter)}
-        >
-          {counterpart ? (
-            <Avatar member={counterpart} size="sm" ringColor={counterpart.color} />
-          ) : (
-            <span class="avatar avatar-sm" aria-hidden="true" />
-          )}
-          <span class="list-item-body">
-            <span class="post-letter-title-row">
-              {unread && <span class="post-unread-dot" role="img" aria-label={t("post.unread")} />}
-              <span class="list-item-title">{letter.subject.trim() || t("post.noSubject")}</span>
-            </span>
-            <span class="list-item-sub">{counterpart?.name ?? t("post.fellowTraveler")}</span>
-          </span>
-          <span class="list-item-trailing post-letter-trailing">
-            <span class="post-letter-seal" aria-hidden="true">
-              {letter.seal}
-            </span>
-            <span class="post-letter-date">{dateFmt.format(new Date(letter.at))}</span>
-          </span>
-        </button>
-      </li>
-    );
-  };
 
   return (
     <div class="screen post-screen">
       <h1 class="title-ornate">{t("post.title")}</h1>
 
-      {letters.length === 0 ? (
+      {cards.length === 0 ? (
         <div class="empty-state">
           <div class="empty-state-icon">
-            <Mailbox size={28} />
+            <Contact size={28} />
           </div>
           <p class="empty-state-title">{t("post.emptyTitle")}</p>
           <p class="empty-state-hint">{t("post.emptyState")}</p>
-          <button type="button" class="btn btn-primary" onClick={() => setComposing(true)}>
-            <Feather size={18} /> {t("post.compose")}
+          <button type="button" class="btn btn-primary" onClick={() => setExchanging(true)}>
+            <QrCode size={18} /> {t("post.exchange")}
           </button>
         </div>
       ) : (
         <>
-          <section class="post-section">
-            <h2 class="section-title post-section-title">
-              {t("post.inbox")}
-              {unreadCount > 0 && <span class="post-unread-badge">{unreadCount}</span>}
-            </h2>
-            {inbox.length === 0 ? (
-              <p class="post-section-empty">{t("post.inboxEmpty")}</p>
-            ) : (
-              <ul class="post-list">{inbox.map((letter) => renderLetter(letter, letter.from, !letter.read))}</ul>
-            )}
-          </section>
-
-          <section class="post-section">
-            <h2 class="section-title post-section-title">{t("post.sent")}</h2>
-            {sent.length === 0 ? (
-              <p class="post-section-empty">{t("post.sentEmpty")}</p>
-            ) : (
-              <ul class="post-list">{sent.map((letter) => renderLetter(letter, letter.to, false))}</ul>
-            )}
-          </section>
+          <p class="post-count">{t("post.cardCount", { count: cards.length })}</p>
+          <ul class="post-list">
+            {cards.map((card) => (
+              <li key={card.id}>
+                <button type="button" class="list-item post-card" onClick={() => setViewing(card)}>
+                  <span class="avatar post-card-avatar" style={`border-color: ${card.color}`} aria-hidden="true">
+                    {card.avatarEmoji}
+                  </span>
+                  <span class="list-item-body">
+                    <span class="list-item-title">{card.name}</span>
+                    {card.message !== "" && <span class="list-item-sub">{card.message}</span>}
+                  </span>
+                  {card.receivedAt !== undefined && (
+                    <span class="list-item-trailing post-card-date">
+                      {dateFmt.format(new Date(card.receivedAt))}
+                    </span>
+                  )}
+                </button>
+              </li>
+            ))}
+          </ul>
         </>
       )}
 
-      <button type="button" class="fab" onClick={() => setComposing(true)}>
-        <Feather size={22} />
-        <span class="fab-label">{t("post.compose")}</span>
+      <button type="button" class="fab" onClick={() => setExchanging(true)}>
+        <QrCode size={22} />
+        <span class="fab-label">{t("post.exchange")}</span>
       </button>
 
-      {composing && <LetterComposer onClose={() => setComposing(false)} />}
+      {exchanging && <CardExchange onClose={() => setExchanging(false)} />}
 
-      {reading && (
-        <LetterReader
-          letter={reading}
-          from={memberById.get(reading.from) ?? null}
-          to={memberById.get(reading.to) ?? null}
-          isMine={reading.from === profile.id}
-          isForMe={reading.to === profile.id}
-          onClose={() => setReading(null)}
-          onDelete={() => {
-            removeLetter(reading.id);
-            setReading(null);
+      {viewing && (
+        <CardView
+          card={viewing}
+          onClose={() => setViewing(null)}
+          onRemove={() => {
+            removeCard(viewing.id);
+            setViewing(null);
           }}
         />
       )}

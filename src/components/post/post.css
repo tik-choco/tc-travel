@@ -1,7 +1,9 @@
-/* Postal feature — mailbox list, composer & reader sheets, and the little
-   delight moments (unread-envelope glow, wax-seal stamp + fly-away on send,
-   seal-break + unfold reveal on open). Design tokens only; every animation
-   is switched off under prefers-reduced-motion. */
+/* Card book (名刺帳) — the collected-cards list, the show/scan exchange sheet,
+   and the card-received delight (a card flipping into your hand). Design
+   tokens only; every animation is switched off under prefers-reduced-motion.
+   The one per-card accent is the SENDER's profile color, which arrives as
+   data — components set it inline as the --card-color custom property and
+   everything here derives from it via color-mix. */
 
 .post-screen {
   display: flex;
@@ -9,30 +11,10 @@
   gap: 0.85rem;
 }
 
-.post-section {
-  display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
-}
-
-.post-section-title {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.post-unread-badge {
-  min-width: 20px;
-  height: 20px;
-  padding: 0 6px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.72rem;
-  font-weight: 700;
-  color: var(--on-tertiary-container);
-  background: var(--tertiary-container);
-  border-radius: var(--radius-full);
+.post-count {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--on-surface-variant);
 }
 
 .post-list {
@@ -44,66 +26,156 @@
   gap: 0.6rem;
 }
 
-.post-section-empty {
-  margin: 0;
-  font-size: 0.85rem;
-  color: var(--on-surface-variant);
-}
-
-.post-letter {
+.post-card {
   align-items: center;
 }
 
-/* Unread envelopes glow softly until opened. */
-.post-letter.is-unread {
-  border-color: color-mix(in srgb, var(--primary) 55%, transparent);
-  box-shadow: 0 0 10px color-mix(in srgb, var(--primary) 28%, transparent);
-  animation: post-glow 2.4s ease-in-out infinite;
-}
-
-@keyframes post-glow {
-  0%,
-  100% {
-    box-shadow: 0 0 6px color-mix(in srgb, var(--primary) 20%, transparent);
-  }
-  50% {
-    box-shadow: 0 0 14px color-mix(in srgb, var(--primary) 38%, transparent);
-  }
-}
-
-.post-letter-title-row {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  min-width: 0;
-}
-
-.post-unread-dot {
+/* Ring tinted with the sender's color (inline border-color) — the same person
+   always shows up in the same hue, across the list, the keepsake view, and
+   the moment their card first flipped in. */
+.post-card-avatar {
   flex: none;
-  width: 8px;
-  height: 8px;
-  border-radius: var(--radius-full);
-  background: var(--tertiary);
 }
 
-.post-letter-trailing {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 0.15rem;
+.post-card .list-item-sub {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.post-letter-seal {
-  font-size: 1.25rem;
-  line-height: 1;
-}
-
-.post-letter-date {
+.post-card-date {
   font-size: 0.75rem;
   white-space: nowrap;
 }
 
-/* --- Composer / Reader bottom sheet --- */
+/* --- The card face: shared by the exchange preview, the received moment,
+       and the full keepsake view. --- */
+
+.card-face {
+  --card-color: var(--primary);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 1.1rem 1rem;
+  border-radius: var(--radius-lg);
+  border: 2px solid color-mix(in srgb, var(--card-color) 60%, var(--outline-variant));
+  background: linear-gradient(
+    160deg,
+    color-mix(in srgb, var(--card-color) 14%, var(--surface)),
+    var(--surface)
+  );
+  box-shadow: 0 2px 10px color-mix(in srgb, var(--card-color) 16%, transparent);
+  text-align: center;
+}
+
+.card-face-full {
+  padding: 1.75rem 1.25rem;
+  gap: 0.7rem;
+}
+
+.card-face-avatar {
+  border-color: var(--card-color);
+  background: color-mix(in srgb, var(--card-color) 18%, var(--surface));
+}
+
+.card-face-name {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--on-surface);
+  overflow-wrap: anywhere;
+}
+
+.card-face-full .card-face-name {
+  font-size: 1.375rem;
+}
+
+.card-face-message {
+  margin: 0;
+  white-space: pre-wrap;
+  line-height: 1.5;
+  font-size: 0.9rem;
+  color: var(--on-surface);
+  overflow-wrap: anywhere;
+}
+
+/* "Met on <date>" — the keepsake's whole point: proof of a real meeting. */
+.card-face-met {
+  font-size: 0.78rem;
+  color: var(--on-surface-variant);
+  border-top: 1px dashed color-mix(in srgb, var(--card-color) 45%, var(--outline-variant));
+  padding-top: 0.6rem;
+  margin-top: 0.2rem;
+  align-self: stretch;
+}
+
+.card-message-field {
+  width: 100%;
+}
+
+.card-message-input {
+  min-height: 72px;
+  resize: vertical;
+  line-height: 1.5;
+}
+
+/* --- Received delight: the new card flips into your book. --- */
+
+.card-received {
+  text-align: center;
+}
+
+.card-received-fx {
+  animation: card-flip-in 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+@keyframes card-flip-in {
+  0% {
+    transform: perspective(600px) rotateY(80deg) translateY(14px) scale(0.85);
+    opacity: 0;
+  }
+  60% {
+    transform: perspective(600px) rotateY(-10deg) translateY(0) scale(1.03);
+    opacity: 1;
+  }
+  100% {
+    transform: perspective(600px) rotateY(0deg) translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+.card-received-title {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  font-weight: 700;
+  color: var(--primary);
+  animation: card-received-rise 0.4s ease-out 0.35s both;
+}
+
+.card-received-nudge {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--on-surface-variant);
+  animation: card-received-rise 0.4s ease-out 0.5s both;
+}
+
+@keyframes card-received-rise {
+  0% {
+    transform: translateY(8px);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* --- Keepsake sheet (CardView) --- */
 
 .post-sheet {
   position: relative;
@@ -116,54 +188,7 @@
 .post-sheet-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
-}
-
-.post-sheet-title {
-  margin: 0;
-  font-size: 1.1rem;
-  font-weight: 700;
-  letter-spacing: -0.01em;
-  color: var(--on-surface);
-}
-
-.post-recipient-picker,
-.post-seal-picker {
-  display: flex;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-}
-
-.post-recipient-chip {
-  min-height: 40px;
-}
-
-.post-seal-chip {
-  font-size: 1.2rem;
-  min-height: 40px;
-  padding: 0 0.6rem;
-}
-
-.post-no-recipients {
-  margin: 0;
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  font-size: 0.85rem;
-  color: var(--on-surface-variant);
-}
-
-.post-body-input {
-  min-height: 140px;
-  resize: vertical;
-  line-height: 1.5;
-}
-
-.post-validation {
-  margin: 0;
-  color: var(--error);
-  font-size: 0.8rem;
+  justify-content: flex-end;
 }
 
 .post-sheet-actions {
@@ -172,113 +197,10 @@
   justify-content: flex-end;
 }
 
-/* --- Send delight: the wax seal stamps down, then the letter flies away. --- */
-
-.post-send-fx {
-  position: fixed;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  pointer-events: none;
-  z-index: 10;
-}
-
-.post-send-fx-letter {
-  font-size: 3rem;
-  animation: post-stamp-fly 0.75s ease-in both;
-}
-
-@keyframes post-stamp-fly {
-  0% {
-    transform: scale(2.6) rotate(-14deg);
-    opacity: 0;
-  }
-  30% {
-    transform: scale(1) rotate(0deg);
-    opacity: 1;
-  }
-  55% {
-    transform: scale(1.05) translateY(0);
-    opacity: 1;
-  }
-  100% {
-    transform: translateY(-55vh) translateX(12vw) rotate(12deg) scale(0.7);
-    opacity: 0;
-  }
-}
-
-/* --- Reader delight: breaking the seal unfolds the letter. --- */
-
-.post-reader-seal {
-  font-size: 2rem;
-  line-height: 1;
-  animation: post-seal-break 0.45s ease-out both;
-}
-
-@keyframes post-seal-break {
-  0% {
-    transform: scale(1.6) rotate(-8deg);
-    opacity: 0;
-  }
-  100% {
-    transform: scale(1) rotate(0deg);
-    opacity: 1;
-  }
-}
-
-.post-reader-unfold {
-  display: flex;
-  flex-direction: column;
-  gap: 0.9rem;
-  animation: post-unfold 0.45s ease-out 0.12s both;
-}
-
-@keyframes post-unfold {
-  0% {
-    transform: translateY(10px);
-    opacity: 0;
-  }
-  100% {
-    transform: translateY(0);
-    opacity: 1;
-  }
-}
-
-.post-reader-subject {
-  margin: 0;
-  font-size: 1.375rem;
-  font-weight: 700;
-  letter-spacing: -0.01em;
-  color: var(--on-surface);
-}
-
-.post-reader-meta {
-  font-size: 0.8rem;
-  color: var(--on-surface-variant);
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.3rem 0.75rem;
-}
-
-.post-reader-person {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-}
-
-.post-reader-text {
-  margin: 0;
-  white-space: pre-wrap;
-  line-height: 1.6;
-  color: var(--on-surface);
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .post-letter.is-unread,
-  .post-send-fx-letter,
-  .post-reader-seal,
-  .post-reader-unfold {
+  .card-received-fx,
+  .card-received-title,
+  .card-received-nudge {
     animation: none;
   }
 }
