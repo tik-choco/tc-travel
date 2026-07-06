@@ -13,6 +13,7 @@ import { WorldMap } from "./components/map/WorldMap";
 import { AlbumScreen } from "./components/album/AlbumScreen";
 import { DiaryScreen } from "./components/diary/DiaryScreen";
 import { ARCameraLazy } from "./components/ar/ARCameraLazy";
+import { PostScreen } from "./components/post/PostScreen";
 import { GuildScreen } from "./components/guild/GuildScreen";
 
 export function App() {
@@ -60,6 +61,7 @@ export function App() {
           {tab === "album" && <AlbumScreen />}
           {tab === "diary" && <DiaryScreen />}
           {tab === "camera" && <ARCameraLazy />}
+          {tab === "post" && <PostScreen />}
           {tab === "guild" && <GuildScreen />}
         </div>
         <TabBar active={tab} onSelect={setTab} />

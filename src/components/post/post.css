@@ -1,0 +1,284 @@
+/* Postal feature — mailbox list, composer & reader sheets, and the little
+   delight moments (unread-envelope glow, wax-seal stamp + fly-away on send,
+   seal-break + unfold reveal on open). Design tokens only; every animation
+   is switched off under prefers-reduced-motion. */
+
+.post-screen {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.post-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.post-section-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.post-unread-badge {
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--on-tertiary-container);
+  background: var(--tertiary-container);
+  border-radius: var(--radius-full);
+}
+
+.post-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.post-section-empty {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--on-surface-variant);
+}
+
+.post-letter {
+  align-items: center;
+}
+
+/* Unread envelopes glow softly until opened. */
+.post-letter.is-unread {
+  border-color: color-mix(in srgb, var(--primary) 55%, transparent);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--primary) 28%, transparent);
+  animation: post-glow 2.4s ease-in-out infinite;
+}
+
+@keyframes post-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 6px color-mix(in srgb, var(--primary) 20%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 14px color-mix(in srgb, var(--primary) 38%, transparent);
+  }
+}
+
+.post-letter-title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
+.post-unread-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  background: var(--tertiary);
+}
+
+.post-letter-trailing {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.15rem;
+}
+
+.post-letter-seal {
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+.post-letter-date {
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+/* --- Composer / Reader bottom sheet --- */
+
+.post-sheet {
+  position: relative;
+  padding: 0 1.25rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.post-sheet-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.post-sheet-title {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--on-surface);
+}
+
+.post-recipient-picker,
+.post-seal-picker {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.post-recipient-chip {
+  min-height: 40px;
+}
+
+.post-seal-chip {
+  font-size: 1.2rem;
+  min-height: 40px;
+  padding: 0 0.6rem;
+}
+
+.post-no-recipients {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  color: var(--on-surface-variant);
+}
+
+.post-body-input {
+  min-height: 140px;
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.post-validation {
+  margin: 0;
+  color: var(--error);
+  font-size: 0.8rem;
+}
+
+.post-sheet-actions {
+  display: flex;
+  gap: 0.6rem;
+  justify-content: flex-end;
+}
+
+/* --- Send delight: the wax seal stamps down, then the letter flies away. --- */
+
+.post-send-fx {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.post-send-fx-letter {
+  font-size: 3rem;
+  animation: post-stamp-fly 0.75s ease-in both;
+}
+
+@keyframes post-stamp-fly {
+  0% {
+    transform: scale(2.6) rotate(-14deg);
+    opacity: 0;
+  }
+  30% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
+  55% {
+    transform: scale(1.05) translateY(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-55vh) translateX(12vw) rotate(12deg) scale(0.7);
+    opacity: 0;
+  }
+}
+
+/* --- Reader delight: breaking the seal unfolds the letter. --- */
+
+.post-reader-seal {
+  font-size: 2rem;
+  line-height: 1;
+  animation: post-seal-break 0.45s ease-out both;
+}
+
+@keyframes post-seal-break {
+  0% {
+    transform: scale(1.6) rotate(-8deg);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
+}
+
+.post-reader-unfold {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  animation: post-unfold 0.45s ease-out 0.12s both;
+}
+
+@keyframes post-unfold {
+  0% {
+    transform: translateY(10px);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.post-reader-subject {
+  margin: 0;
+  font-size: 1.375rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--on-surface);
+}
+
+.post-reader-meta {
+  font-size: 0.8rem;
+  color: var(--on-surface-variant);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem 0.75rem;
+}
+
+.post-reader-person {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.post-reader-text {
+  margin: 0;
+  white-space: pre-wrap;
+  line-height: 1.6;
+  color: var(--on-surface);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .post-letter.is-unread,
+  .post-send-fx-letter,
+  .post-reader-seal,
+  .post-reader-unfold {
+    animation: none;
+  }
+}

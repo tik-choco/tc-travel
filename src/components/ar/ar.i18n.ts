@@ -164,6 +164,16 @@ registerTranslations({
     de: "Erneut Versuchen",
     pt: "Tentar Novamente",
   },
+  "ar.noCameraNotice": {
+    en: "No camera — virtual stage mode",
+    ja: "カメラなし・仮想ステージで表示中",
+    zh: "无相机 · 虚拟舞台模式",
+    ko: "카메라 없음 · 가상 무대 모드",
+    es: "Sin cámara: modo escenario virtual",
+    fr: "Pas de caméra : mode scène virtuelle",
+    de: "Keine Kamera — virtueller Bühnenmodus",
+    pt: "Sem câmera — modo palco virtual",
+  },
   "ar.hint": {
     en: "Drag to move · Pinch to scale · Twist to turn",
     ja: "ドラッグで移動・ピンチで拡大縮小・ひねって回転",

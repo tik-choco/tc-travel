@@ -27,7 +27,16 @@ import {
   ZoomOut,
 } from "lucide-preact";
 import { useT } from "../../lib/i18n";
-import { useSession, addPhoto } from "../../lib/store";
+import {
+  useSession,
+  addPhoto,
+  useMembers,
+  sendCompanionPose,
+  onCompanionPose,
+  setMemberVrmBytes,
+  useMemberVrmCids,
+} from "../../lib/store";
+import { useProfile } from "../../lib/personal";
 import { compressImage } from "../../lib/photo";
 import { lookupCountry } from "../../lib/geo";
 import { setProfileAvatar } from "../../lib/avatar";
@@ -39,6 +48,7 @@ import { createPlaceholderCompanion } from "./placeholderCompanion";
 import { createVrmCompanion, loadVrmFromBytes } from "./vrmLoader";
 import { attachGestures, rotateStep, zoomStep, type GestureHandle } from "./gestures";
 import { loadVrmBytes, saveVrmBytes, clearVrmBytes } from "./vrmStorage";
+import { createRemoteCompanions, type RemoteCompanionsManager } from "./remoteCompanions";
 import { isAiConfigured } from "../../lib/ai/aiSettings";
 import { getCompanionClient } from "../../lib/ai/companionClient";
 import { CompanionTalkPanel } from "./CompanionTalkPanel";
@@ -47,6 +57,10 @@ const ROTATE_STEP = Math.PI / 12;
 const ZOOM_STEP_FACTOR = 1.15;
 const TOAST_DEFAULT_MS = 3200;
 const TOAST_SHORT_MS = 2000;
+/** Outbound companion-pose broadcast rate (see docs/ar-pose-sync.md). */
+const POSE_SEND_INTERVAL_MS = 100;
+/** Slot spacing for the initial no-overlap placement (docs/ar-pose-sync.md item 5). */
+const INITIAL_SLOT_SPACING = 0.9;
 
 type FacingMode = "environment" | "user";
 /** "checking" = reading IndexedDB for a stored VRM; "empty" = the welcoming
@@ -56,6 +70,10 @@ type ScreenMode = "checking" | "empty" | "live";
 export function ARCameraScreen() {
   const t = useT();
   const session = useSession();
+  const hasSession = session !== null;
+  const [profile] = useProfile();
+  const members = useMembers();
+  const vrmCids = useMemberVrmCids();
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const overlayRef = useRef<HTMLDivElement | null>(null);
@@ -64,9 +82,38 @@ export function ARCameraScreen() {
   const companionRef = useRef<Companion | null>(null);
   const gestureRef = useRef<GestureHandle | null>(null);
   const toastTimerRef = useRef<number | null>(null);
+  const remoteCompanionsRef = useRef<RemoteCompanionsManager | null>(null);
   /** VRM bytes found in storage (or just picked) before the scene exists yet;
    *  the scene-creation effect consumes this once it mounts. */
   const pendingVrmBytesRef = useRef<Uint8Array | null>(null);
+  /** Freshest hasSession/members/profile, readable from callbacks (e.g.
+   *  swapCompanion) that must stay referentially stable across renders. */
+  const liveContextRef = useRef({ hasSession, members, ownMemberId: profile.id });
+  useEffect(() => {
+    liveContextRef.current = { hasSession, members, ownMemberId: profile.id };
+  }, [hasSession, members, profile.id]);
+  // Mirror for the manager-creation effect, which must seed a fresh manager
+  // with the current cid map without re-running on every cid change.
+  const vrmCidsRef = useRef(vrmCids);
+  useEffect(() => {
+    vrmCidsRef.current = vrmCids;
+  }, [vrmCids]);
+
+  // Initial no-overlap placement (docs/ar-pose-sync.md item 5): only while in
+  // a room and only if the companion hasn't been moved yet (still exactly at
+  // the origin) — gesture-driven positions are never overwritten.
+  function applyInitialCompanionOffset(): void {
+    const { hasSession: active, members: currentMembers, ownMemberId } = liveContextRef.current;
+    if (!active) return;
+    const root = companionRef.current?.root;
+    if (!root) return;
+    if (root.position.x !== 0 || root.position.y !== 0 || root.position.z !== 0) return;
+    const sortedIds = currentMembers.map((m) => m.id).sort();
+    const index = sortedIds.indexOf(ownMemberId);
+    if (index < 0) return;
+    const n = sortedIds.length;
+    root.position.x = (index - (n - 1) / 2) * INITIAL_SLOT_SPACING;
+  }
 
   const [mode, setMode] = useState<ScreenMode>("checking");
   const [hasVrm, setHasVrm] = useState(false);
@@ -183,6 +230,7 @@ export function ARCameraScreen() {
     const prev = companionRef.current;
     companionRef.current = next;
     arScene.setCompanion(next);
+    applyInitialCompanionOffset();
     prev?.dispose();
   }, []);
 
@@ -198,6 +246,7 @@ export function ARCameraScreen() {
     const placeholder = createPlaceholderCompanion();
     companionRef.current = placeholder;
     arScene.setCompanion(placeholder);
+    applyInitialCompanionOffset();
 
     const gestures = attachGestures(arScene.canvas, arScene.camera, () => companionRef.current?.root ?? null);
     gestureRef.current = gestures;
@@ -219,6 +268,67 @@ export function ARCameraScreen() {
       arSceneRef.current = null;
     };
   }, [mode, swapCompanion, showToast, t]);
+
+  // Mirrors every other room member's companion onto the shared virtual
+  // stage while live and in a room (group-photo mode) — see
+  // docs/ar-pose-sync.md. Gated on hasSession (not the whole `session`
+  // object) so this doesn't tear down/recreate on every unrelated doc
+  // change; arSceneRef.current is already set because the scene-creation
+  // effect above runs first within the same commit.
+  useEffect(() => {
+    if (mode !== "live" || !hasSession) return;
+    const arScene = arSceneRef.current;
+    if (!arScene) return;
+    const manager = createRemoteCompanions(arScene, profile.id);
+    remoteCompanionsRef.current = manager;
+    // Seed the roster/cids the effects below only re-push on change — a
+    // freshly (re)created manager must not wait for the next change to learn
+    // the current room state.
+    manager.setMembers(liveContextRef.current.members.map((m) => m.id));
+    manager.setVrmCids(vrmCidsRef.current);
+    const unsubscribe = onCompanionPose((pose) => manager.applyPose(pose));
+    return () => {
+      unsubscribe();
+      manager.dispose();
+      remoteCompanionsRef.current = null;
+    };
+  }, [mode, hasSession, profile.id]);
+
+  useEffect(() => {
+    remoteCompanionsRef.current?.setVrmCids(vrmCids);
+  }, [vrmCids]);
+
+  // Roster gate for the unauthenticated pose channel: only real members may
+  // materialize as remote companions (see RemoteCompanionsManager.setMembers).
+  useEffect(() => {
+    remoteCompanionsRef.current?.setMembers(members.map((m) => m.id));
+  }, [members]);
+
+  // 10Hz outbound pose broadcast (docs/ar-pose-sync.md). sendCompanionPose
+  // itself is a safe no-op outside a session, so this only needs to start/
+  // stop with live mode.
+  useEffect(() => {
+    if (mode !== "live" || !hasSession) return;
+    const intervalId = window.setInterval(() => {
+      const root = companionRef.current?.root;
+      if (!root) return;
+      sendCompanionPose({
+        x: root.position.x,
+        y: root.position.y,
+        z: root.position.z,
+        ry: root.rotation.y,
+        s: root.scale.x,
+      });
+    }, POSE_SEND_INTERVAL_MS);
+    return () => window.clearInterval(intervalId);
+  }, [mode, hasSession]);
+
+  // Late-arriving members still get a non-overlapping starting spot, as long
+  // as the companion hasn't been moved yet.
+  useEffect(() => {
+    if (mode !== "live" || !hasSession) return;
+    applyInitialCompanionOffset();
+  }, [mode, hasSession, members, profile.id]);
 
   function handleFlip(): void {
     setFacingMode((prev) => (prev === "environment" ? "user" : "environment"));
@@ -243,6 +353,7 @@ export function ARCameraScreen() {
       }
       await saveVrmBytes(bytes).catch(() => undefined);
       setHasVrm(true);
+      setMemberVrmBytes(bytes).catch((err) => console.warn("tc-travel: failed to publish companion VRM", err));
     },
     [mode, swapCompanion],
   );
@@ -342,50 +453,73 @@ export function ARCameraScreen() {
   async function handleCapture(): Promise<void> {
     const video = videoRef.current;
     const arScene = arSceneRef.current;
-    if (!video || !arScene || capturing) return;
-    if (video.videoWidth === 0 || video.videoHeight === 0) return;
+    if (!arScene || capturing) return;
+    // No camera is not a blocker: fall back to a virtual-stage shot (dark
+    // backdrop + the 3D overlay) so the feature stays usable when camera
+    // permission is denied or no camera exists.
+    const frameVideo = video && video.videoWidth > 0 && video.videoHeight > 0 ? video : null;
 
     setCapturing(true);
     setFlash(true);
     window.setTimeout(() => setFlash(false), 150);
 
     try {
-      // Crop the native video frame the same way `object-fit: cover` crops
-      // it for display, so the capture matches what's on screen.
-      const rect = video.getBoundingClientRect();
-      const screenAspect = rect.width / rect.height;
-      const videoW = video.videoWidth;
-      const videoH = video.videoHeight;
-      const videoAspect = videoW / videoH;
-
-      let sx: number;
-      let sy: number;
       let sw: number;
       let sh: number;
-      if (videoAspect > screenAspect) {
-        sh = videoH;
-        sw = videoH * screenAspect;
-        sx = (videoW - sw) / 2;
-        sy = 0;
-      } else {
-        sw = videoW;
-        sh = videoW / screenAspect;
-        sx = 0;
-        sy = (videoH - sh) / 2;
-      }
-      sw = Math.round(sw);
-      sh = Math.round(sh);
-      sx = Math.round(sx);
-      sy = Math.round(sy);
-
       const canvas = document.createElement("canvas");
-      canvas.width = sw;
-      canvas.height = sh;
-      const ctx = canvas.getContext("2d");
-      if (!ctx) throw new Error("2D context unavailable");
+      const draw = (ctx: CanvasRenderingContext2D) => {
+        ctx.drawImage(arScene.canvas, 0, 0, arScene.canvas.width, arScene.canvas.height, 0, 0, sw, sh);
+      };
 
-      ctx.drawImage(video, sx, sy, sw, sh, 0, 0, sw, sh);
-      ctx.drawImage(arScene.canvas, 0, 0, arScene.canvas.width, arScene.canvas.height, 0, 0, sw, sh);
+      if (frameVideo) {
+        // Crop the native video frame the same way `object-fit: cover` crops
+        // it for display, so the capture matches what's on screen.
+        const rect = frameVideo.getBoundingClientRect();
+        const screenAspect = rect.width / rect.height;
+        const videoW = frameVideo.videoWidth;
+        const videoH = frameVideo.videoHeight;
+        const videoAspect = videoW / videoH;
+
+        let sx: number;
+        let sy: number;
+        if (videoAspect > screenAspect) {
+          sh = videoH;
+          sw = videoH * screenAspect;
+          sx = (videoW - sw) / 2;
+          sy = 0;
+        } else {
+          sw = videoW;
+          sh = videoW / screenAspect;
+          sx = 0;
+          sy = (videoH - sh) / 2;
+        }
+        sw = Math.round(sw);
+        sh = Math.round(sh);
+        sx = Math.round(sx);
+        sy = Math.round(sy);
+
+        canvas.width = sw;
+        canvas.height = sh;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) throw new Error("2D context unavailable");
+        ctx.drawImage(frameVideo, sx, sy, sw, sh, 0, 0, sw, sh);
+        draw(ctx);
+      } else {
+        // Virtual-stage shot at the overlay's own resolution, over the same
+        // gradient the on-screen .ar-stage-backdrop shows.
+        sw = arScene.canvas.width;
+        sh = arScene.canvas.height;
+        canvas.width = sw;
+        canvas.height = sh;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) throw new Error("2D context unavailable");
+        const gradient = ctx.createLinearGradient(0, 0, 0, sh);
+        gradient.addColorStop(0, "#1b2030");
+        gradient.addColorStop(1, "#0c0e16");
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, sw, sh);
+        draw(ctx);
+      }
 
       const { bytes, width, height } = await compressImage(canvas);
       const geo = await resolveGeo();
@@ -561,6 +695,7 @@ export function ARCameraScreen() {
       )}
       {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
       <video ref={videoRef} class="ar-video" playsInline muted autoPlay />
+      {cameraError && <div class="ar-stage-backdrop" />}
       <div ref={overlayRef} class="ar-overlay" />
 
       <div class={`ar-hint${showHint ? "" : " hidden"}`}>{t("ar.hint")}</div>
@@ -638,14 +773,11 @@ export function ARCameraScreen() {
       <div class={`ar-flash${flash ? " active" : ""}`} />
 
       {cameraError && (
-        <div class="ar-permission-panel">
-          <div class="panel">
-            <h2 class="title-ornate">{t("ar.permissionTitle")}</h2>
-            <p>{t("error.cameraPermission")}</p>
-            <button type="button" class="btn btn-primary" onClick={handleRetry}>
-              {t("ar.retry")}
-            </button>
-          </div>
+        <div class="ar-camera-notice">
+          <span>{t("ar.noCameraNotice")}</span>
+          <button type="button" class="btn btn-ghost" onClick={handleRetry}>
+            {t("ar.retry")}
+          </button>
         </div>
       )}
     </div>

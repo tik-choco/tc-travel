@@ -290,18 +290,100 @@
 /* Home                                                                    */
 /* ---------------------------------------------------------------------- */
 
+/* Avatar-first hero: greeting your companion when the app opens. The halo
+   and slow "breathing" keep the avatar feeling alive; everything derives
+   from brand tokens so theme swaps carry through automatically. */
 .home-hero {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 0.85rem;
-  margin-bottom: 1.5rem;
+  gap: 0.3rem;
+  padding-top: 1.25rem;
+  margin-bottom: 1.75rem;
+  text-align: center;
+}
+.home-hero-avatar {
+  position: relative;
+  display: inline-flex;
+  margin-bottom: 0.9rem;
+  padding: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  animation: home-hero-breathe 5s ease-in-out infinite;
+}
+.home-hero-avatar:disabled {
+  cursor: default;
+  opacity: 0.7;
+}
+.home-hero-avatar-badge {
+  position: absolute;
+  right: 2px;
+  bottom: 2px;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius-full);
+  background: var(--primary);
+  color: var(--on-primary);
+  border: 2px solid var(--surface);
+  box-shadow: var(--shadow-1);
+}
+.home-hero-avatar-badge svg {
+  width: 16px;
+  height: 16px;
+}
+.home-hero-avatar::before {
+  /* Soft ambient glow behind the avatar; painted before the positioned
+     .avatar so it always sits underneath without z-index games. */
+  content: "";
+  position: absolute;
+  inset: -26px;
+  border-radius: var(--radius-full);
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--primary) 26%, transparent) 0%,
+    color-mix(in srgb, var(--primary) 10%, transparent) 45%,
+    transparent 72%
+  );
+  pointer-events: none;
+}
+.home-hero-avatar .avatar {
+  border-color: color-mix(in srgb, var(--primary) 45%, var(--outline-variant));
+  box-shadow:
+    0 0 0 5px color-mix(in srgb, var(--primary) 12%, transparent),
+    0 10px 30px -8px color-mix(in srgb, var(--primary) 35%, transparent);
 }
 .home-hero-greeting {
+  margin: 0;
   font-family: var(--font-display);
   font-weight: 700;
-  font-size: 1.2rem;
+  font-size: 1.35rem;
   letter-spacing: -0.01em;
   color: var(--on-surface);
+}
+.home-hero-tagline {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--on-surface-variant);
+}
+@keyframes home-hero-breathe {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-4px) scale(1.015);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .home-hero-avatar {
+    animation: none;
+  }
 }
 
 .home-actions {

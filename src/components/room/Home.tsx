@@ -1,14 +1,23 @@
 import "./room.i18n";
-import { useState } from "preact/hooks";
-import { ScanLine, Plus, Users, ChevronRight, ArrowRight } from "lucide-preact";
+import { useRef, useState } from "preact/hooks";
+import { ScanLine, Plus, Users, ChevronRight, ArrowRight, Camera } from "lucide-preact";
 import { useT } from "../../lib/i18n";
 import { useJoinedRooms, useProfile } from "../../lib/personal";
 import { createRoom, joinRoom } from "../../lib/store";
+import { setProfileAvatar } from "../../lib/avatar";
 import { parseJoinInput } from "../../lib/qr";
 import { Avatar } from "../common/Avatar";
 import { QrModal } from "./QrModal";
 
 const ROOM_EMOJI_CHOICES = ["🏕️", "🎉", "🗺️", "🏔️", "⚓", "🌲", "🏯", "🍻"];
+
+/** Time-of-day greeting key so opening the app feels like being welcomed home. */
+function greetingKey(hour: number): string {
+  if (hour < 5 || hour >= 22) return "home.greetNight";
+  if (hour < 12) return "home.greetMorning";
+  if (hour < 18) return "home.greetAfternoon";
+  return "home.greetEvening";
+}
 
 export function Home() {
   const t = useT();
@@ -24,6 +33,25 @@ export function Home() {
   const [joinError, setJoinError] = useState(false);
   const [joining, setJoining] = useState(false);
   const [scanOpen, setScanOpen] = useState(false);
+
+  // The generated default profile name is non-empty, so a first-time user skips
+  // ProfileSetup and lands straight here — make the hero avatar itself the entry
+  // point for setting a real, personal portrait (attachment starts with "that's me").
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+  const [avatarBusy, setAvatarBusy] = useState(false);
+  const handleAvatarFile = async (e: Event) => {
+    const file = (e.target as HTMLInputElement).files?.[0];
+    if (!file) return;
+    setAvatarBusy(true);
+    try {
+      await setProfileAvatar(file);
+    } catch (err) {
+      console.error("tc-travel: setProfileAvatar failed", err);
+    } finally {
+      setAvatarBusy(false);
+      if (avatarInputRef.current) avatarInputRef.current.value = "";
+    }
+  };
 
   const handleCreate = async (e: Event) => {
     e.preventDefault();
@@ -63,8 +91,30 @@ export function Home() {
   return (
     <div class="screen" aria-label={t("home.title")}>
       <div class="home-hero">
-        <Avatar self size="lg" />
-        <p class="home-hero-greeting">{t("home.greeting", { name: profile.name })}</p>
+        <button
+          type="button"
+          class="home-hero-avatar"
+          disabled={avatarBusy}
+          aria-label={t("home.setAvatar")}
+          onClick={() => avatarInputRef.current?.click()}
+        >
+          <Avatar self size="xl" />
+          {!profile.avatarImage && (
+            <span class="home-hero-avatar-badge" aria-hidden="true">
+              <Camera />
+            </span>
+          )}
+        </button>
+        <input
+          ref={avatarInputRef}
+          type="file"
+          accept="image/*"
+          class="visually-hidden"
+          onChange={handleAvatarFile}
+          aria-label={t("home.setAvatar")}
+        />
+        <p class="home-hero-greeting">{t(greetingKey(new Date().getHours()), { name: profile.name })}</p>
+        <p class="home-hero-tagline">{t("home.heroTagline")}</p>
       </div>
 
       <div class="home-actions">

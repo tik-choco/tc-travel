@@ -221,34 +221,41 @@
   z-index: 4;
 }
 
-.ar-permission-panel {
+/* Shown when the camera is unavailable: the AR stage stays fully usable
+ * (companions, talk, pose sync, virtual-stage capture), this backdrop just
+ * replaces the missing video feed. Gradient mirrored in handleCapture's
+ * no-camera path so photos match what's on screen. */
+.ar-stage-backdrop {
   position: absolute;
   inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
+  z-index: 0;
+  background: linear-gradient(180deg, #1b2030 0%, #0c0e16 100%);
+}
+
+/* Non-blocking notice replacing the old full-screen permission panel — the
+ * camera being unavailable must not lock the user out of the AR stage. */
+.ar-camera-notice {
+  position: absolute;
+  top: 60px; /* clears the topbar */
+  left: 50%;
+  transform: translateX(-50%);
   z-index: 6;
-  background: rgba(0, 0, 0, 0.75);
-}
-
-.ar-permission-panel .panel {
-  max-width: 340px;
-  text-align: center;
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 12px;
-  padding: 24px;
-}
-
-.ar-permission-panel h2 {
-  margin: 0;
-}
-
-.ar-permission-panel p {
-  margin: 0;
+  gap: 4px;
+  padding: 4px 6px 4px 14px;
+  border-radius: 999px;
+  background: rgba(20, 24, 36, 0.85);
+  border: 1px solid var(--outline-variant, rgba(255, 255, 255, 0.15));
   color: var(--on-surface-variant);
+  font-size: 12.5px;
+  white-space: nowrap;
+  max-width: calc(100% - 24px);
+}
+
+.ar-camera-notice span {
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .ar-file-input {

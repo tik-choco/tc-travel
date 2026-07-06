@@ -5,12 +5,21 @@
 import * as THREE from "three";
 import type { Companion } from "./companion";
 
+/** Well-known key for the local (own) companion — kept for backward compat
+ *  with the single-slot API (setCompanion). */
+const LOCAL_COMPANION_KEY = "local";
+
 export interface ArScene {
   scene: THREE.Scene;
   camera: THREE.PerspectiveCamera;
   renderer: THREE.WebGLRenderer;
   canvas: HTMLCanvasElement;
+  /** Equivalent to addCompanion("local", c) / removeCompanion("local"). */
   setCompanion(companion: Companion | null): void;
+  /** Same key replaces the previous companion in the scene (old one is only
+   *  removed, not disposed — that's the caller's responsibility). */
+  addCompanion(key: string, companion: Companion): void;
+  removeCompanion(key: string): void;
   dispose(): void;
 }
 
@@ -39,7 +48,21 @@ export function createArScene(container: HTMLElement): ArScene {
   directional.position.set(1, 2, 1.5);
   scene.add(directional);
 
-  let companion: Companion | null = null;
+  const companions = new Map<string, Companion>();
+
+  function addCompanion(key: string, companion: Companion): void {
+    const existing = companions.get(key);
+    if (existing) scene.remove(existing.root);
+    companions.set(key, companion);
+    scene.add(companion.root);
+  }
+
+  function removeCompanion(key: string): void {
+    const existing = companions.get(key);
+    if (!existing) return;
+    scene.remove(existing.root);
+    companions.delete(key);
+  }
 
   function resize(): void {
     const width = container.clientWidth;
@@ -59,7 +82,7 @@ export function createArScene(container: HTMLElement): ArScene {
   function tick(): void {
     const deltaSeconds = clock.getDelta();
     elapsedSeconds += deltaSeconds;
-    companion?.update(deltaSeconds, elapsedSeconds);
+    for (const companion of companions.values()) companion.update(deltaSeconds, elapsedSeconds);
     renderer.render(scene, camera);
     frameId = requestAnimationFrame(tick);
   }
@@ -71,14 +94,16 @@ export function createArScene(container: HTMLElement): ArScene {
     renderer,
     canvas,
     setCompanion(next) {
-      if (companion) scene.remove(companion.root);
-      companion = next;
-      if (companion) scene.add(companion.root);
+      if (next) addCompanion(LOCAL_COMPANION_KEY, next);
+      else removeCompanion(LOCAL_COMPANION_KEY);
     },
+    addCompanion,
+    removeCompanion,
     dispose() {
       cancelAnimationFrame(frameId);
       resizeObserver.disconnect();
-      if (companion) scene.remove(companion.root);
+      for (const companion of companions.values()) scene.remove(companion.root);
+      companions.clear();
       renderer.dispose();
       canvas.remove();
     },

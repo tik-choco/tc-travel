@@ -13,6 +13,8 @@ export interface Member {
   avatarEmoji: string;
   /** mist storage cid of a small square JPEG avatar portrait; fallback is avatarEmoji */
   avatarCid?: string;
+  /** mist storage cid of the AR companion VRM; "" is the just-cleared sentinel (same convention as avatarCid) */
+  vrmCid?: string;
   joinedAt: number; // epoch ms
 }
 
@@ -63,11 +65,32 @@ export interface EncounterPin {
   note: string;
 }
 
+/** A personal letter mailed between two members of a room (`letters` Y.Array).
+ *  Delivered peer-to-peer via Yjs sync, so sender and recipient must share a
+ *  room for it to arrive — "friends" here are the people you've met in a party.
+ *  Unlike Photo, a letter carries its whole content in the Y.Doc (no cid). */
+export interface Letter {
+  id: string;
+  from: string; // sender member id
+  to: string; // recipient member id
+  at: number; // epoch ms sent
+  subject: string;
+  body: string;
+  /** decorative wax-seal / stationery emoji chosen by the sender */
+  seal: string;
+  /** true once the recipient has opened it (set by the recipient) */
+  read: boolean;
+}
+
 export interface RoomMeta {
   name: string;
   createdAt: number;
   emoji: string;
 }
+
+/** UI colour scheme preference. "auto" follows the OS via prefers-color-scheme;
+ *  "light"/"dark" force a scheme. Default is "light" (see lib/theme.ts). */
+export type ThemePref = "light" | "dark" | "auto";
 
 /** Local-only profile persisted in localStorage. */
 export interface Profile {
@@ -79,6 +102,8 @@ export interface Profile {
    *  their avatars — this is the primary identity image (VRM portrait or upload) */
   avatarImage?: string;
   language: Language | "auto";
+  /** UI theme preference; resolves to "light" when unset (see lib/theme.ts). */
+  theme?: ThemePref;
 }
 
 export interface JoinedRoom {

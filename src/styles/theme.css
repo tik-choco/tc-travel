@@ -1,16 +1,103 @@
 /*
- * tc-travel — Material Design 3 (dark) design tokens + shared component classes.
- * See docs/REDESIGN.md. Modern, avatar-first, metaverse-friendly dark theme.
+ * tc-travel — Material Design 3 design tokens + shared component classes.
+ * See docs/REDESIGN.md. Modern, avatar-first, warm travel-journal theme.
  * Every feature module builds on these tokens/classes — no raw hex in feature CSS.
+ *
+ * Theme model: the default `:root` is a warm, cozy LIGHT palette. Dark tokens
+ * live in `:root[data-theme="dark"]` (forced via the settings toggle, see
+ * src/lib/theme.ts) and in a `prefers-color-scheme: dark` block that only
+ * applies when no data-theme attribute is set ("auto" — follow the OS).
+ * The two dark blocks are identical by necessity (CSS has no mixins) — keep
+ * them in sync when editing.
  *
  * Class names kept from the previous fantasy theme (.panel/.btn/.screen/.chip/…)
  * are intentionally stable: the skin changed, the API did not.
  */
 
 :root {
+  color-scheme: light;
+
+  /* --- MD3 surface hierarchy (warm paper / travel journal) --------------- */
+  --surface-dim: #ece1d4;
+  --surface: #fbf5ec;
+  --surface-container-low: #f7f0e4;
+  --surface-container: #f2e9db;
+  --surface-container-high: #ece2d0;
+  --surface-container-highest: #e5d9c6;
+
+  --on-surface: #362f28;
+  --on-surface-variant: #5d554a;
+  --outline: #7c7263;
+  --outline-variant: #dbcfbc;
+
+  /* --- accent roles (violet / teal / pink, retuned for light) ------------ */
+  --primary: #5746a8;
+  --on-primary: #ffffff;
+  --primary-container: #e5deff;
+  --on-primary-container: #2b2175;
+
+  --secondary: #206059;
+  --on-secondary: #ffffff;
+  --secondary-container: #c8ece7;
+  --on-secondary-container: #06403a;
+
+  --tertiary: #96376b;
+  --on-tertiary: #ffffff;
+  --tertiary-container: #ffd9e8;
+  --on-tertiary-container: #5c1d40;
+
+  --error: #ba1a1a;
+  --on-error: #ffffff;
+  --error-container: #ffdad6;
+  --success: #2e7d44;
+
+  --scrim: rgba(59, 46, 32, 0.45);
+
+  /* --- shape -------------------------------------------------------------- */
+  --radius-sm: 8px;
+  --radius: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 28px;
+  --radius-full: 999px;
+
+  /* --- typography ---------------------------------------------------------- */
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial,
+    "Noto Sans", "Noto Sans JP", sans-serif;
+  --font-display: var(--font);
+
+  /* --- layout ---------------------------------------------------------------- */
+  --tabbar-h: calc(64px + env(safe-area-inset-bottom, 0px));
+  --fab-bottom: calc(var(--tabbar-h) + 16px);
+
+  /* Soft warm-tinted shadows — light surfaces want a gentler lift than dark. */
+  --shadow-1: 0 1px 2px rgba(76, 58, 34, 0.1), 0 1px 3px 1px rgba(76, 58, 34, 0.06);
+  --shadow-2: 0 2px 6px 2px rgba(76, 58, 34, 0.08), 0 1px 2px rgba(76, 58, 34, 0.1);
+  --shadow-3: 0 6px 16px 4px rgba(76, 58, 34, 0.12), 0 2px 4px rgba(76, 58, 34, 0.1);
+  --shadow-panel: var(--shadow-1);
+
+  /* --- legacy aliases (deprecated — migrate feature CSS to the roles above).
+     Defined once against the role tokens so they track the active theme. */
+  --bg: var(--surface-dim);
+  --bg-raised: var(--surface-container);
+  --parchment: var(--surface-container-high);
+  --parchment-2: var(--surface-container);
+  --ink: var(--on-surface);
+  --ink-soft: var(--on-surface-variant);
+  --text: var(--on-surface);
+  --text-soft: var(--on-surface-variant);
+  --gold: var(--primary);
+  --gold-bright: var(--primary);
+  --seal: var(--error);
+}
+
+/* ---------------------------------------------------------------------- */
+/* Dark theme — forced via the settings toggle (data-theme="dark"), or      */
+/* "auto" + a dark OS. Both blocks below MUST stay identical.               */
+/* ---------------------------------------------------------------------- */
+
+:root[data-theme="dark"] {
   color-scheme: dark;
 
-  /* --- MD3 surface hierarchy ------------------------------------------- */
   --surface-dim: #0e0e13;
   --surface: #131318;
   --surface-container-low: #18181f;
@@ -23,7 +110,6 @@
   --outline: #55525f;
   --outline-variant: #34323e;
 
-  /* --- accent roles ------------------------------------------------------ */
   --primary: #c8bfff;
   --on-primary: #2b2175;
   --primary-container: #46379a;
@@ -44,39 +130,55 @@
   --error-container: #93000a;
   --success: #82d99a;
 
-  /* --- shape -------------------------------------------------------------- */
-  --radius-sm: 8px;
-  --radius: 12px;
-  --radius-lg: 16px;
-  --radius-xl: 28px;
-  --radius-full: 999px;
-
-  /* --- typography ---------------------------------------------------------- */
-  --font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial,
-    "Noto Sans", "Noto Sans JP", sans-serif;
-  --font-display: var(--font);
-
-  /* --- layout ---------------------------------------------------------------- */
-  --tabbar-h: calc(64px + env(safe-area-inset-bottom, 0px));
-  --fab-bottom: calc(var(--tabbar-h) + 16px);
+  --scrim: rgba(8, 8, 12, 0.6);
 
   --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.35), 0 1px 3px 1px rgba(0, 0, 0, 0.18);
   --shadow-2: 0 2px 6px 2px rgba(0, 0, 0, 0.22), 0 1px 2px rgba(0, 0, 0, 0.35);
   --shadow-3: 0 6px 16px 4px rgba(0, 0, 0, 0.3), 0 2px 4px rgba(0, 0, 0, 0.35);
-  --shadow-panel: var(--shadow-1);
+}
 
-  /* --- legacy aliases (deprecated — migrate feature CSS to the roles above) */
-  --bg: var(--surface-dim);
-  --bg-raised: var(--surface-container);
-  --parchment: var(--surface-container-high);
-  --parchment-2: var(--surface-container);
-  --ink: var(--on-surface);
-  --ink-soft: var(--on-surface-variant);
-  --text: var(--on-surface);
-  --text-soft: var(--on-surface-variant);
-  --gold: var(--primary);
-  --gold-bright: var(--primary);
-  --seal: var(--error);
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    color-scheme: dark;
+
+    --surface-dim: #0e0e13;
+    --surface: #131318;
+    --surface-container-low: #18181f;
+    --surface-container: #1d1d26;
+    --surface-container-high: #24242f;
+    --surface-container-highest: #2c2c39;
+
+    --on-surface: #e5e1ec;
+    --on-surface-variant: #a5a0b3;
+    --outline: #55525f;
+    --outline-variant: #34323e;
+
+    --primary: #c8bfff;
+    --on-primary: #2b2175;
+    --primary-container: #46379a;
+    --on-primary-container: #e5dfff;
+
+    --secondary: #86d6d0;
+    --on-secondary: #003732;
+    --secondary-container: #10504a;
+    --on-secondary-container: #a3f2eb;
+
+    --tertiary: #f2b3d1;
+    --on-tertiary: #4b1136;
+    --tertiary-container: #653152;
+    --on-tertiary-container: #ffd8e9;
+
+    --error: #ffb4ab;
+    --on-error: #690005;
+    --error-container: #93000a;
+    --success: #82d99a;
+
+    --scrim: rgba(8, 8, 12, 0.6);
+
+    --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.35), 0 1px 3px 1px rgba(0, 0, 0, 0.18);
+    --shadow-2: 0 2px 6px 2px rgba(0, 0, 0, 0.22), 0 1px 2px rgba(0, 0, 0, 0.35);
+    --shadow-3: 0 6px 16px 4px rgba(0, 0, 0, 0.3), 0 2px 4px rgba(0, 0, 0, 0.35);
+  }
 }
 
 /* ---------------------------------------------------------------------- */
@@ -533,7 +635,7 @@
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  background: rgba(8, 8, 12, 0.6);
+  background: var(--scrim);
   backdrop-filter: blur(2px);
   padding: env(safe-area-inset-top) 0 0 0;
 }
@@ -587,6 +689,25 @@
 }
 
 /* ---------------------------------------------------------------------- */
+/* Theme-switch smoothing — colors glide instead of snapping (心地よい).     */
+/* Only elements without their own transition declarations; components     */
+/* like .btn/.chip/.list-item already transition their state layers.       */
+/* ---------------------------------------------------------------------- */
+
+@media (prefers-reduced-motion: no-preference) {
+  body,
+  .screen,
+  .panel,
+  .title-ornate,
+  .section-title,
+  .avatar,
+  .modal-card,
+  .empty-state-icon {
+    transition: background-color 0.25s ease, color 0.25s ease, border-color 0.25s ease;
+  }
+}
+
+/* ---------------------------------------------------------------------- */
 /* Reusable animation utilities                                            */
 /* ---------------------------------------------------------------------- */
 
@@ -633,9 +754,29 @@
   pointer-events: none;
 }
 
+/* Soft pop-in for freshly appearing chips/cards — a gentle scale settle. */
+@keyframes soft-pop {
+  0% {
+    transform: scale(0.94);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.02);
+    opacity: 1;
+  }
+  100% {
+    transform: none;
+    opacity: 1;
+  }
+}
+.soft-pop {
+  animation: soft-pop 0.28s cubic-bezier(0.2, 0, 0, 1) both;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .fog-reveal,
   .gold-shimmer::after,
+  .soft-pop,
   .modal-card {
     animation: none;
   }

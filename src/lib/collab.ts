@@ -28,11 +28,57 @@ import {
   EVENT_PEER_CONNECTED,
   EVENT_PEER_DISCONNECTED,
   DELIVERY_RELIABLE,
+  DELIVERY_UNRELIABLE,
 } from "../vendor/mistlib/wrappers/web/index.js";
 import { ensureMistNode, currentNodeId, addNodeEventHandler } from "./mistNode";
 
 const MSG_SYNC = 0;
 const MSG_AWARENESS = 1;
+export const MSG_POSE = 2;
+
+/** 共有仮想ステージ上のコンパニオン姿勢。数値は有限・|値|<=100 に clamp。 */
+export interface CompanionPose {
+  memberId: string; // Member.id (安定 id)
+  x: number; y: number; z: number; // scene 座標
+  ry: number;  // yaw ラジアン
+  s: number;   // uniform scale (0.1..10 に clamp)
+  t: number;   // 送信側 epoch ms(古い順序外パケットの破棄用)
+}
+
+// Clamp bounds for received CompanionPose fields — an UNRELIABLE, unauthenticated
+// (P2P) channel, so a corrupted/adversarial peer payload must not be able to
+// place a companion arbitrarily far off the shared stage or scale it to zero/huge.
+const POSE_POS_LIMIT = 100;
+const POSE_SCALE_MIN = 0.1;
+const POSE_SCALE_MAX = 10;
+
+function clamp(n: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, n));
+}
+
+// Validates + clamps a JSON-decoded pose payload from the wire. Returns null
+// for anything that doesn't shape-check (missing/wrong-typed field, non-finite
+// number) rather than throwing — see handlePoseMessage's defensive-decode note.
+function parsePose(value: unknown): CompanionPose | null {
+  if (typeof value !== "object" || value === null) return null;
+  const v = value as Record<string, unknown>;
+  const { memberId, x, y, z, ry, s, t } = v;
+  // Length-capped: real memberIds are 36-char UUIDs; anything oversized is a
+  // peer fabricating ids, and every novel id costs receiver-side state.
+  if (typeof memberId !== "string" || !memberId || memberId.length > 64) return null;
+  for (const n of [x, y, z, ry, s, t]) {
+    if (typeof n !== "number" || !Number.isFinite(n)) return null;
+  }
+  return {
+    memberId,
+    x: clamp(x as number, -POSE_POS_LIMIT, POSE_POS_LIMIT),
+    y: clamp(y as number, -POSE_POS_LIMIT, POSE_POS_LIMIT),
+    z: clamp(z as number, -POSE_POS_LIMIT, POSE_POS_LIMIT),
+    ry: ry as number,
+    s: clamp(s as number, POSE_SCALE_MIN, POSE_SCALE_MAX),
+    t: t as number,
+  };
+}
 
 // Tags updates originating from this session's own Yjs transactions, so the
 // update-broadcast listener can tell them apart from updates applied while
@@ -52,6 +98,8 @@ export interface CollabUser {
   avatarEmoji: string;
   /** mist storage cid of this user's avatar portrait, if any (see avatar.ts). */
   avatarCid?: string;
+  /** mist storage cid of this user's AR companion VRM, if any (see store.ts's setMemberVrmBytes). */
+  vrmCid?: string;
 }
 
 export interface PeerInfo {
@@ -62,6 +110,7 @@ export interface PeerInfo {
   color: string;
   avatarEmoji: string;
   avatarCid?: string;
+  vrmCid?: string;
 }
 
 export type CollabStatus = "idle" | "connecting" | "connected" | "error";
@@ -109,6 +158,7 @@ interface AwarenessState {
   color: string;
   avatarEmoji: string;
   avatarCid?: string;
+  vrmCid?: string;
 }
 
 // How a CollabSession obtains the page's mistlib node — the real
@@ -139,6 +189,12 @@ export class CollabSession {
   private user: CollabUser;
   private readonly callbacks: CollabCallbacks;
   private readonly nodeAccess: MistNodeAccess;
+  private poseListeners = new Set<(pose: CompanionPose) => void>();
+  // Last accepted `t` per memberId — DELIVERY_UNRELIABLE gives no ordering
+  // guarantee, so a packet older than the last one accepted for that member
+  // is a stale reorder and must be dropped rather than snapping the
+  // companion backwards.
+  private lastPoseT = new Map<string, number>();
 
   constructor(user: CollabUser, callbacks: CollabCallbacks = {}, nodeAccess: MistNodeAccess = defaultNodeAccess) {
     this.user = user;
@@ -160,6 +216,27 @@ export class CollabSession {
     return this.doc.clientID;
   }
 
+  /** Participating only. JSON encode → MSG_POSE prefix → DELIVERY_UNRELIABLE
+   *  broadcast(room scoped). throttle is the caller's responsibility. */
+  sendPose(pose: Omit<CompanionPose, "memberId" | "t">): void {
+    // Called from a 10Hz loop regardless of session state — silently
+    // no-op rather than making every caller guard on join status.
+    if (!this.node) return;
+    const full: CompanionPose = { ...pose, memberId: this.user.memberId, t: Date.now() };
+    const encoder = encoding.createEncoder();
+    encoding.writeVarUint(encoder, MSG_POSE);
+    encoding.writeUint8Array(encoder, new TextEncoder().encode(JSON.stringify(full)));
+    this.node.sendMessage(null, encoding.toUint8Array(encoder), DELIVERY_UNRELIABLE, this.roomId ?? undefined);
+  }
+
+  /** Subscribes to incoming poses. Returns an unsubscribe function. Never delivers this session's own memberId's poses. */
+  onPose(listener: (pose: CompanionPose) => void): () => void {
+    this.poseListeners.add(listener);
+    return () => {
+      this.poseListeners.delete(listener);
+    };
+  }
+
   /** Runs `fn` as a local edit, so its resulting update gets broadcast to peers. */
   transact(fn: () => void): void {
     this.doc.transact(fn, LOCAL_ORIGIN);
@@ -176,6 +253,7 @@ export class CollabSession {
         color: user.color,
         avatarEmoji: user.avatarEmoji,
         avatarCid: user.avatarCid,
+        vrmCid: user.vrmCid,
       });
     }
   }
@@ -216,6 +294,7 @@ export class CollabSession {
         color: normalizeColor(s.color ?? FALLBACK_COLOR),
         avatarEmoji: s.avatarEmoji || FALLBACK_EMOJI,
         avatarCid: s.avatarCid || undefined,
+        vrmCid: s.vrmCid || undefined,
       });
       if (s.peerId) this.peerIdByClientId.set(clientId, s.peerId);
     });
@@ -283,7 +362,33 @@ export class CollabSession {
     } else if (msgType === MSG_AWARENESS) {
       const update = decoding.readVarUint8Array(decoder);
       awarenessProtocol.applyAwarenessUpdate(this.awareness, update, REMOTE_ORIGIN);
+    } else if (msgType === MSG_POSE) {
+      this.handlePoseMessage(decoder);
     }
+  }
+
+  // Defensive: this is an unauthenticated P2P channel, and it's sent at
+  // 10Hz, so malformed/adversarial/stale payloads are dropped silently
+  // (no console — would spam at that rate) rather than throwing.
+  private handlePoseMessage(decoder: decoding.Decoder): void {
+    const bytes = decoding.readTailAsUint8Array(decoder);
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(new TextDecoder().decode(bytes));
+    } catch {
+      return;
+    }
+    const pose = parsePose(parsed);
+    if (!pose) return;
+    if (pose.memberId === this.user.memberId) return; // never deliver our own echoed pose
+    const lastT = this.lastPoseT.get(pose.memberId);
+    if (lastT !== undefined && pose.t <= lastT) return; // stale/out-of-order UNRELIABLE packet
+    // Bound the per-member tracking map: a peer flooding fabricated ids must
+    // not grow it without limit. 256 far exceeds any real meetup roster; when
+    // full, packets from further NEW ids are dropped (known ids keep working).
+    if (lastT === undefined && this.lastPoseT.size >= 256) return;
+    this.lastPoseT.set(pose.memberId, pose.t);
+    this.poseListeners.forEach((listener) => listener(pose));
   }
 
   private handlePeerDisconnected(peerId: string): void {
@@ -343,6 +448,7 @@ export class CollabSession {
         color: this.user.color,
         avatarEmoji: this.user.avatarEmoji,
         avatarCid: this.user.avatarCid,
+        vrmCid: this.user.vrmCid,
       } satisfies AwarenessState);
 
       node.joinRoom(roomId);
@@ -366,6 +472,8 @@ export class CollabSession {
     this.unsubscribeEvents = null;
     this.roomId = null;
     this.peerIdByClientId.clear();
+    this.poseListeners.clear();
+    this.lastPoseT.clear();
     this.setStatus("idle");
   }
 

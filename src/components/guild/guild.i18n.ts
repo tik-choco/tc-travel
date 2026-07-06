@@ -548,6 +548,22 @@ registerTranslations({
     en: "Language", ja: "言語", zh: "语言", ko: "언어",
     es: "Idioma", fr: "Langue", de: "Sprache", pt: "Idioma",
   },
+  "settings.theme": {
+    en: "Theme", ja: "テーマ", zh: "主题", ko: "테마",
+    es: "Tema", fr: "Thème", de: "Design", pt: "Tema",
+  },
+  "settings.theme.light": {
+    en: "Light", ja: "ライト", zh: "浅色", ko: "라이트",
+    es: "Claro", fr: "Clair", de: "Hell", pt: "Claro",
+  },
+  "settings.theme.dark": {
+    en: "Dark", ja: "ダーク", zh: "深色", ko: "다크",
+    es: "Oscuro", fr: "Sombre", de: "Dunkel", pt: "Escuro",
+  },
+  "settings.theme.auto": {
+    en: "Auto", ja: "自動", zh: "跟随系统", ko: "자동",
+    es: "Automático", fr: "Auto", de: "Automatisch", pt: "Automático",
+  },
   "settings.avatar": {
     en: "Avatar", ja: "アバター", zh: "头像", ko: "아바타",
     es: "Avatar", fr: "Avatar", de: "Avatar", pt: "Avatar",
