@@ -75,6 +75,32 @@
   gap: 0.7rem;
 }
 
+/* --- Card motifs: the keepsake's trim deepens with your collection (see
+       lib/unlocks.ts). Tier 0 is the plain base; tier 1 adds a soft double
+       border once you've collected a card; tier 2 dresses it in gold trim
+       after ten real-world meetings. --- */
+.card-motif-1 {
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--card-color) 35%, transparent),
+    0 2px 10px color-mix(in srgb, var(--card-color) 16%, transparent);
+}
+
+.card-motif-2 {
+  border-color: color-mix(in srgb, #d4af37 70%, var(--card-color));
+  background: linear-gradient(
+    160deg,
+    color-mix(in srgb, #d4af37 16%, var(--surface)),
+    var(--surface)
+  );
+  box-shadow:
+    inset 0 0 0 2px color-mix(in srgb, #d4af37 55%, transparent),
+    0 3px 14px color-mix(in srgb, #d4af37 24%, transparent);
+}
+
+.card-motif-2 .card-face-met {
+  border-top-color: color-mix(in srgb, #d4af37 55%, var(--outline-variant));
+}
+
 .card-face-avatar {
   border-color: var(--card-color);
   background: color-mix(in srgb, var(--card-color) 18%, var(--surface));

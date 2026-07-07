@@ -1,6 +1,7 @@
 import "./post.i18n";
 import { Trash2, X } from "lucide-preact";
 import { getLanguage, useT } from "../../lib/i18n";
+import { useUnlocks } from "../../lib/unlocks";
 import type { Card } from "../../lib/types";
 
 interface Props {
@@ -13,6 +14,9 @@ interface Props {
  *  stamped with the day you met (the first scan; rescans don't move it). */
 export function CardView({ card, onClose, onRemove }: Props) {
   const t = useT();
+  // The keepsake's trim deepens as you collect more cards (cardMotifs unlock):
+  // a first-card border, then gold trim at ten real-world meetings.
+  const { cardTier } = useUnlocks();
   const metOn = new Intl.DateTimeFormat(getLanguage(), { dateStyle: "long" }).format(
     new Date(card.receivedAt ?? card.at),
   );
@@ -32,7 +36,7 @@ export function CardView({ card, onClose, onRemove }: Props) {
           </button>
         </div>
 
-        <div class="card-face card-face-full" style={`--card-color: ${card.color}`}>
+        <div class={`card-face card-face-full card-motif-${cardTier}`} style={`--card-color: ${card.color}`}>
           <span class="avatar avatar-xl card-face-avatar" aria-hidden="true">
             {card.avatarEmoji}
           </span>

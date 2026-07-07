@@ -4,6 +4,7 @@ import { ScanLine, Plus, Users, ChevronRight, ArrowRight, Camera, Sparkles, Flam
 import { getLanguage, useT } from "../../lib/i18n";
 import { useJoinedRooms, useProfile } from "../../lib/personal";
 import { useJourneyStats } from "../../lib/journeyStats";
+import { useUnlocks, nextUnlock } from "../../lib/unlocks";
 import { nextGoal } from "../../lib/gamification";
 import { createRoom, joinRoom } from "../../lib/store";
 import { setProfileAvatar } from "../../lib/avatar";
@@ -37,7 +38,19 @@ export function Home({ onStartJourney }: { onStartJourney?: () => void }) {
   // it's where "your journey at a glance" belongs — rank, streak and the next
   // goal, all derived from the same shared stats the Guild and map use.
   const { stats, rank } = useJourneyStats();
+  // The Home companion sleeps as a still portrait until the journey begins
+  // (companionWake unlock); its first breath is the reward for the first entry.
+  const { companionWake } = useUnlocks();
   const goal = nextGoal(stats);
+  const anticipate = nextUnlock(stats);
+  // One nudge at a time — this is a cozy journal, not a stats dashboard, so we
+  // don't stack two progress lines. Prefer the unlock whisper when the companion
+  // is still asleep (the first-session moment to look forward to) or when the
+  // nearest unlock is at least as imminent as the nearest achievement goal;
+  // otherwise the achievement goal keeps the slot.
+  const showUnlockNudge =
+    anticipate !== null &&
+    (anticipate.def.id === "companionWake" || goal === null || anticipate.remaining <= goal.remaining);
   const xpPct =
     rank.xpForNextLevel > 0 ? Math.min(100, Math.round((rank.xpIntoLevel / rank.xpForNextLevel) * 100)) : 100;
 
@@ -150,7 +163,7 @@ export function Home({ onStartJourney }: { onStartJourney?: () => void }) {
             aria-label={t("home.avatarManage")}
             onClick={() => setAvatarSheetOpen(true)}
           >
-            <HomeVrmStageLazy key={vrmVersion} bytes={vrmBytes} onError={() => setVrmFailed(true)} />
+            <HomeVrmStageLazy key={vrmVersion} bytes={vrmBytes} animate={companionWake} onError={() => setVrmFailed(true)} />
           </button>
         ) : (
           // Portrait fallback. Once a VRM exists (hidden or broken), the tap
@@ -210,17 +223,24 @@ export function Home({ onStartJourney }: { onStartJourney?: () => void }) {
         >
           <div class="home-progress-xp-fill" style={{ width: `${xpPct}%` }} />
         </div>
-        <p class="home-progress-goal">
-          <Target size={13} aria-hidden="true" />
-          <span>
-            {goal
-              ? t("home.nextGoal", {
-                  remaining: goal.remaining,
-                  title: tWithFallback(t, goal.def.titleKey, goal.def.id),
-                })
-              : t("home.allGoalsDone")}
-          </span>
-        </p>
+        {showUnlockNudge && anticipate ? (
+          <p class="home-progress-whisper">
+            <Sparkles size={13} aria-hidden="true" />
+            <span>{t(anticipate.tier.upcomingKey, { remaining: anticipate.remaining })}</span>
+          </p>
+        ) : (
+          <p class="home-progress-goal">
+            <Target size={13} aria-hidden="true" />
+            <span>
+              {goal
+                ? t("home.nextGoal", {
+                    remaining: goal.remaining,
+                    title: tWithFallback(t, goal.def.titleKey, goal.def.id),
+                  })
+                : t("home.allGoalsDone")}
+            </span>
+          </p>
+        )}
       </section>
 
       <div class="home-actions">

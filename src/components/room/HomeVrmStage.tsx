@@ -14,12 +14,17 @@ export interface HomeVrmStageProps {
   bytes: Uint8Array;
   /** Parsing failed — Home falls back to the portrait hero. */
   onError: () => void;
+  /** Whether the companion's idle breathing/blink loop may play. Before the
+   *  companionWake unlock (lib/unlocks.ts) it renders as a still portrait —
+   *  the companion is "asleep" until your journey begins. Defaults to true so
+   *  existing callers keep the lively behaviour. */
+  animate?: boolean;
 }
 
 /** Fallback eye level when a model has no humanoid head bone. */
 const DEFAULT_HEAD_Y = 1.3;
 
-export function HomeVrmStage({ bytes, onError }: HomeVrmStageProps) {
+export function HomeVrmStage({ bytes, onError, animate = true }: HomeVrmStageProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [companion, setCompanion] = useState<Companion | null>(null);
   const [headY, setHeadY] = useState(DEFAULT_HEAD_Y);
@@ -75,9 +80,12 @@ export function HomeVrmStage({ bytes, onError }: HomeVrmStageProps) {
     // Cozy bust framing: chest at center, head in the upper third.
     arScene.camera.position.set(0, headY - 0.05, 0.95);
     arScene.camera.lookAt(0, headY - 0.16, 0);
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reducedMotion || !animate) {
       // Still pose: step the companion once so the model settles, then stop —
-      // no breathing or blinking for motion-sensitive users.
+      // no breathing or blinking. Used both for motion-sensitive users and
+      // before the companionWake unlock (the companion is "asleep" until the
+      // journey begins).
       let stepped = false;
       arScene.setCompanion({
         root: companion.root,
@@ -92,7 +100,7 @@ export function HomeVrmStage({ bytes, onError }: HomeVrmStageProps) {
       arScene.setCompanion(companion);
     }
     return () => arScene.dispose();
-  }, [companion, headY, pageVisible]);
+  }, [companion, headY, pageVisible, animate]);
 
   return <div ref={containerRef} class={`home-vrm-canvas${companion ? "" : " is-loading"}`} aria-hidden="true" />;
 }

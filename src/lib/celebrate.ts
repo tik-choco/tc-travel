@@ -20,6 +20,16 @@ export interface CelebrationLedger {
   achievements: string[];
   /** streak day-count last seen (to detect milestone crossings) */
   streakDays: number;
+  /** highest tier already celebrated per progressive unlock (see lib/unlocks.ts).
+   *  Optional so a ledger written before this feature shipped still parses — and
+   *  its absence is the signal to seed unlocks silently (see diffLedger). */
+  unlocks?: Record<string, number>;
+}
+
+/** A progressive-unlock tier newly crossed since the last ledger. */
+export interface UnlockCrossing {
+  id: string;
+  tier: number;
 }
 
 export interface CelebrationDelta {
@@ -29,6 +39,8 @@ export interface CelebrationDelta {
   newAchievementIds: string[];
   /** streak milestones (in days) newly reached since last time */
   streakMilestones: number[];
+  /** unlock tiers newly crossed since last time (highest new tier per unlock) */
+  newUnlocks: UnlockCrossing[];
 }
 
 /** Streak lengths worth a fanfare — mirrors the weekStreak/monthStreak achievements. */
@@ -40,7 +52,7 @@ export const STREAK_MILESTONES: readonly number[] = [7, 30];
  * returning an empty delta (the caller then persists `next`).
  */
 export function diffLedger(prev: CelebrationLedger | null, next: CelebrationLedger): CelebrationDelta {
-  if (!prev) return { leveledUpTo: null, newAchievementIds: [], streakMilestones: [] };
+  if (!prev) return { leveledUpTo: null, newAchievementIds: [], streakMilestones: [], newUnlocks: [] };
   const prevAchieved = new Set(prev.achievements);
   return {
     leveledUpTo: next.level > prev.level ? next.level : null,
@@ -48,11 +60,34 @@ export function diffLedger(prev: CelebrationLedger | null, next: CelebrationLedg
     // fire a milestone only on the crossing (prev below, next at/above), so it
     // never re-celebrates and a broken-then-rebuilt streak celebrates again
     streakMilestones: STREAK_MILESTONES.filter((m) => next.streakDays >= m && prev.streakDays < m),
+    newUnlocks: diffUnlocks(prev.unlocks, next.unlocks ?? {}),
   };
 }
 
+/**
+ * Diff the per-unlock tier maps. Same load-bearing rule as the ledger as a
+ * whole: a ledger written before unlocks existed has NO `unlocks` field, so we
+ * seed silently (return nothing) — otherwise a returning user's already-earned
+ * tiers would fire a false retroactive burst. Only once a baseline of tiers has
+ * been recorded do genuine tier crossings celebrate. Reports the highest newly
+ * reached tier per unlock, so a multi-tier jump is one moment, not a stack.
+ */
+function diffUnlocks(prev: Record<string, number> | undefined, next: Record<string, number>): UnlockCrossing[] {
+  if (!prev) return [];
+  const crossings: UnlockCrossing[] = [];
+  for (const [id, tier] of Object.entries(next)) {
+    if (tier > (prev[id] ?? 0)) crossings.push({ id, tier });
+  }
+  return crossings;
+}
+
 export function hasCelebrations(d: CelebrationDelta): boolean {
-  return d.leveledUpTo !== null || d.newAchievementIds.length > 0 || d.streakMilestones.length > 0;
+  return (
+    d.leveledUpTo !== null ||
+    d.newAchievementIds.length > 0 ||
+    d.streakMilestones.length > 0 ||
+    d.newUnlocks.length > 0
+  );
 }
 
 // --- persistence -------------------------------------------------------------

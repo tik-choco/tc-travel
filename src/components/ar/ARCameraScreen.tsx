@@ -31,6 +31,7 @@ import {
   useMemberVrmCids,
 } from "../../lib/store";
 import { addPhotoAuto } from "../../lib/memories";
+import { useUnlocks, availableLensFilters, LENS_FILTERS } from "../../lib/unlocks";
 import { useProfile } from "../../lib/personal";
 import { compressImage } from "../../lib/photo";
 import { lookupCountry } from "../../lib/geo";
@@ -65,6 +66,12 @@ export function ARCameraScreen({ onClose }: Props) {
   const [profile] = useProfile();
   const members = useMembers();
   const vrmCids = useMemberVrmCids();
+  const { lensTier } = useUnlocks();
+  const lensFilters = availableLensFilters(lensTier);
+  const [filterId, setFilterId] = useState("none");
+  // Only filters your lens tier has unlocked are selectable; a higher tier can
+  // only add options, so a chosen filter never becomes invalid.
+  const filterCss = (LENS_FILTERS.find((f) => f.id === filterId) ?? LENS_FILTERS[0]).css;
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const overlayRef = useRef<HTMLDivElement | null>(null);
@@ -390,6 +397,10 @@ export function ARCameraScreen({ onClose }: Props) {
         canvas.height = sh;
         const ctx = canvas.getContext("2d");
         if (!ctx) throw new Error("2D context unavailable");
+        // Bake the same lens filter the live preview shows, so the saved photo
+        // matches what was on screen. ctx.filter applies to every subsequent
+        // draw (camera frame + companion overlay).
+        if (filterCss) ctx.filter = filterCss;
         ctx.drawImage(frameVideo, sx, sy, sw, sh, 0, 0, sw, sh);
         draw(ctx);
       } else {
@@ -406,6 +417,9 @@ export function ARCameraScreen({ onClose }: Props) {
         gradient.addColorStop(1, "#0c0e16");
         ctx.fillStyle = gradient;
         ctx.fillRect(0, 0, sw, sh);
+        // Filter only the companion overlay here — the backdrop gradient stays
+        // as-is, matching the on-screen .ar-stage-backdrop (which isn't filtered).
+        if (filterCss) ctx.filter = filterCss;
         draw(ctx);
       }
 
@@ -442,9 +456,9 @@ export function ARCameraScreen({ onClose }: Props) {
   return (
     <div class="ar-screen ar-capture">
       {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-      <video ref={videoRef} class="ar-video" playsInline muted autoPlay />
+      <video ref={videoRef} class="ar-video" playsInline muted autoPlay style={filterCss ? { filter: filterCss } : undefined} />
       {cameraError && <div class="ar-stage-backdrop" />}
-      <div ref={overlayRef} class="ar-overlay" />
+      <div ref={overlayRef} class="ar-overlay" style={filterCss ? { filter: filterCss } : undefined} />
 
       <div class={`ar-hint${showHint ? "" : " hidden"}`}>{t("ar.hint")}</div>
 
@@ -467,6 +481,23 @@ export function ARCameraScreen({ onClose }: Props) {
           <Download size={16} />
           {t("ar.saveToDevice")}
         </button>
+      )}
+
+      {lensFilters.length > 1 && (
+        <div class="ar-filter-row" role="radiogroup" aria-label={t("ar.filter.label")}>
+          {lensFilters.map((f) => (
+            <button
+              key={f.id}
+              type="button"
+              class={`ar-filter-chip${filterId === f.id ? " is-selected" : ""}`}
+              role="radio"
+              aria-checked={filterId === f.id}
+              onClick={() => setFilterId(f.id)}
+            >
+              {t(f.labelKey)}
+            </button>
+          ))}
+        </div>
       )}
 
       <div class="ar-bottombar">
