@@ -114,6 +114,10 @@ export function useJoinedRooms(): JoinedRoom[] {
 interface StreakData {
   lastActiveDay: string; // "YYYY-MM-DD", local timezone
   count: number;
+  /** high-water mark: the longest run ever achieved. Optional so streaks
+   *  persisted before this field shipped still parse (see longestStreakDays
+   *  for the read-side migration). */
+  longest?: number;
 }
 
 function dayKey(date: Date): string {
@@ -141,7 +145,7 @@ export function touchStreak(): void {
   const yesterday = new Date();
   yesterday.setDate(yesterday.getDate() - 1);
   const count = streak.lastActiveDay === dayKey(yesterday) ? streak.count + 1 : 1;
-  saveStreak({ lastActiveDay: today, count });
+  saveStreak({ lastActiveDay: today, count, longest: Math.max(streak.longest ?? streak.count, count) });
 }
 
 function currentStreakDays(): number {
@@ -154,6 +158,15 @@ function currentStreakDays(): number {
   // `count` to 1 next time the app opens, but until then don't report a stale number).
   if (streak.lastActiveDay === today || streak.lastActiveDay === dayKey(yesterday)) return streak.count;
   return 0;
+}
+
+/** The longest streak ever achieved — the high-water mark the XP economy and
+ *  streak achievements read, so a lapsed streak never costs earned progress.
+ *  Streaks saved before `longest` shipped have no high-water mark yet; taking
+ *  the max against the live count IS the migration (an active streak seeds it,
+ *  a lapsed one starts from 0 and ratchets up from the next run). */
+export function longestStreakDays(): number {
+  return Math.max(loadStreak().longest ?? 0, currentStreakDays());
 }
 
 // --- journey mirror --------------------------------------------------------
@@ -229,6 +242,7 @@ export function useJourney(): {
   photos: Omit<Photo, "cid">[];
   diary: Omit<DiaryEntry, "text">[];
   streakDays: number;
+  longestStreakDays: number;
   roomCount: number;
 } {
   const [, bump] = useState(0);
@@ -247,6 +261,7 @@ export function useJourney(): {
     photos: journey.photos,
     diary: journey.diary,
     streakDays: currentStreakDays(),
+    longestStreakDays: longestStreakDays(),
     roomCount: loadJoinedRooms().length,
   };
 }

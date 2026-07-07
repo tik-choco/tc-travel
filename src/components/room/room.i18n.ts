@@ -461,16 +461,6 @@ registerTranslations({
   },
 
   // --- Home hero avatar (VRM stage + management sheet) ---------------------
-  "home.vrmCta": {
-    en: "Set up your 3D avatar",
-    ja: "3Dアバターを設定しよう",
-    zh: "设置你的3D虚拟形象",
-    ko: "3D 아바타를 설정해 보세요",
-    es: "Configura tu avatar 3D",
-    fr: "Configurez votre avatar 3D",
-    de: "Richte deinen 3D-Avatar ein",
-    pt: "Configure seu avatar 3D",
-  },
   "home.avatarManage": {
     en: "Your Avatar",
     ja: "あなたのアバター",

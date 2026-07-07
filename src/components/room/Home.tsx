@@ -74,7 +74,6 @@ export function Home({ onStartJourney }: { onStartJourney?: () => void }) {
   // always renders first and upgrades to the stage when a VRM is found —
   // never block the landing screen on storage.
   const [vrmBytes, setVrmBytes] = useState<Uint8Array | null>(null);
-  const [vrmChecked, setVrmChecked] = useState(false);
   const [vrmFailed, setVrmFailed] = useState(false);
   const [vrmVersion, setVrmVersion] = useState(0);
   const [avatarSheetOpen, setAvatarSheetOpen] = useState(false);
@@ -94,9 +93,6 @@ export function Home({ onStartJourney }: { onStartJourney?: () => void }) {
       })
       .catch(() => {
         // IndexedDB unavailable (private mode etc.) — keep the portrait hero.
-      })
-      .finally(() => {
-        if (alive) setVrmChecked(true);
       });
     return () => {
       alive = false;
@@ -155,19 +151,26 @@ export function Home({ onStartJourney }: { onStartJourney?: () => void }) {
   return (
     <div class="screen" aria-label={t("home.title")}>
       <div class="home-hero">
-        {profile.showHomeVrm !== false && !vrmFailed && vrmBytes ? (
-          // The 3D companion greets you; tapping it opens avatar management.
+        {profile.showHomeVrm !== false ? (
+          // The 3D companion always greets you — a VRM if you've loaded one, the
+          // placeholder golem otherwise (or when a VRM failed to parse), so the
+          // wake-up reward is never invisible. Tapping it opens avatar management.
           <button
             type="button"
             class="home-vrm-stage"
             aria-label={t("home.avatarManage")}
             onClick={() => setAvatarSheetOpen(true)}
           >
-            <HomeVrmStageLazy key={vrmVersion} bytes={vrmBytes} animate={companionWake} onError={() => setVrmFailed(true)} />
+            <HomeVrmStageLazy
+              key={vrmVersion}
+              bytes={vrmFailed ? undefined : (vrmBytes ?? undefined)}
+              animate={companionWake}
+              onError={() => setVrmFailed(true)}
+            />
           </button>
         ) : (
-          // Portrait fallback. Once a VRM exists (hidden or broken), the tap
-          // routes to the management sheet instead of the raw photo picker so
+          // The 3D companion is toggled off (showHomeVrm === false) — show the
+          // photo portrait instead, and route taps to the management sheet so
           // the toggle stays reachable from Home.
           <button
             type="button"
@@ -195,12 +198,6 @@ export function Home({ onStartJourney }: { onStartJourney?: () => void }) {
         <p class="home-hero-greeting">{t(greetingKey(new Date().getHours()), { name: profile.name })}</p>
         <p class="home-hero-tagline">{t("home.heroTagline")}</p>
         {vrmFailed && <p class="home-vrm-error">{t("home.vrmLoadError")}</p>}
-        {vrmChecked && !hasVrm && (
-          <button type="button" class="home-vrm-cta" onClick={() => setAvatarSheetOpen(true)}>
-            <Sparkles aria-hidden="true" />
-            {t("home.vrmCta")}
-          </button>
-        )}
       </div>
 
       <section class="home-progress" aria-label={t("home.journeyLabel")}>

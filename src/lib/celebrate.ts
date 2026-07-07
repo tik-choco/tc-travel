@@ -18,7 +18,9 @@ export interface CelebrationLedger {
   level: number;
   /** ids of achievements last seen as unlocked */
   achievements: string[];
-  /** streak day-count last seen (to detect milestone crossings) */
+  /** streak day-count last seen (to detect milestone crossings). The host
+   *  feeds the LONGEST-ever streak here (JourneyStats.longestStreakDays), so a
+   *  milestone fires once when the best run first crosses it and never again. */
   streakDays: number;
   /** highest tier already celebrated per progressive unlock (see lib/unlocks.ts).
    *  Optional so a ledger written before this feature shipped still parses — and
@@ -58,7 +60,8 @@ export function diffLedger(prev: CelebrationLedger | null, next: CelebrationLedg
     leveledUpTo: next.level > prev.level ? next.level : null,
     newAchievementIds: next.achievements.filter((id) => !prevAchieved.has(id)),
     // fire a milestone only on the crossing (prev below, next at/above), so it
-    // never re-celebrates and a broken-then-rebuilt streak celebrates again
+    // never re-celebrates; with the longest-ever streak feeding this field, a
+    // broken-then-rebuilt streak doesn't re-fire either (accepted trade-off)
     streakMilestones: STREAK_MILESTONES.filter((m) => next.streakDays >= m && prev.streakDays < m),
     newUnlocks: diffUnlocks(prev.unlocks, next.unlocks ?? {}),
   };

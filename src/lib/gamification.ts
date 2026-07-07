@@ -59,6 +59,9 @@ type JourneySnapshot = {
   photos: { geo: { countryCode: string } | null; arShot: boolean }[];
   diary: { geo: { countryCode: string } | null }[];
   streakDays: number;
+  /** longest streak ever achieved (personal.ts high-water mark) — feeds XP and
+   *  the streak achievements so a lapse never revokes earned progress. */
+  longestStreakDays: number;
   roomCount: number;
   /** cards collected face-to-face (lib/cards.ts) — real-world meetings */
   cardsCollected?: number;
@@ -91,9 +94,21 @@ export function computeStats(j: JourneySnapshot): JourneyStats {
     pinCount: j.pins.length,
     roomCount: j.roomCount,
     streakDays: j.streakDays,
+    longestStreakDays: j.longestStreakDays,
     cardsCollected: j.cardsCollected ?? 0,
     prefecturesVisited: j.prefecturesVisited ?? 0,
   };
+}
+
+/** Has the traveller shown ANY social signal — met someone face-to-face (a
+ *  card) or joined a party? The single shared rule gating social nudges: a
+ *  purely-solo traveller shouldn't be pushed toward "collect a card" goals they
+ *  can't act on alone (it reads as pressure, not invitation). Once they've
+ *  engaged socially at all, those goals become fair encouragement. Companion
+ *  names deliberately don't count — they're self-authored on pins, achievable
+ *  solo, so they neither open nor gate the social door. */
+export function hasSocialSignal(s: JourneyStats): boolean {
+  return s.cardsCollected > 0 || s.roomCount > 0;
 }
 
 // --- XP / rank --------------------------------------------------------
@@ -124,7 +139,9 @@ function computeXp(stats: JourneyStats): number {
     stats.arPhotoCount * XP.arPhoto +
     plainPhotoCount * XP.photo +
     stats.diaryCount * XP.diary +
-    stats.streakDays * XP.streakDay
+    // the high-water mark, NOT the live streak — a lapsed streak must never
+    // subtract earned XP (and thereby demote the visible level)
+    stats.longestStreakDays * XP.streakDay
   );
 }
 
@@ -210,8 +227,12 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     achieved: (s) => s.arPhotoCount >= 1,
   },
   counted("legendaryLens5", "✨", 5, (s) => s.arPhotoCount),
-  counted("weekStreak", "\u{1F525}", 7, (s) => s.streakDays),
-  counted("monthStreak", "\u{1F31F}", 30, (s) => s.streakDays),
+  // Streak badges read the high-water mark, not the live streak: a 30-day run,
+  // once earned, is a permanent achievement — breaking it later doesn't revoke
+  // the badge (which would feel punishing and could re-fire its celebration on
+  // every rebuild).
+  counted("weekStreak", "\u{1F525}", 7, (s) => s.longestStreakDays),
+  counted("monthStreak", "\u{1F31F}", 30, (s) => s.longestStreakDays),
   counted("guildVeteran5", "\u{1F3D5}️", 5, (s) => s.roomCount),
 ];
 
@@ -220,13 +241,22 @@ export const ACHIEVEMENTS: AchievementDef[] = [
  *  achievements are excluded: "come back N more days" isn't an action the user
  *  can take right now, so it makes a poor call-to-action. Returns null once
  *  every non-streak achievement is unlocked. */
+const STREAK_IDS = new Set(["weekStreak", "monthStreak"]);
+/** Goals that require other people (cards face-to-face, joined parties).
+ *  Suppressed from the next-goal nudge until the traveller has shown a social
+ *  signal — see hasSocialSignal. fellowship5/socialButterfly10 are deliberately
+ *  NOT here: companion names are self-authored on pins, achievable solo. */
+const SOCIAL_IDS = new Set(["namecard1", "namecard10", "guildVeteran5"]);
+
 export function nextGoal(
   stats: JourneyStats,
 ): { def: AchievementDef; have: number; need: number; remaining: number } | null {
-  const STREAK_IDS = new Set(["weekStreak", "monthStreak"]);
+  const social = hasSocialSignal(stats);
   let best: { def: AchievementDef; have: number; need: number; remaining: number } | null = null;
   for (const def of ACHIEVEMENTS) {
     if (!def.progress || STREAK_IDS.has(def.id) || def.achieved(stats)) continue;
+    // Don't nudge a solo traveller toward goals that need other people.
+    if (!social && SOCIAL_IDS.has(def.id)) continue;
     const { have, need } = def.progress(stats);
     const remaining = need - have;
     if (remaining <= 0) continue;

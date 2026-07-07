@@ -150,7 +150,12 @@ export interface JourneyStats {
   diaryCount: number;
   pinCount: number;
   roomCount: number;
+  /** current live daily-visit streak (0 once a day is missed) */
   streakDays: number;
+  /** best daily-visit streak ever reached — a high-water mark that never falls,
+   *  so streak rewards (achievements/celebrations) are earned once and kept even
+   *  after a run is broken. Always >= streakDays. */
+  longestStreakDays: number;
   /** message cards collected face-to-face (proof of real-world meetings) */
   cardsCollected: number;
   /** distinct Japanese prefectures visited (derived from journey geo points) */
