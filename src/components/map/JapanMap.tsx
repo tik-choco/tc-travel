@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "preact/hooks";
-import { ArrowLeft, Award, Share2, X } from "lucide-preact";
+import { ArrowLeft, Award, ChevronRight, Share2, X } from "lucide-preact";
 import { getLanguage, useT } from "../../lib/i18n";
 import { useJapanCollection, buildJapanLayout } from "./japanGeo";
 import { badgeLabel, completionStats, earnedBadges, rarityOf, regionStats } from "./collection";
+import { hasMunicipalData, municipalCompletion, prefMunicipalStats } from "./municipal/municipalGeo";
+import { MunicipalMap, useMunicipalCollection } from "./municipal/MunicipalMap";
 import "./map.i18n";
 import "./map.css";
 
@@ -22,6 +24,10 @@ export function JapanMap({ onClose, onBrag }: JapanMapProps) {
   const lang = getLanguage();
   const { prefs, visited } = useJapanCollection(true);
   const [selected, setSelected] = useState<string | null>(null);
+  // Municipality tier below prefectures — inert (no load, no UI) unless the
+  // vendored data exists; see municipal/municipalGeo.ts.
+  const municipal = useMunicipalCollection(hasMunicipalData("jp"));
+  const [muniPref, setMuniPref] = useState<string | null>(null);
 
   // Path strings + reveal anchors only depend on the immutable geometry —
   // built once, not per render (47 detailed MultiPolygons).
@@ -96,6 +102,10 @@ export function JapanMap({ onClose, onBrag }: JapanMapProps) {
   }, [layout, bursting]);
 
   const selectedPref = selected ? prefByCode.get(selected) : undefined;
+  const selectedMuniStats =
+    selectedPref && municipal.munis
+      ? prefMunicipalStats(municipal.visited, municipal.munis, selectedPref.code)
+      : null;
   const prefName = (code: string): string => {
     const p = prefByCode.get(code);
     if (!p) return code;
@@ -118,6 +128,14 @@ export function JapanMap({ onClose, onBrag }: JapanMapProps) {
         <div class="map-progress" aria-hidden="true">
           <div class="map-progress__fill" style={{ width: `${barPct}%` }} />
         </div>
+        {municipal.munis && (
+          <p class="muni-overall">
+            {t("map.muni.overall", {
+              count: municipalCompletion(municipal.visited, municipal.munis).count,
+              total: municipal.munis.length,
+            })}
+          </p>
+        )}
         <div class="jp-chips">
           {regions.map((r) => (
             <span
@@ -229,9 +247,17 @@ export function JapanMap({ onClose, onBrag }: JapanMapProps) {
             <p class={["jp-selected__state", visited.has(selectedPref.code) ? "jp-selected__state--visited" : ""].filter(Boolean).join(" ")}>
               {visited.has(selectedPref.code) ? t("map.jp.visitedState") : t("map.jp.unvisitedState")}
             </p>
+            {selectedMuniStats && selectedMuniStats.total > 0 && (
+              <button type="button" class="btn btn-tonal muni-open-btn" onClick={() => setMuniPref(selectedPref.code)}>
+                {t("map.muni.open", { count: selectedMuniStats.count, total: selectedMuniStats.total })}
+                <ChevronRight size={16} />
+              </button>
+            )}
           </div>
         )}
       </div>
+
+      {muniPref && <MunicipalMap pref={muniPref} prefName={prefName(muniPref)} onClose={() => setMuniPref(null)} />}
     </div>
   );
 }
