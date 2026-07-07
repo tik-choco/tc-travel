@@ -14,7 +14,7 @@ import { parseJoinInput } from "./lib/qr";
 import { MapScreen } from "./components/map/MapScreen";
 import { AlbumScreen } from "./components/album/AlbumScreen";
 import { DiaryScreen } from "./components/diary/DiaryScreen";
-import { ARCameraLazy } from "./components/ar/ARCameraLazy";
+import { AvatarScreenLazy } from "./components/avatar/AvatarScreenLazy";
 import { PostScreen } from "./components/post/PostScreen";
 import { GuildScreen } from "./components/guild/GuildScreen";
 import { CelebrationHost } from "./components/common/CelebrationHost";
@@ -83,7 +83,7 @@ export function App() {
           {activeTab === "map" && <MapScreen />}
           {activeTab === "album" && <AlbumScreen />}
           {activeTab === "diary" && <DiaryScreen />}
-          {activeTab === "camera" && <ARCameraLazy />}
+          {activeTab === "avatar" && <AvatarScreenLazy />}
           {activeTab === "post" && <PostScreen />}
           {activeTab === "guild" && <GuildScreen />}
         </div>

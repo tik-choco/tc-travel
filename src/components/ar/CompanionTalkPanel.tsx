@@ -1,9 +1,9 @@
 // Bottom-sheet chat panel for talking to the live VRM companion: text in,
 // streamed LLM reply out, optionally spoken aloud with lip-sync driving the
-// companion's mouth. Mounted by ARCameraScreen whenever a VRM companion is
-// live and the AI is configured; kept mounted across open/close so the
-// mist connection (see connect()/disconnect() below) and chat history
-// survive panel toggles — only the AR screen unmounting tears it down.
+// companion's mouth. Mounted by the Avatar hub (../avatar/AvatarScreen) whenever
+// a VRM companion is on the stage and the AI is configured; kept mounted across
+// open/close so the mist connection (see connect()/disconnect() below) and chat
+// history survive panel toggles — only the hub unmounting tears it down.
 
 import "./ar.i18n";
 import "./ar.css";
@@ -204,7 +204,7 @@ export function CompanionTalkPanel({ open, onClose, companionRef }: CompanionTal
               <span class={`ai-talk-status-dot ${dotClass}`} aria-hidden="true" />
               <span class="ai-talk-status-text">{statusLabel}</span>
             </div>
-            <button type="button" class="btn btn-icon" aria-label={t("ar.chooserClose")} onClick={onClose}>
+            <button type="button" class="btn btn-icon" aria-label={t("common.close")} onClick={onClose}>
               <X aria-hidden="true" />
             </button>
           </div>

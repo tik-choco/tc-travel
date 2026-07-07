@@ -146,7 +146,12 @@ export function createRemoteCompanions(scene: ArScene, ownMemberId: string): Rem
 
 ## E: ARCameraScreen.tsx — 配線
 
-live モード & セッション参加中のみ:
+> 2026-07-07 更新: `ARCameraScreen.tsx` は Avatar ハブ(`src/components/avatar/
+> AvatarScreen.tsx`)から開く**撮影専用オーバーレイ**になった。以下の「live モード」
+> は廃止され、オーバーレイのマウント中(常時 live 相当)に読み替える。group-photo /
+> pose-sync のロジックとセマンティクスはこのファイルに残っており不変。
+
+オーバーレイのマウント中 & セッション参加中のみ:
 1. `createRemoteCompanions(arScene, profile.id)` を live mount effect で生成、
    unmount で dispose。
 2. `onCompanionPose(m.applyPose)` 購読(解除も)。`useMemberVrmCids()` を

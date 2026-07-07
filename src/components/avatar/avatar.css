@@ -1,0 +1,313 @@
+/* Avatar hub — the companion's room. Deliberately WARM (愛着/心地よい), not the
+ * cold camera-viewfinder look of ../ar/ar.css: a soft token-driven gradient
+ * backdrop glows behind the 3D companion in both light and dark themes. All
+ * colors are theme.css tokens so the two themes stay in sync automatically. */
+
+.avatar-screen {
+  position: relative;
+  width: 100%;
+  /* fill .app-content exactly — sizing against the viewport would overflow past
+     the tab bar and paint the controls on top of it */
+  height: 100%;
+  overflow: hidden;
+  touch-action: none;
+  background: var(--surface);
+}
+
+.avatar-screen-loading,
+.avatar-screen-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--on-surface-variant);
+  touch-action: pan-y;
+}
+
+.avatar-screen-empty .empty-state {
+  max-width: 34ch;
+}
+
+.avatar-screen-empty .btn {
+  width: 100%;
+  max-width: 280px;
+}
+
+/* Cozy stage backdrop: a warm radial glow (primary-container tinted) rising
+ * behind the companion, settling into the surface tokens at the edges. Reads
+ * as a sunlit nook rather than a dark studio. */
+.avatar-stage-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background:
+    radial-gradient(
+      130% 90% at 50% 12%,
+      color-mix(in srgb, var(--primary-container) 45%, var(--surface-container-high)) 0%,
+      var(--surface-container) 58%,
+      var(--surface-dim) 100%
+    );
+}
+
+.avatar-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+
+.avatar-topbar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: max(env(safe-area-inset-top), 12px) max(env(safe-area-inset-right), 12px) 32px
+    max(env(safe-area-inset-left), 12px);
+  /* Gentle scrim so the title stays legible over the companion, but far softer
+     than the camera screen's hard black gradient. */
+  background: linear-gradient(to bottom, color-mix(in srgb, var(--surface) 55%, transparent), transparent);
+}
+
+.avatar-title {
+  margin: 0;
+  font-family: var(--font-display);
+  color: var(--on-surface);
+  font-size: 1.05rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.avatar-topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Icon buttons tuned for the light warm backdrop (the ar.css originals assume a
+   dark camera feed). Uses a translucent surface chip with an outline. */
+.avatar-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--outline-variant);
+  background: color-mix(in srgb, var(--surface-container-high) 78%, transparent);
+  backdrop-filter: blur(6px);
+  color: var(--on-surface);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color var(--dur-fast) var(--ease-standard), transform 0.08s ease;
+}
+
+.avatar-icon-btn:active {
+  background: var(--surface-container-highest);
+  transform: scale(0.96);
+}
+
+.avatar-icon-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.avatar-hint {
+  position: absolute;
+  top: max(env(safe-area-inset-top), 12px);
+  left: 50%;
+  transform: translateX(-50%);
+  margin-top: 44px;
+  z-index: 3;
+  color: var(--on-surface-variant);
+  background: color-mix(in srgb, var(--surface-container-high) 80%, transparent);
+  border: 1px solid var(--outline-variant);
+  border-radius: var(--radius-full);
+  padding: 6px 14px;
+  font-size: 0.8rem;
+  text-align: center;
+  pointer-events: none;
+  transition: opacity 0.6s ease;
+}
+
+.avatar-hint.hidden {
+  opacity: 0;
+}
+
+.avatar-toast {
+  position: absolute;
+  bottom: calc(max(env(safe-area-inset-bottom), 16px) + 168px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 4;
+  background: var(--surface-container-highest);
+  color: var(--on-surface);
+  border: 1px solid var(--outline-variant);
+  border-radius: var(--radius-full);
+  padding: 8px 16px;
+  font-size: 0.85rem;
+  box-shadow: var(--shadow-1);
+  white-space: nowrap;
+  max-width: 90vw;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Bottom control cluster: framing controls, the manage-companion row, and the
+   hero AR撮影 CTA. */
+.avatar-bottombar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 40px max(1rem, env(safe-area-inset-right)) max(env(safe-area-inset-bottom), 16px)
+    max(1rem, env(safe-area-inset-left));
+  background: linear-gradient(to top, color-mix(in srgb, var(--surface) 72%, transparent), transparent);
+}
+
+.avatar-framing-controls {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.avatar-manage-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+}
+
+/* Hero shutter-ish CTA — the inviting primary action of the whole screen. A
+   wide, warm pill with the primary color and an expressive press spring. */
+.avatar-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 56px;
+  padding: 10px 24px 10px 20px;
+  border: none;
+  border-radius: var(--radius-full);
+  background: var(--primary);
+  color: var(--on-primary);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  box-shadow: var(--shadow-2);
+  transition: transform var(--dur-medium) var(--ease-spring), box-shadow var(--dur-medium) var(--ease-standard);
+}
+
+.avatar-cta:active {
+  transform: scale(0.97);
+  box-shadow: var(--shadow-1);
+}
+
+.avatar-cta:disabled {
+  opacity: 0.5;
+  cursor: default;
+  box-shadow: none;
+}
+
+.avatar-cta-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-full);
+  background: color-mix(in srgb, var(--on-primary) 22%, transparent);
+}
+
+.avatar-cta-label {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  text-align: left;
+}
+
+.avatar-cta-title {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.avatar-cta-sub {
+  font-size: 0.72rem;
+  font-weight: 500;
+  opacity: 0.82;
+}
+
+.avatar-file-input {
+  display: none;
+}
+
+/* VRM source chooser sheet — "from device" vs. "from Drive". Mirrors the
+   ar.css chooser but owned here so the hub stands alone. */
+.avatar-chooser-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 0.5rem 0 1rem;
+}
+
+.avatar-chooser-header .title-ornate {
+  margin: 0;
+}
+
+.avatar-chooser-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem 1rem;
+}
+
+.avatar-chooser-section-label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0.75rem 0 0.1rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--on-surface-variant);
+}
+/* Reset tracking for CJK (over-spaces the glyphs); uppercase is a no-op there. */
+:lang(ja) .avatar-chooser-section-label,
+:lang(zh) .avatar-chooser-section-label,
+:lang(ko) .avatar-chooser-section-label {
+  letter-spacing: normal;
+}
+
+/* Loading spinner (shared visual with ar.css's .spin; redeclared so the hub
+   doesn't depend on ar.css being loaded). */
+.avatar-spin {
+  animation: avatar-spin 0.9s linear infinite;
+}
+
+@keyframes avatar-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .avatar-spin {
+    animation: none;
+  }
+  .avatar-hint {
+    transition: none;
+  }
+  .avatar-cta {
+    transition: none;
+  }
+}
