@@ -1,11 +1,13 @@
 # Map Data Licenses
 
 tc-travel vendors most of its map data into the repository, so the licenses of
-those datasets travel with the code. The one exception is worldwide admin-2
-(municipality) boundaries, which are fetched dynamically at runtime and cached
-locally (see "Worldwide municipality boundaries" below) — the same geoBoundaries
-CC BY-SA source and obligations apply. This file is the canonical record; keep
-it in sync when `scripts/fetch-*.mjs` gains a source or a runtime fetch is added.
+those datasets travel with the code. The exceptions are worldwide admin-2
+(municipality) and admin-1 (state/province) boundaries, which are fetched
+dynamically at runtime and cached locally (see "Worldwide municipality
+boundaries" and "Worldwide admin-1 boundaries" below) — the same geoBoundaries
+CC BY-SA source and obligations apply to both. This file is the canonical
+record; keep it in sync when `scripts/fetch-*.mjs` gains a source or a runtime
+fetch is added.
 
 ## Municipality boundaries (Japan, 市区町村 / admin-2)
 
@@ -47,10 +49,30 @@ it in sync when `scripts/fetch-*.mjs` gains a source or a runtime fetch is added
 ## Country + state/province boundaries (world, admin-0 / admin-1)
 
 - **Files:** `src/components/map/japanPrefectures.geojson`,
-  `src/components/map/subnational/*.geojson`
-  (fetched by `scripts/fetch-subnational.mjs`), plus the `world-atlas` npm
-  package (admin-0, derived from the same source)
+  `src/components/map/subnational/*.geojson` (us, kr — fetched by
+  `scripts/fetch-subnational.mjs`), plus the `world-atlas` npm package
+  (admin-0, derived from the same source)
 - **Source:** [Natural Earth](https://www.naturalearthdata.com/) (10m admin-1,
   110m/50m admin-0)
 - **License:** Public domain — no attribution required (credit given anyway
   in source comments).
+
+## Worldwide admin-1 boundaries (state/province, DYNAMICALLY fetched)
+
+- **Files:** none vendored — fetched at runtime by
+  `src/lib/geo/admin1Resolver.ts` and cached in the browser's IndexedDB
+  (`tc-travel-admin1` store). Japan is served from its bespoke `japanGeo.ts`
+  map, and US/Korea from the vendored Natural Earth files above (the fast
+  path); every other country's ADM1 layer is downloaded on first need from
+  geoBoundaries and coarsened (coords rounded to ~110 m) before caching. Used
+  by the generic `SubnationalMap` drill-down and the globe's admin-1 LOD tier
+  (`components/map/globe/globeDetail.ts`).
+- **Source:** [geoBoundaries](https://www.geoboundaries.org/) gbOpen ADM1
+  (`geoBoundaries-{ISO3}-ADM1_simplified.geojson`)
+- **Upstream data:** © OpenStreetMap contributors (and national sources)
+- **License:** CC BY-SA (attribution + share-alike) — same as the worldwide
+  ADM2 layer above. Credit is shown in-app (`map.sub.credit`) whenever
+  `SubnationalMap` renders a dynamically-resolved country; the vendored
+  Natural Earth us/kr fast path needs none. The runtime-cached copies are
+  unmodified-in-license derivatives; do not relicense.
+- **Citation:** Runfola, D. et al. (2020), as above.

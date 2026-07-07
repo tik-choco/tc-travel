@@ -3,7 +3,7 @@
 //   - WebGL present  → the 3D area-accurate globe (GlobeMapLazy). Its photo and
 //     country taps come back here as onOpenPhoto/onOpenCountry, and we mount the
 //     album PhotoViewer and the sub-national drill-down (Japan's bespoke map, or
-//     the generic SubnationalMap for US/KR/…) in response.
+//     the generic SubnationalMap — worldwide, via admin1Resolver.ts) in response.
 //   - No WebGL       → the original SVG WorldMap (self-contained: its own FAB,
 //     stat card, and Japan drill-down), so low-end / no-GL devices still work.
 // The globe deliberately imports neither the viewer nor the drill-down (they
@@ -59,8 +59,10 @@ export function MapScreen() {
   };
 
   const handleOpenCountry = (code: string) => {
-    const entry = subnationalEntry(code);
-    if (entry?.hasData) setDrillCountry(entry.code);
+    // Every country now drills down — jp gets JapanMap, everything else
+    // SubnationalMap fed by admin1Resolver.ts's vendored/cache/network chain,
+    // which degrades to its own "no data" state rather than needing a gate here.
+    setDrillCountry(subnationalEntry(code).code);
   };
 
   const drillEntry = drillCountry ? subnationalEntry(drillCountry) : undefined;
@@ -89,11 +91,12 @@ export function MapScreen() {
       )}
 
       {/* Sub-national drill-down: Japan keeps its bespoke collection map (with a
-          brag card); every other country uses the generic SubnationalMap. */}
+          brag card); every other country uses the generic SubnationalMap,
+          worldwide, via admin1Resolver.ts. */}
       {drillEntry?.kind === "japan" && (
         <JapanMap onClose={() => setDrillCountry(null)} onBrag={() => setBragOpen(true)} />
       )}
-      {drillEntry?.kind === "generic" && drillEntry.hasData && drillCountry && (
+      {drillEntry?.kind === "generic" && drillCountry && (
         <SubnationalMap countryCode={drillCountry} onClose={() => setDrillCountry(null)} />
       )}
       {bragOpen && <BragCard onClose={() => setBragOpen(false)} />}

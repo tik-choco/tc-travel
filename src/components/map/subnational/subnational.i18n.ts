@@ -70,6 +70,19 @@ registerTranslations({
   "map.sub.close": {
     en: "Close", ja: "閉じる", zh: "关闭", ko: "닫기", es: "Cerrar", fr: "Fermer", de: "Schließen", pt: "Fechar",
   },
+  // Shown only for dynamically-resolved countries (admin1Resolver.ts's
+  // geoBoundaries fetch) — the vendored us/kr fast path is Natural Earth
+  // public domain and needs no credit. Mirrors map.muni.credit's wording.
+  "map.sub.credit": {
+    en: "Regional boundaries: © OpenStreetMap contributors · geoBoundaries (CC BY-SA)",
+    ja: "地域境界: © OpenStreetMap contributors · geoBoundaries（CC BY-SA）",
+    zh: "地区边界：© OpenStreetMap contributors · geoBoundaries（CC BY-SA）",
+    ko: "지역 경계: © OpenStreetMap contributors · geoBoundaries (CC BY-SA)",
+    es: "Límites regionales: © OpenStreetMap contributors · geoBoundaries (CC BY-SA)",
+    fr: "Limites régionales : © OpenStreetMap contributors · geoBoundaries (CC BY-SA)",
+    de: "Regionale Grenzen: © OpenStreetMap contributors · geoBoundaries (CC BY-SA)",
+    pt: "Limites regionais: © OpenStreetMap contributors · geoBoundaries (CC BY-SA)",
+  },
 
   // Country display names for registered drill-downs (registry displayNameKey).
   "map.sub.country.jp": {

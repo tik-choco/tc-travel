@@ -173,8 +173,18 @@ export function parseGeoBoundariesAdm2(raw: string, iso3: string): Admin2Feature
   return features;
 }
 
+// MUST hit media.githubusercontent.com directly, NOT github.com/.../raw/...:
+// these simplified files are Git LFS objects, and github.com's raw redirect's
+// first hop (a 302 on github.com itself) comes back with an EMPTY
+// access-control-allow-origin header — browsers block the fetch right there,
+// so every dynamic country silently resolved to null. (curl follows the
+// redirect chain without enforcing CORS, which is why this looked fine from a
+// terminal.) raw.githubusercontent.com is ALSO unusable for the same LFS
+// reason: it serves the pointer text file, not the actual geometry.
+// media.githubusercontent.com is the LFS media host and returns the real
+// content directly with `access-control-allow-origin: *`, verified for CHN.
 const GEOBOUNDARIES_URL = (iso3: string): string =>
-  `https://github.com/wmgeolab/geoBoundaries/raw/main/releaseData/gbOpen/${iso3}/ADM2/geoBoundaries-${iso3}-ADM2_simplified.geojson`;
+  `https://media.githubusercontent.com/media/wmgeolab/geoBoundaries/main/releaseData/gbOpen/${iso3}/ADM2/geoBoundaries-${iso3}-ADM2_simplified.geojson`;
 
 // --- IndexedDB cache for fetched admin-2 boundaries --------------------------
 // A dedicated DB, separate from the VRM (tc-travel-vrm) and photo
