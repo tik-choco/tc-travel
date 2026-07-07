@@ -30,6 +30,10 @@ export interface GlobePalette {
   atmosphere: string;
   /** Encounter-pin seal fill (the map's wax-seal red). */
   pinSeal: string;
+  /** Fine ink for the zoom-in vector border layers (globeDetail LOD). */
+  detailInk: string;
+  /** Sub-national label text color (its halo reuses fogFill). */
+  detailLabel: string;
 }
 
 // --- tiny hex color kit (theme tokens are plain 6-digit hex) -----------------
@@ -106,6 +110,7 @@ export function readGlobePalette(): GlobePalette {
   const primary = token("--primary");
   const primaryContainer = token("--primary-container");
   const onSurface = token("--on-surface");
+  const outline = token("--outline");
 
   return {
     dark,
@@ -122,11 +127,13 @@ export function readGlobePalette(): GlobePalette {
     landSouth: mixHex(primaryContainer, token("--tertiary-container"), 0.16),
     landStroke: mixHex(primary, primaryContainer, 0.1),
     landGlow: withAlpha(primary, 0.45),
-    graticule: withAlpha(token("--outline"), 0.3),
+    graticule: withAlpha(outline, 0.3),
     speckle: withAlpha(onSurface, dark ? 0.08 : 0.05),
     flash: mixHex(primary, "#ffffff", dark ? 0.12 : 0.28),
     atmosphere: mixHex(primary, "#ffffff", dark ? 0.08 : 0.3),
     pinSeal: token("--error"),
+    detailInk: mixHex(onSurface, outline, 0.35),
+    detailLabel: onSurface,
   };
 }
 

@@ -23,6 +23,7 @@ import {
   type GlobePalette,
 } from "./globeTexture";
 import { PhotoBillboards, type PhotoPick } from "./photoBillboards";
+import { GlobeDetail } from "./globeDetail";
 
 export interface GlobePinInput {
   id: string;
@@ -116,6 +117,7 @@ export class GlobeScene {
   private pinRingGeom: THREE.RingGeometry;
 
   private billboards: PhotoBillboards;
+  private detail: GlobeDetail;
 
   private burstRingGeom: THREE.RingGeometry;
   private starTexture: THREE.CanvasTexture | null = null;
@@ -251,6 +253,10 @@ export class GlobeScene {
     this.billboards = new PhotoBillboards(this.scene, () => {
       this.dirty = true;
     });
+    // Zoom-driven LOD: vector borders + sub-national detail (globeDetail.ts).
+    this.detail = new GlobeDetail(this.scene, this.palette, () => {
+      this.dirty = true;
+    });
 
     this.burstRingGeom = new THREE.RingGeometry(0.85, 1, 40);
 
@@ -300,6 +306,7 @@ export class GlobeScene {
       this.overlayTexture.needsUpdate = true;
       this.starTexture && (this.starTexture.needsUpdate = true);
       this.billboards.markTexturesDirty();
+      this.detail.markTexturesDirty();
       this.dirty = true;
     };
     this.canvas.addEventListener("webglcontextlost", onLost);
@@ -321,6 +328,7 @@ export class GlobeScene {
   setWorld(features: CountryFeature[]): void {
     this.features = features;
     this.countryPaths = buildCountryPaths(features, this.baseW, this.baseH);
+    this.detail.setWorld(features);
     this.repaintBase();
   }
 
@@ -421,6 +429,7 @@ export class GlobeScene {
     this.themeObserver?.disconnect();
     for (const cleanup of this.cleanups) cleanup();
     this.billboards.dispose();
+    this.detail.dispose();
     for (const burst of this.bursts) {
       this.scene.remove(burst.group);
       for (const m of burst.materials) m.dispose();
@@ -466,6 +475,7 @@ export class GlobeScene {
   private refreshTheme(): void {
     this.palette = readGlobePalette();
     (this.atmosphereMaterial.uniforms.uColor.value as THREE.Color).set(this.palette.atmosphere);
+    this.detail.setPalette(this.palette);
     this.repaintBase();
   }
 
@@ -805,8 +815,19 @@ export class GlobeScene {
     const pinScale = clamp(this.dist - GLOBE_RADIUS, 0.14, 2.2);
     for (const group of this.pinRoot.children) group.scale.setScalar(pinScale);
 
+    // LOD detail follows the (just-updated) camera; a fresh sub-national
+    // layer's load-in fade asks for further frames via the return value.
+    const detailBusy = this.detail.update(
+      this.camera,
+      this.dist,
+      this.getCenterLatLng(),
+      this.height,
+      this.reducedMotion,
+      now,
+    );
+
     this.billboards.update(this.camera, this.width, this.height);
     this.renderer.render(this.scene, this.camera);
-    this.dirty = false;
+    this.dirty = detailBusy;
   };
 }
