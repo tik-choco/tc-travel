@@ -3,10 +3,10 @@ import { ArrowLeft, Sparkles, X } from "lucide-preact";
 import { getLanguage, useT } from "../../../lib/i18n";
 import { countryName } from "../../../lib/geo";
 import { useUnifiedJourney } from "../../../lib/memories";
+import { ensureCountryAdmin1, hasVendoredAdmin1 } from "../../../lib/geo/admin1Resolver";
 import {
   buildLayout,
   insetsFor,
-  loadCountry,
   visitedSubdivisions,
   type GeoPointLike,
   type Subdivision,
@@ -21,7 +21,11 @@ const REVEAL_ANIM_MS = 1400;
 
 /** Derives {subdivisions, visited} for one country from the unified journey
  *  (room + solo pins, geo photos, geo diary) — the generic sibling of
- *  japanGeo's useJapanCollection, keyed by country code. */
+ *  japanGeo's useJapanCollection, keyed by country code. Boundaries come from
+ *  admin1Resolver's chain (vendored us/kr fast path → IndexedDB cache →
+ *  geoBoundaries network fetch), so ANY country can land here now — `failed`
+ *  covers both "still resolving" transitions to no-data and true offline/no-
+ *  ADM1-layer misses; the resolver itself never throws. */
 function useSubnationalCollection(countryCode: string): {
   subs: Subdivision[] | null;
   visited: Set<string>;
@@ -35,11 +39,21 @@ function useSubnationalCollection(countryCode: string): {
     let cancelled = false;
     setSubs(null);
     setFailed(false);
-    loadCountry(countryCode)
-      .then((s) => {
-        if (!cancelled) setSubs(s);
+    ensureCountryAdmin1(countryCode)
+      .then((features) => {
+        if (cancelled) return;
+        if (!features || features.length === 0) {
+          setFailed(true);
+          return;
+        }
+        setSubs(
+          features.map((f) => ({ code: f.code, name: f.name, name_local: f.nameLocal, geometry: f.geometry })),
+        );
       })
       .catch((err) => {
+        // ensureCountryAdmin1 never rejects in practice — kept as a defensive
+        // backstop matching the rest of the app's "never surface a network
+        // hiccup as an error" convention.
         console.warn(`tc-travel: sub-national data unavailable for "${countryCode}"`, err);
         if (!cancelled) setFailed(true);
       });
@@ -74,18 +88,25 @@ interface SubnationalMapProps {
 }
 
 /** Generic sub-national drill-down — the world map's fog-of-war retention loop
- *  at state/province granularity for any vendored country, mirroring the
- *  Japan map's warmth: fog → golden reveal, completion bar, milestone pulses,
- *  and a short brag line. Rendered as an overlay inside .map-viewport so the
- *  world map stays mounted underneath. (Japan itself keeps its own JapanMap —
- *  see registry.ts.) */
+ *  at state/province granularity for any country, mirroring the Japan map's
+ *  warmth: fog → golden reveal, completion bar, milestone pulses, and a short
+ *  brag line. Boundaries come from admin1Resolver.ts (vendored us/kr, or a
+ *  dynamic geoBoundaries fetch for everywhere else). Rendered as an overlay
+ *  inside .map-viewport so the world map stays mounted underneath. (Japan
+ *  itself keeps its own JapanMap — see registry.ts.) */
 export function SubnationalMap({ countryCode, onClose }: SubnationalMapProps) {
   const t = useT();
   const lang = getLanguage();
   const entry = subnationalEntry(countryCode);
-  const country = entry
+  // Curated countries (jp/us/kr) get a hand-translated name; every other
+  // dynamically-resolved country falls back to the shared countryName() atlas.
+  const country = entry.displayNameKey
     ? t(entry.displayNameKey)
     : countryName(countryCode, lang) || countryCode.toUpperCase();
+  // The vendored (Natural Earth, public domain) fast path needs no credit; a
+  // country resolved dynamically is geoBoundaries/OSM CC BY-SA, which does —
+  // see docs/DATA_LICENSES.md.
+  const dynamicSource = !hasVendoredAdmin1(countryCode);
   const { subs, visited, failed } = useSubnationalCollection(countryCode);
   const [selected, setSelected] = useState<string | null>(null);
 
@@ -334,6 +355,11 @@ export function SubnationalMap({ countryCode, onClose }: SubnationalMapProps) {
           </div>
         )}
       </div>
+
+      {/* Natural Earth (us/kr, vendored) is public domain — no credit needed.
+          Every dynamically-resolved country is geoBoundaries/OSM CC BY-SA,
+          which requires one; see docs/DATA_LICENSES.md. */}
+      {dynamicSource && <p class="sub-credit">{t("map.sub.credit")}</p>}
     </div>
   );
 }

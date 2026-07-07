@@ -393,6 +393,17 @@
   color: var(--primary);
 }
 
+/* --- data-source credit (dynamically-resolved countries only) ------------ */
+
+.sub-credit {
+  margin: 0;
+  padding: 4px 12px calc(8px + env(safe-area-inset-bottom));
+  font-size: 0.66rem;
+  text-align: center;
+  color: var(--on-surface-variant);
+  opacity: 0.85;
+}
+
 /* Motion opt-out: every drill-down animation stops; the reveal burst renders
    nothing at all (its resting frames are invisible anyway). */
 @media (prefers-reduced-motion: reduce) {

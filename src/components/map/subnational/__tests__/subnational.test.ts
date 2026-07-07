@@ -9,6 +9,7 @@ import {
   visitedSubdivisions,
 } from "../subnationalGeo";
 import { SUBNATIONAL_COUNTRY_CODES, SUBNATIONAL_REGISTRY, subnationalEntry } from "../registry";
+import { KNOWN_ALPHA2 } from "../../../../lib/geo/iso3";
 
 // Two well-separated subdivisions: a plain square and a two-island group.
 const FIXTURE = JSON.stringify({
@@ -209,12 +210,12 @@ describe("buildLayout", () => {
 describe("registry", () => {
   it("routes Japan to the existing JapanMap", () => {
     const jp = subnationalEntry("jp");
-    expect(jp?.kind).toBe("japan");
-    expect(jp?.hasData).toBe(true);
-    expect(subnationalEntry("JP")).toBe(jp); // case-insensitive lookup
+    expect(jp.kind).toBe("japan");
+    expect(jp.hasData).toBe(true);
+    expect(subnationalEntry("JP")).toBe(jp); // case-insensitive lookup, same curated object
   });
 
-  it("registers the curated generic countries", () => {
+  it("registers the curated generic countries with a vendored fast path", () => {
     for (const code of ["us", "kr"]) {
       const entry = SUBNATIONAL_REGISTRY.get(code);
       expect(entry?.kind).toBe("generic");
@@ -224,11 +225,20 @@ describe("registry", () => {
     }
   });
 
-  it("exposes exactly the openable codes to the world map", () => {
+  it("synthesizes a generic, always-openable entry for any other country", () => {
+    const fr = subnationalEntry("FR"); // uppercase input normalized
+    expect(fr.code).toBe("fr");
+    expect(fr.kind).toBe("generic");
+    expect(fr.hasData).toBe(true); // attempt is always worth it — see admin1Resolver
+    expect(fr.displayNameKey).toBeUndefined(); // falls back to countryName() in the UI
+  });
+
+  it("exposes every resolvable country as an openable drill-down code", () => {
     expect(SUBNATIONAL_COUNTRY_CODES).toContain("jp");
-    for (const entry of SUBNATIONAL_REGISTRY.values()) {
-      expect(SUBNATIONAL_COUNTRY_CODES.includes(entry.code)).toBe(entry.hasData);
-    }
+    expect(SUBNATIONAL_COUNTRY_CODES).toContain("us");
+    expect(SUBNATIONAL_COUNTRY_CODES).toContain("kr");
+    expect(SUBNATIONAL_COUNTRY_CODES).toContain("fr");
+    expect(SUBNATIONAL_COUNTRY_CODES.length).toBe(KNOWN_ALPHA2.length);
   });
 
   it("keeps US inset conventions for the far-flung subdivisions", () => {

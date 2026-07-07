@@ -8,13 +8,16 @@
 //   borders start to blur. Hidden when zoomed out, so the far view keeps its
 //   soft painted-atlas look.
 //
-//   Layer 2 — SUB-NATIONAL: when the camera hovers low over a country that
-//   has admin-1 data (registry: jp/us/kr today), its states/provinces/
-//   prefectures fade in — internal borders plus small ink-on-parchment name
-//   labels. Only the FOCUSED country's detail is ever GPU-resident: it is
-//   disposed on zoom-out or when the camera drifts to another country (the
-//   parsed geometry stays in the loaders' module caches, so returning is
-//   cheap).
+//   Layer 2 — SUB-NATIONAL: when the camera hovers low over a country, its
+//   states/provinces/prefectures fade in — internal borders plus small
+//   ink-on-parchment name labels. WORLDWIDE, same admin1Resolver.ts chain
+//   the generic SubnationalMap uses: Japan keeps its bespoke loader, us/kr use
+//   their vendored Natural Earth fast path, and every other country resolves
+//   dynamically (IndexedDB cache, else geoBoundaries), quietly showing nothing
+//   at this tier when a country has no ADM1 layer or is unreachable. Only the
+//   FOCUSED country's detail is ever GPU-resident: it is disposed on zoom-out
+//   or when the camera drifts to another country (the parsed geometry stays
+//   in the loaders' module caches, so returning is cheap).
 //
 //   Layer 3 — MUNICIPALITIES (admin-2, 市区町村): the deepest band, WORLDWIDE.
 //   Whatever country the camera is centered over, ensureCountryAdmin2 supplies
@@ -38,7 +41,8 @@ import { lookupCountry, type CountryFeature } from "../../../lib/geo";
 import { getLanguage } from "../../../lib/i18n";
 import { clamp } from "../geoMath";
 import { SUBNATIONAL_COUNTRY_CODES } from "../subnational/registry";
-import { loadCountry } from "../subnational/subnationalGeo";
+import { AVAILABLE_GEO_CODES, loadCountry } from "../subnational/subnationalGeo";
+import { ensureCountryAdmin1 } from "../../../lib/geo/admin1Resolver";
 import { ensureCountryAdmin2, type Admin2Feature } from "../../../lib/geo/municipalResolver";
 import { geometryAnchor, latLngToVec3, wrapLng, type LatLng } from "./geoSphere";
 import { mixHex, type GlobePalette } from "./globeTexture";
@@ -149,10 +153,14 @@ interface DetailRegion {
 const LOCAL_LANG: Record<string, string> = { jp: "ja", kr: "ko", us: "en" };
 
 /**
- * Japan's prefecture data ships with japanGeo.ts (registry kind "japan"),
- * everything else with subnationalGeo. japanGeo is reached via dynamic
- * import: it transitively pulls hooks/store modules that a static import
- * would drag into this file's graph for no render-path benefit.
+ * Japan's prefecture data ships with japanGeo.ts (registry kind "japan").
+ * us/kr use their vendored subnationalGeo fast path. Every other country
+ * resolves dynamically through admin1Resolver.ts (which itself tries that
+ * same vendored path first, then IndexedDB, then geoBoundaries) — a null
+ * result (no ADM1 layer / unreachable) degrades to no regions, same as an
+ * empty vendored country would. japanGeo is reached via dynamic import: it
+ * transitively pulls hooks/store modules that a static import would drag
+ * into this file's graph for no render-path benefit.
  */
 function loadRegions(code: string): Promise<DetailRegion[]> {
   if (code === "jp") {
@@ -162,8 +170,13 @@ function loadRegions(code: string): Promise<DetailRegion[]> {
         .then((prefs) => prefs.map((p) => ({ name: p.name, nameLocal: p.name_ja, geometry: p.geometry }))),
     );
   }
-  return loadCountry(code).then((subs) =>
-    subs.map((s) => ({ name: s.name, nameLocal: s.name_local, geometry: s.geometry })),
+  if (AVAILABLE_GEO_CODES.has(code)) {
+    return loadCountry(code).then((subs) =>
+      subs.map((s) => ({ name: s.name, nameLocal: s.name_local, geometry: s.geometry })),
+    );
+  }
+  return ensureCountryAdmin1(code).then((features) =>
+    (features ?? []).map((f) => ({ name: f.name, nameLocal: f.nameLocal, geometry: f.geometry })),
   );
 }
 
