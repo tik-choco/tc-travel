@@ -19,7 +19,7 @@ registerTranslations({
   "tab.short.map": { en: "Map", ja: "地図", zh: "地图", ko: "지도", es: "Mapa", fr: "Carte", de: "Karte", pt: "Mapa" },
   "tab.short.album": { en: "Album", ja: "アルバム", zh: "相册", ko: "앨범", es: "Álbum", fr: "Album", de: "Album", pt: "Álbum" },
   "tab.short.diary": { en: "Journal", ja: "日記", zh: "日记", ko: "일기", es: "Diario", fr: "Journal", de: "Tagebuch", pt: "Diário" },
-  "tab.short.camera": { en: "Avatar", ja: "アバター", zh: "化身", ko: "아바타", es: "Avatar", fr: "Avatar", de: "Avatar", pt: "Avatar" },
+  "tab.short.avatar": { en: "Avatar", ja: "アバター", zh: "化身", ko: "아바타", es: "Avatar", fr: "Avatar", de: "Avatar", pt: "Avatar" },
   "tab.short.post": { en: "Cards", ja: "名刺", zh: "名片", ko: "명함", es: "Tarjetas", fr: "Cartes", de: "Karten", pt: "Cartões" },
   "tab.short.guild": { en: "Guild", ja: "ギルド", zh: "公会", ko: "길드", es: "Gremio", fr: "Guilde", de: "Gilde", pt: "Guilda" },
 

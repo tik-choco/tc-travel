@@ -204,9 +204,15 @@ export function attachLipSync(audio: HTMLAudioElement, onLevel: (level: number) 
 `vrm.expressionManager?.setValue("aa", level)` を適用(expressionManager の適用は
 vrm.update 内で走るため)。golem(プレースホルダ)側は未実装のままでよい(optional)。
 
-## C: 会話 UI — CompanionTalkPanel.tsx + ARCameraScreen.tsx
+## C: 会話 UI — CompanionTalkPanel.tsx + AvatarScreen.tsx
 
-- live モードで VRM コンパニオンが表示中かつ `isAiConfigured()` のとき、トークボタン
+> 2026-07-07 更新: トークボタンとパネルのホストは `ARCameraScreen.tsx` から Avatar
+> ハブ `src/components/avatar/AvatarScreen.tsx` に移動した(撮影オーバーレイには
+> トーク UI は無い)。`CompanionTalkPanel.tsx` 自体は `src/components/ar/` のまま、
+> フォルダ境界を越えて import して再利用する。以下の「live モード」はハブのステージ
+> 表示中に読み替える。
+
+- ハブのステージで VRM コンパニオンが表示中かつ `isAiConfigured()` のとき、トークボタン
   (lucide `MessageCircle`)を表示 → パネル開閉。未設定時は非表示(ボタンごと出さない)。
 - パネルは既存 `.ar-chooser-*` ボトムシートと同系統の M3 ダークUI(`ar.css` に `.ai-talk-*`)。
   構成: ヘッダ(ステータスドット+閉じる)/ メッセージリスト(user/assistant バブル、

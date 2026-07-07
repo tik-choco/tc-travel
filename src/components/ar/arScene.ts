@@ -20,6 +20,11 @@ export interface ArScene {
    *  removed, not disposed — that's the caller's responsibility). */
   addCompanion(key: string, companion: Companion): void;
   removeCompanion(key: string): void;
+  /** Pause/resume the rAF render loop without tearing the scene down. While
+   *  paused, no frames are scheduled or drawn (saves GPU/battery when the scene
+   *  is hidden behind an opaque overlay); resuming discards the elapsed gap so
+   *  companion animations don't jump. Defaults to running. */
+  setPaused(paused: boolean): void;
   dispose(): void;
 }
 
@@ -79,6 +84,7 @@ export function createArScene(container: HTMLElement): ArScene {
   const clock = new THREE.Clock();
   let elapsedSeconds = 0;
   let frameId = 0;
+  let paused = false;
   function tick(): void {
     const deltaSeconds = clock.getDelta();
     elapsedSeconds += deltaSeconds;
@@ -99,6 +105,19 @@ export function createArScene(container: HTMLElement): ArScene {
     },
     addCompanion,
     removeCompanion,
+    setPaused(next) {
+      if (next === paused) return;
+      paused = next;
+      if (paused) {
+        cancelAnimationFrame(frameId);
+        frameId = 0;
+      } else {
+        // Consume the accumulated gap so the first resumed frame steps by a
+        // normal delta instead of the whole pause duration.
+        clock.getDelta();
+        frameId = requestAnimationFrame(tick);
+      }
+    },
     dispose() {
       cancelAnimationFrame(frameId);
       resizeObserver.disconnect();

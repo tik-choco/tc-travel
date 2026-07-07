@@ -34,6 +34,34 @@ for visuals; data model / P2P architecture in DESIGN.md is unchanged unless stat
 >      CJK coverage; CJK tracking resets now cover `.title-ornate`/`.display-title`
 >      as well as `.section-title`.
 
+> **Addendum — 2026-07-07 "Avatar hub / capture split".** The single `camera`
+> tab (`src/components/ar/ARCameraScreen.tsx`) that mixed avatar management with
+> the live camera feed has been split into two concerns:
+>
+> 1. **Avatar hub — `src/components/avatar/AvatarScreen.tsx`** (+ `AvatarScreenLazy`,
+>    `avatar.css`, `avatar.i18n.ts`). The companion's room: a three.js stage over a
+>    *warm, cozy* backdrop (`.avatar-stage-backdrop`, token-driven, NOT the cold
+>    camera look) — NO `getUserMedia`, ever. Owns summon/replace (device + Drive
+>    chooser), remove, set-as-profile-portrait, and the talk panel. Reuses the
+>    `../ar/` scene/VRM/gesture modules across the folder boundary. Its hero CTA
+>    ("AR撮影") opens the capture overlay.
+> 2. **Capture overlay — `src/components/ar/ARCameraScreen.tsx`** is now a
+>    capture-only fullscreen overlay (`{ onClose }`, `.ar-capture` fixed at
+>    `z-index: 95`, above the tab bar). Keeps the camera feed, facing flip, AR
+>    composite shutter, save-to-device, camera-error virtual-stage fallback, and
+>    **all** the room group-photo logic (remote companions + 10Hz pose broadcast +
+>    initial slot offset — pose-sync semantics unchanged, only relocated). It reads
+>    the stored VRM on mount and shows the placeholder golem if none.
+>
+> **Tab rename + reorder.** The `camera` tab id is now `avatar` (icon unchanged:
+> `UserRound`). New priority orders:
+> - `SOLO_TABS = ["home", "avatar", "map", "album", "diary", "guild"]`
+> - `ROOM_TABS = ["map", "avatar", "album", "diary", "post", "guild"]` (room
+>   landing stays `map`).
+>
+> i18n split: hub-only keys moved to `avatar.*` (`avatar.i18n.ts`); capture +
+> talk-panel keys stay `ar.*` (`ar.i18n.ts`).
+
 ## Goals
 
 1. **Modern Material Design 3, dark-first.** Drop the parchment/gold fantasy skin.

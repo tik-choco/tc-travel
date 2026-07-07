@@ -17,10 +17,6 @@ registerTranslations({
     en: "Traveler's Journal", ja: "旅人の日記", zh: "旅人日记", ko: "여행자의 일기",
     es: "Diario del Viajero", fr: "Journal du Voyageur", de: "Reisetagebuch", pt: "Diário do Viajante",
   },
-  "tab.camera": {
-    en: "Avatar", ja: "アバター", zh: "化身", ko: "아바타",
-    es: "Avatar", fr: "Avatar", de: "Avatar", pt: "Avatar",
-  },
   "tab.post": {
     en: "Cards", ja: "名刺", zh: "名片", ko: "명함",
     es: "Tarjetas", fr: "Cartes", de: "Karten", pt: "Cartões",

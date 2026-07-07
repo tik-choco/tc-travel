@@ -9,8 +9,17 @@
   touch-action: none;
 }
 
-.ar-screen-loading,
-.ar-screen-empty {
+/* Capture overlay: fixed over the whole shell, above the tab bar (which sits in
+ * normal flow) and the header (z-index 40), but below true modals (z-index
+ * 100). Launched from the Avatar hub's "AR撮影" button. */
+.ar-capture {
+  position: fixed;
+  inset: 0;
+  height: 100dvh;
+  z-index: 95;
+}
+
+.ar-screen-loading {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -18,13 +27,13 @@
   touch-action: pan-y;
 }
 
-.ar-screen-empty .empty-state {
-  max-width: 34ch;
-}
-
-.ar-screen-empty .btn {
-  width: 100%;
-  max-width: 280px;
+/* Floating close for the lazy loading/failed fallbacks (the loaded overlay
+   renders its own close inside the topbar). */
+.ar-close-floating {
+  position: absolute;
+  top: max(env(safe-area-inset-top), 12px);
+  left: max(env(safe-area-inset-left), 12px);
+  z-index: 6;
 }
 
 .ar-video {
