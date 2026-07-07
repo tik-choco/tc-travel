@@ -30,6 +30,19 @@
   font-size: 1.05rem;
 }
 
+/* --- Guild Chat (family chat-app hand-off) --- */
+
+.guild-chat-desc {
+  margin: 0 0 0.75rem;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: var(--on-surface-variant);
+}
+
+.guild-chat-btn {
+  text-decoration: none;
+}
+
 /* --- Guild Card --- */
 
 .guild-card {

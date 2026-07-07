@@ -6,6 +6,7 @@ import { useProfile } from "../../lib/personal";
 import { useJourneyStats } from "../../lib/journeyStats";
 import { completionStats } from "../map/collection";
 import { GuildCard } from "./GuildCard";
+import { GuildChatLink } from "./GuildChatLink";
 import { StatsGrid } from "./StatsGrid";
 import { ExplorationPanel } from "./ExplorationPanel";
 import { AchievementsGrid } from "./AchievementsGrid";
@@ -27,6 +28,7 @@ export function GuildScreen() {
     <div class="screen guild-screen">
       <h1 class="title-ornate guild-screen-title">{t("guild.title")}</h1>
       <GuildCard profile={profile} onProfileChange={updateProfile} rank={rank} streakDays={stats.streakDays} />
+      <GuildChatLink />
       <StatsGrid stats={stats} />
       {japan && (
         <p class="guild-japan-line">
