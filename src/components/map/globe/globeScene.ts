@@ -24,6 +24,7 @@ import {
 } from "./globeTexture";
 import { PhotoBillboards, type PhotoPick } from "./photoBillboards";
 import { GlobeDetail } from "./globeDetail";
+import { GlobeDetailPatch } from "./detailPatch";
 
 export interface GlobePinInput {
   id: string;
@@ -118,6 +119,7 @@ export class GlobeScene {
 
   private billboards: PhotoBillboards;
   private detail: GlobeDetail;
+  private detailPatch: GlobeDetailPatch;
 
   private burstRingGeom: THREE.RingGeometry;
   private starTexture: THREE.CanvasTexture | null = null;
@@ -181,7 +183,11 @@ export class GlobeScene {
     // --- atlas texture: size to device capability, capped for memory -------
     const maxTex = this.renderer.capabilities.maxTextureSize;
     const bigScreen = Math.max(window.innerWidth, window.innerHeight) * Math.min(window.devicePixelRatio || 1, 2) > 1500;
-    this.baseW = Math.min(bigScreen ? 4096 : 2048, maxTex);
+    // 8k only where both the screen justifies it AND the GPU can actually
+    // sample it — mobile/small screens stay at the previous 2048 to protect
+    // memory. The real sharpness fix for the closest zoom is detailPatch.ts;
+    // this is just a cheap across-the-board bump for big desktop displays.
+    this.baseW = bigScreen && maxTex >= 8192 ? 8192 : Math.min(bigScreen ? 4096 : 2048, maxTex);
     this.baseH = this.baseW / 2;
     const baseCanvas = document.createElement("canvas");
     baseCanvas.width = this.baseW;
@@ -192,7 +198,14 @@ export class GlobeScene {
     this.globeTexture = new THREE.CanvasTexture(baseCanvas);
     this.globeTexture.colorSpace = THREE.SRGBColorSpace;
     this.globeTexture.wrapS = THREE.RepeatWrapping; // clean filtering across the ±180° seam
-    this.globeTexture.anisotropy = Math.min(8, this.renderer.capabilities.getMaxAnisotropy());
+    // Mipmaps are on by default for CanvasTexture (generateMipmaps: true,
+    // minFilter: LinearMipmapLinearFilter) — kept explicit here since they're
+    // what keeps the ZOOMED-OUT globe from shimmering/aliasing; anisotropy is
+    // the zoomed-IN lever, so give it the full device budget instead of the
+    // old flat cap of 8.
+    this.globeTexture.generateMipmaps = true;
+    this.globeTexture.minFilter = THREE.LinearMipmapLinearFilter;
+    this.globeTexture.anisotropy = this.renderer.capabilities.getMaxAnisotropy();
     this.globeMesh = new THREE.Mesh(
       new THREE.SphereGeometry(GLOBE_RADIUS, 96, 64),
       new THREE.MeshBasicMaterial({ map: this.globeTexture }),
@@ -257,6 +270,11 @@ export class GlobeScene {
     this.detail = new GlobeDetail(this.scene, this.palette, () => {
       this.dirty = true;
     });
+    // Zoom-in sharpness: repaints just the focused window at high density
+    // (detailPatch.ts) once the base atlas's own texel density runs out.
+    this.detailPatch = new GlobeDetailPatch(this.scene, this.palette, maxTex, () => {
+      this.dirty = true;
+    });
 
     this.burstRingGeom = new THREE.RingGeometry(0.85, 1, 40);
 
@@ -307,6 +325,7 @@ export class GlobeScene {
       this.starTexture && (this.starTexture.needsUpdate = true);
       this.billboards.markTexturesDirty();
       this.detail.markTexturesDirty();
+      this.detailPatch.markTexturesDirty();
       this.dirty = true;
     };
     this.canvas.addEventListener("webglcontextlost", onLost);
@@ -329,6 +348,7 @@ export class GlobeScene {
     this.features = features;
     this.countryPaths = buildCountryPaths(features, this.baseW, this.baseH);
     this.detail.setWorld(features);
+    this.detailPatch.setWorld(this.countryPaths, this.baseW, this.baseH);
     this.repaintBase();
   }
 
@@ -430,6 +450,7 @@ export class GlobeScene {
     for (const cleanup of this.cleanups) cleanup();
     this.billboards.dispose();
     this.detail.dispose();
+    this.detailPatch.dispose();
     for (const burst of this.bursts) {
       this.scene.remove(burst.group);
       for (const m of burst.materials) m.dispose();
@@ -469,6 +490,9 @@ export class GlobeScene {
   private repaintBase(): void {
     paintGlobeBase(this.baseCtx, this.baseW, this.baseH, this.countryPaths, this.visited, this.palette);
     this.globeTexture.needsUpdate = true;
+    // Keeps the patch's own visited/palette in sync and drops any stale
+    // canvas — it repaints fresh (at the current window) on the next settle.
+    this.detailPatch.setVisited(this.visited);
     this.dirty = true;
   }
 
@@ -476,6 +500,7 @@ export class GlobeScene {
     this.palette = readGlobePalette();
     (this.atmosphereMaterial.uniforms.uColor.value as THREE.Color).set(this.palette.atmosphere);
     this.detail.setPalette(this.palette);
+    this.detailPatch.setPalette(this.palette);
     this.repaintBase();
   }
 
@@ -825,9 +850,10 @@ export class GlobeScene {
       this.reducedMotion,
       now,
     );
+    const patchBusy = this.detailPatch.update(this.camera, this.dist, now);
 
     this.billboards.update(this.camera, this.width, this.height);
     this.renderer.render(this.scene, this.camera);
-    this.dirty = detailBusy;
+    this.dirty = detailBusy || patchBusy;
   };
 }

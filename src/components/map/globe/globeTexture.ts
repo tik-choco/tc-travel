@@ -142,25 +142,42 @@ export function readGlobePalette(): GlobePalette {
 export interface CountryPath {
   code: string;
   path: Path2D;
+  /** Base-canvas pixel bounding box of this country's geometry — lets a
+   *  viewport-scoped repaint (detailPatch.ts) skip the fill/stroke calls for
+   *  countries nowhere near the focused window instead of walking every
+   *  ring in the ~10⁵-vertex atlas on every settle-triggered repaint. */
+  x0: number;
+  y0: number;
+  x1: number;
+  y1: number;
 }
 
 type Ring = number[][];
 
 /**
- * Pre-builds one Path2D per country at the base canvas resolution. Paths are
- * built once per world load and reused across every repaint (fog updates,
- * theme flips, reveal overlays) — the 50m atlas has ~10⁵ vertices, so path
- * construction dominates a repaint if done naively each time.
+ * Pre-builds one Path2D (+ pixel bbox) per country at the base canvas
+ * resolution. Paths are built once per world load and reused across every
+ * repaint (fog updates, theme flips, reveal overlays) — the 50m atlas has
+ * ~10⁵ vertices, so path construction dominates a repaint if done naively
+ * each time.
  */
 export function buildCountryPaths(features: readonly CountryFeature[], width: number, height: number): CountryPath[] {
   const out: CountryPath[] = [];
   for (const f of features) {
     const path = new Path2D();
+    let x0 = Infinity;
+    let y0 = Infinity;
+    let x1 = -Infinity;
+    let y1 = -Infinity;
     const addRing = (ring: Ring) => {
       for (let i = 0; i < ring.length; i++) {
         const [x, y] = latLngToEquirect(ring[i][1], ring[i][0], width, height);
         if (i === 0) path.moveTo(x, y);
         else path.lineTo(x, y);
+        if (x < x0) x0 = x;
+        if (x > x1) x1 = x;
+        if (y < y0) y0 = y;
+        if (y > y1) y1 = y;
       }
       path.closePath();
     };
@@ -169,9 +186,26 @@ export function buildCountryPaths(features: readonly CountryFeature[], width: nu
     } else {
       for (const poly of f.geometry.coordinates) for (const ring of poly) addRing(ring);
     }
-    out.push({ code: f.code, path });
+    out.push({ code: f.code, path, x0, y0, x1, y1 });
   }
   return out;
+}
+
+/**
+ * Whether a country's bbox has any overlap with a paint viewport, both in
+ * base-canvas pixel space. `margin` pads the test so a country whose fill
+ * bbox sits just outside the viewport but whose STROKE (which extends
+ * ~lineWidth/2 beyond the fill) would still poke in isn't wrongly culled.
+ * Pure and exported so the ±baseW antimeridian-tiling case is unit-testable
+ * without a canvas.
+ */
+export function bboxIntersectsViewport(bbox: { x0: number; y0: number; x1: number; y1: number }, viewport: PaintViewport, margin = 0): boolean {
+  return (
+    bbox.x0 - margin <= viewport.x1 &&
+    bbox.x1 + margin >= viewport.x0 &&
+    bbox.y0 - margin <= viewport.y1 &&
+    bbox.y1 + margin >= viewport.y0
+  );
 }
 
 // --- painting --------------------------------------------------------------------
@@ -188,13 +222,33 @@ function mulberry32(seed: number): () => number {
   };
 }
 
-function paintSpeckle(ctx: CanvasRenderingContext2D, w: number, h: number, color: string, count: number, seed: number): void {
+/**
+ * Scatters `count` grain dots inside `rect` (base-canvas pixel space) —
+ * NOT always the whole canvas: a viewport-scoped repaint passes just its own
+ * small rect, so the density (count/area, chosen by the caller) reads the
+ * same whether painting the whole atlas or a zoomed-in sliver of it, and no
+ * cycles go to dots that would land outside the canvas anyway. `radiusScaleW`
+ * is always the FULL base atlas width (not the rect's) so a dot's WORLD size
+ * stays constant regardless of viewport — it naturally becomes more physical
+ * pixels, and thus stays crisp, when a small rect is blown up to fill a
+ * high-density patch canvas.
+ */
+function paintSpeckle(
+  ctx: CanvasRenderingContext2D,
+  rect: PaintViewport,
+  radiusScaleW: number,
+  color: string,
+  count: number,
+  seed: number,
+): void {
   const rand = mulberry32(seed);
+  const rw = rect.x1 - rect.x0;
+  const rh = rect.y1 - rect.y0;
   ctx.fillStyle = color;
   for (let i = 0; i < count; i++) {
-    const x = rand() * w;
-    const y = rand() * h;
-    const r = (0.4 + rand() * 1.1) * (w / 4096);
+    const x = rect.x0 + rand() * rw;
+    const y = rect.y0 + rand() * rh;
+    const r = (0.4 + rand() * 1.1) * (radiusScaleW / 4096);
     ctx.beginPath();
     ctx.arc(x, y, r, 0, Math.PI * 2);
     ctx.fill();
@@ -223,6 +277,22 @@ function paintGraticule(ctx: CanvasRenderingContext2D, w: number, h: number, pal
 }
 
 /**
+ * A base-canvas pixel rect this paint call should fill the CURRENT ctx.canvas
+ * with — i.e. "zoom into" this rect and blow it up to the canvas's full
+ * physical size. Defaults to the whole atlas (an identity zoom), which is
+ * what every existing call site wants. detailPatch.ts passes a small rect to
+ * repaint just the camera's focused window at a much higher pixel density,
+ * reusing this exact painter (same palette, same Path2D paths) so the patch
+ * is indistinguishable from the base atlas except for sharpness.
+ */
+export interface PaintViewport {
+  x0: number;
+  y0: number;
+  x1: number;
+  y1: number;
+}
+
+/**
  * Full base repaint: ocean → grain → graticule → fog countries → visited
  * countries (on top, so their gold rims sit above fogged neighbours). Called
  * only when the world/visited set/theme changes — the caller uploads the
@@ -235,9 +305,17 @@ export function paintGlobeBase(
   paths: readonly CountryPath[],
   visited: ReadonlySet<string>,
   palette: GlobePalette,
+  viewport: PaintViewport = { x0: 0, y0: 0, x1: w, y1: h },
 ): void {
   const k = w / 4096;
-  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  const scaleX = ctx.canvas.width / (viewport.x1 - viewport.x0);
+  const scaleY = ctx.canvas.height / (viewport.y1 - viewport.y0);
+  ctx.setTransform(scaleX, 0, 0, scaleY, -viewport.x0 * scaleX, -viewport.y0 * scaleY);
+  // Generous pad around the viewport for the bbox cull below: strokes and
+  // the visited pass's shadowBlur both bleed a few world-pixels past a
+  // country's exact fill bbox, and a wrongly-culled near-edge country would
+  // show as a sliver missing its border right at the patch's seam.
+  const cullMargin = 24 * k;
 
   const sea = ctx.createLinearGradient(0, 0, 0, h);
   sea.addColorStop(0, palette.oceanPole);
@@ -248,7 +326,24 @@ export function paintGlobeBase(
   ctx.fillStyle = sea;
   ctx.fillRect(0, 0, w, h);
 
-  paintSpeckle(ctx, w, h, palette.speckle, Math.round((w * h) / 4500), 7);
+  // Speckle is sampled WITHIN the viewport (not the whole atlas) at a count
+  // derived from the viewport's own area — a windowed repaint (detailPatch.ts)
+  // then gets the same apparent grain density as the full atlas instead of a
+  // sparse handful of dots diluted across a world it isn't drawing. Clipped
+  // to the valid [0,w]x[0,h] domain first: an antimeridian-straddling patch's
+  // viewport can run outside that range (detailPatch's ±baseW tiling), and
+  // sampling there would generate dots that land in the NEIGHBOURING dx
+  // pass's rightful slice of the canvas instead of this pass's own — a
+  // country's pre-built bbox never has this problem (it's always within the
+  // valid domain already), only fresh random coordinates can wander outside it.
+  const clipped = {
+    x0: Math.max(viewport.x0, 0),
+    x1: Math.min(viewport.x1, w),
+    y0: Math.max(viewport.y0, 0),
+    y1: Math.min(viewport.y1, h),
+  };
+  const clippedArea = Math.max(0, clipped.x1 - clipped.x0) * Math.max(0, clipped.y1 - clipped.y0);
+  paintSpeckle(ctx, clipped, w, palette.speckle, Math.round(clippedArea / 4500), 7);
   paintGraticule(ctx, w, h, palette);
 
   ctx.lineJoin = "round";
@@ -257,10 +352,11 @@ export function paintGlobeBase(
   ctx.fillStyle = palette.fogFill;
   ctx.strokeStyle = palette.fogStroke;
   ctx.lineWidth = 1.6 * k;
-  for (const { code, path } of paths) {
-    if (visited.has(code)) continue;
-    ctx.fill(path, "evenodd");
-    ctx.stroke(path);
+  for (const country of paths) {
+    if (visited.has(country.code)) continue;
+    if (!bboxIntersectsViewport(country, viewport, cullMargin)) continue;
+    ctx.fill(country.path, "evenodd");
+    ctx.stroke(country.path);
   }
 
   // Visited pass — warm north→south gradient plus a soft gold-washed rim.
@@ -274,15 +370,16 @@ export function paintGlobeBase(
   ctx.lineWidth = 3.4 * k;
   ctx.shadowColor = palette.landGlow;
   ctx.shadowBlur = 14 * k;
-  for (const { code, path } of paths) {
-    if (!visited.has(code)) continue;
-    ctx.fill(path, "evenodd");
-    ctx.stroke(path);
+  for (const country of paths) {
+    if (!visited.has(country.code)) continue;
+    if (!bboxIntersectsViewport(country, viewport, cullMargin)) continue;
+    ctx.fill(country.path, "evenodd");
+    ctx.stroke(country.path);
   }
   ctx.restore();
 
   // A final whisper of grain over land and sea alike, unifying the page.
-  paintSpeckle(ctx, w, h, palette.speckle, Math.round((w * h) / 14000), 23);
+  paintSpeckle(ctx, clipped, w, palette.speckle, Math.round(clippedArea / 14000), 23);
 }
 
 /**
