@@ -93,6 +93,26 @@ registerTranslations({
     es: (p) => `Japón ${p.count}/${p.total} · ${p.pct}%`, fr: (p) => `Japon ${p.count}/${p.total} · ${p.pct}%`, de: (p) => `Japan ${p.count}/${p.total} · ${p.pct}%`, pt: (p) => `Japão ${p.count}/${p.total} · ${p.pct}%`,
   },
 
+  // --- Guild chat (family chat-app hand-off) ---
+  "guildChat.title": {
+    en: "Guild Chat", ja: "ギルドチャット", zh: "公会聊天", ko: "길드 채팅",
+    es: "Chat del Gremio", fr: "Chat de Guilde", de: "Gildenchat", pt: "Chat da Guilda",
+  },
+  "guildChat.description": {
+    en: "Chat with your party between adventures. Opens your party's dedicated chat room in a new tab.",
+    ja: "冒険の合間に仲間とおしゃべり。専用のチャットルームを新しいタブで開きます。",
+    zh: "在冒险之间与同伴聊天。会在新标签页打开专属聊天室。",
+    ko: "모험 사이 동료와 대화하세요. 새 탭에서 파티 전용 채팅방이 열립니다.",
+    es: "Charla con tu grupo entre aventuras. Abre la sala de chat de tu grupo en una pestaña nueva.",
+    fr: "Discutez avec votre groupe entre deux aventures. Ouvre la salle de discussion dédiée dans un nouvel onglet.",
+    de: "Chatte mit deiner Gruppe zwischen den Abenteuern. Öffnet den eigenen Chatraum deiner Gruppe in einem neuen Tab.",
+    pt: "Converse com seu grupo entre aventuras. Abre a sala de chat exclusiva do grupo em uma nova aba.",
+  },
+  "guildChat.open": {
+    en: "Open Chat", ja: "チャットを開く", zh: "打开聊天", ko: "채팅 열기",
+    es: "Abrir Chat", fr: "Ouvrir le Chat", de: "Chat öffnen", pt: "Abrir Chat",
+  },
+
   // --- Stats grid ---
   "stats.title": {
     en: "Traveler's Ledger",
