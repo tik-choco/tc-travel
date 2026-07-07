@@ -29,13 +29,13 @@ import {
 import { useT } from "../../lib/i18n";
 import {
   useSession,
-  addPhoto,
   useMembers,
   sendCompanionPose,
   onCompanionPose,
   setMemberVrmBytes,
   useMemberVrmCids,
 } from "../../lib/store";
+import { addPhotoAuto } from "../../lib/memories";
 import { useProfile } from "../../lib/personal";
 import { compressImage } from "../../lib/photo";
 import { lookupCountry } from "../../lib/geo";
@@ -524,12 +524,12 @@ export function ARCameraScreen() {
       const { bytes, width, height } = await compressImage(canvas);
       const geo = await resolveGeo();
 
-      if (session) {
-        await addPhoto(bytes, { caption: "", geo, width, height, arShot: true });
-        showToast(t("ar.toastRecorded"));
-      } else {
-        showToast(t("ar.joinHint"));
-      }
+      // Persist unconditionally: addPhotoAuto routes to the room's Y.Doc when in
+      // a party, else to the local solo store — so a solo AR selfie with your
+      // VRM companion is saved and shows up in the album and on the map, not
+      // just as a throwaway preview.
+      await addPhotoAuto(bytes, { caption: "", geo, width, height, arShot: true });
+      showToast(t("ar.toastRecorded"));
 
       const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.92));
       if (blob) setLastShot({ url: URL.createObjectURL(blob) });

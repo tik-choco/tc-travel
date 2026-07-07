@@ -1,14 +1,15 @@
 import { useState } from "preact/hooks";
 import { Check, LoaderCircle, X } from "lucide-preact";
-import { addDiaryEntry, updateDiaryEntry } from "../../lib/store";
+import { addDiaryAuto, updateDiaryAuto, type SourcedDiaryEntry } from "../../lib/memories";
 import { lookupCountry, countryName } from "../../lib/geo";
 import { getLanguage, useT } from "../../lib/i18n";
 import { MOODS, MOOD_EMOJI } from "./moodMeta";
-import type { DiaryEntry, GeoPoint } from "../../lib/types";
+import type { GeoPoint } from "../../lib/types";
 
 interface DiaryEditorProps {
-  /** null = creating a new entry; otherwise editing an existing one of the user's own. */
-  entry: DiaryEntry | null;
+  /** null = creating a new entry; otherwise editing an existing one of the
+   *  user's own. Carries its source (room / local) so the save routes home. */
+  entry: SourcedDiaryEntry | null;
   onClose: () => void;
 }
 
@@ -27,7 +28,7 @@ function getGeoOnce(): Promise<GeolocationPosition | null> {
 }
 
 /** New entries can attach the current location; existing entries can't change
- * geo (updateDiaryEntry's patch type only covers title/text/mood), so editing
+ * geo (updateDiaryAuto's patch type only covers title/text/mood), so editing
  * shows the already-attached location read-only instead of a toggle. */
 export function DiaryEditor({ entry, onClose }: DiaryEditorProps) {
   const t = useT();
@@ -45,7 +46,7 @@ export function DiaryEditor({ entry, onClose }: DiaryEditorProps) {
     }
     setSaving(true);
     if (entry) {
-      updateDiaryEntry(entry.id, { title: title.trim(), text: text.trim(), mood });
+      updateDiaryAuto(entry, { title: title.trim(), text: text.trim(), mood });
     } else {
       let geo: GeoPoint | null = null;
       if (attachLocation) {
@@ -55,7 +56,7 @@ export function DiaryEditor({ entry, onClose }: DiaryEditorProps) {
           geo = { lat: pos.coords.latitude, lng: pos.coords.longitude, countryCode };
         }
       }
-      addDiaryEntry({ title: title.trim(), text: text.trim(), mood, geo });
+      addDiaryAuto({ title: title.trim(), text: text.trim(), mood, geo });
     }
     setSaving(false);
     onClose();

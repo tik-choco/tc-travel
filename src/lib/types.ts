@@ -39,6 +39,28 @@ export interface Photo {
   arShot: boolean;
 }
 
+/** A photo unified across its two homes so read models (album grid, map photo
+ *  layer) don't care where the bytes live:
+ *   - `source: "room"` — in the active room's Y.Doc; bytes in mist storage (`cid`).
+ *   - `source: "local"` — in the local solo store (localMemories.ts); bytes in
+ *     IndexedDB keyed by `id`, so `cid` is absent.
+ *  `useAlbumPhotoUrl()` (memories.ts) resolves the bytes from whichever home.
+ *  This is the seam that lets the app show photos-on-the-map and a full album
+ *  with OR without a P2P room — the whole point of solo mode. */
+export interface AlbumPhoto {
+  id: string;
+  source: "room" | "local";
+  by: string; // member id (room) or the local profile id (local)
+  at: number;
+  caption: string;
+  geo: GeoPoint | null;
+  width: number;
+  height: number;
+  arShot: boolean;
+  /** mist storage cid — present iff source === "room" */
+  cid?: string;
+}
+
 /** Diary entry stored in the room Y.Doc (`diary` Y.Array). */
 export interface DiaryEntry {
   id: string;

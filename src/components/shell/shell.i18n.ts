@@ -15,12 +15,26 @@ registerTranslations({
   // Short tab-bar labels. The fantasy screen names (`tab.*` in common.i18n.ts)
   // overflow the fixed ~60px tab width in European languages, so the visible
   // label uses these; keep every language to one short word.
+  "tab.short.home": { en: "Home", ja: "ホーム", zh: "主页", ko: "홈", es: "Inicio", fr: "Accueil", de: "Start", pt: "Início" },
   "tab.short.map": { en: "Map", ja: "地図", zh: "地图", ko: "지도", es: "Mapa", fr: "Carte", de: "Karte", pt: "Mapa" },
   "tab.short.album": { en: "Album", ja: "アルバム", zh: "相册", ko: "앨범", es: "Álbum", fr: "Album", de: "Album", pt: "Álbum" },
   "tab.short.diary": { en: "Journal", ja: "日記", zh: "日记", ko: "일기", es: "Diario", fr: "Journal", de: "Tagebuch", pt: "Diário" },
   "tab.short.camera": { en: "Avatar", ja: "アバター", zh: "化身", ko: "아바타", es: "Avatar", fr: "Avatar", de: "Avatar", pt: "Avatar" },
   "tab.short.post": { en: "Cards", ja: "名刺", zh: "名片", ko: "명함", es: "Tarjetas", fr: "Cartes", de: "Karten", pt: "Cartões" },
   "tab.short.guild": { en: "Guild", ja: "ギルド", zh: "公会", ko: "길드", es: "Gremio", fr: "Guilde", de: "Gilde", pt: "Guilda" },
+
+  // Solo-mode top-bar wordmark (no room to name). Warm and personal, never
+  // "you're alone" — this is your own travelogue.
+  "header.solo.title": {
+    en: "My Journey",
+    ja: "わたしの旅",
+    zh: "我的旅程",
+    ko: "나의 여정",
+    es: "Mi Viaje",
+    fr: "Mon Voyage",
+    de: "Meine Reise",
+    pt: "Minha Jornada",
+  },
 
   "header.connected": {
     en: "Connected",

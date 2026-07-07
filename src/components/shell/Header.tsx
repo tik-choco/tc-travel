@@ -18,7 +18,22 @@ export function Header() {
   const [showMembers, setShowMembers] = useState(false);
   const [confirmLeave, setConfirmLeave] = useState(false);
 
-  if (!session) return null;
+  // Solo variant: no party name, member stack, share or leave — just a calm
+  // wordmark so the shell still has a top bar (keeps the tab bar anchored and
+  // avoids a layout jump when you join or leave a room). The room variant below
+  // is untouched.
+  if (!session) {
+    return (
+      <header class="app-header app-header--solo">
+        <span class="app-header-emoji" aria-hidden="true">
+          {"\u{1F9ED}"}
+        </span>
+        <div class="app-header-info">
+          <span class="app-header-name">{t("header.solo.title")}</span>
+        </div>
+      </header>
+    );
+  }
 
   const shownMembers = members.slice(0, STACK_LIMIT);
   const overflow = members.length - shownMembers.length;

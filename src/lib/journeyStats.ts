@@ -10,7 +10,7 @@
 // journey mirror) — everyone else pays nothing and reports 0 prefectures.
 import { useCards } from "./cards";
 import { computeRank, computeStats } from "./gamification";
-import { useJourney } from "./personal";
+import { useUnifiedJourney } from "./memories";
 import { useJapanCollection } from "../components/map/japanGeo";
 import type { JourneyStats, RankInfo } from "./types";
 
@@ -25,7 +25,7 @@ export interface JourneyStatsResult {
   japanSettled: boolean;
 }
 
-function hasJapanPresence(journey: ReturnType<typeof useJourney>): boolean {
+function hasJapanPresence(journey: ReturnType<typeof useUnifiedJourney>): boolean {
   if (journey.pins.some((p) => p.countryCode === "jp")) return true;
   if (journey.photos.some((p) => p.geo?.countryCode === "jp")) return true;
   if (journey.diary.some((d) => d.geo?.countryCode === "jp")) return true;
@@ -33,7 +33,7 @@ function hasJapanPresence(journey: ReturnType<typeof useJourney>): boolean {
 }
 
 export function useJourneyStats(): JourneyStatsResult {
-  const journey = useJourney();
+  const journey = useUnifiedJourney();
   const cards = useCards();
   const hasJapan = hasJapanPresence(journey);
   const { prefs, visited } = useJapanCollection(hasJapan);

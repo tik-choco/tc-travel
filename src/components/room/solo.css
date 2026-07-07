@@ -1,0 +1,359 @@
+/*
+ * Solo traveller surfaces — SoloWelcome (an inviting start for a journey of
+ * one) and SoloShareSheet (the "bring your solo memories into the party"
+ * moment). Built entirely on theme.css tokens so light/dark just work; every
+ * animation lives inside a prefers-reduced-motion: no-preference block, so
+ * reduced-motion users get a calm, fully static layout — never a jumpy one.
+ */
+
+/* ---------------------------------------------------------------------- */
+/* SoloShareSheet                                                          */
+/* ---------------------------------------------------------------------- */
+
+.solo-share-lead {
+  margin: 0 0 1rem;
+  font-size: 0.95rem;
+  line-height: 1.55;
+  color: var(--on-surface-variant);
+}
+
+/* What the traveller carries: one soft-tinted chip per memory kind, each on
+   its own accent container so the row reads like a little handful of keepsakes. */
+.solo-share-counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+.solo-share-stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.8rem;
+  border-radius: var(--radius-full);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+.solo-share-stat-pins {
+  background: var(--secondary-container);
+  color: var(--on-secondary-container);
+}
+.solo-share-stat-diary {
+  background: var(--tertiary-container);
+  color: var(--on-tertiary-container);
+}
+.solo-share-stat-photos {
+  background: var(--primary-container);
+  color: var(--on-primary-container);
+}
+
+.solo-share-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+/* In flight: quiet and centered — sharing is a gentle act, not a spinner race. */
+.solo-share-busy {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1.5rem 0 2rem;
+  text-align: center;
+}
+.solo-share-busy p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--on-surface-variant);
+}
+.solo-share-spinner {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-full);
+  background: var(--surface-container-high);
+  color: var(--primary);
+}
+
+/* Done: the sheet's own small celebration (CelebrationHost owns the app-wide
+   ledger bursts; this confirmation belongs to the moment of giving). */
+.solo-share-done,
+.solo-share-fail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  padding-top: 0.5rem;
+  text-align: center;
+}
+.solo-share-done .solo-share-counts {
+  justify-content: center;
+  margin-bottom: 0.75rem;
+}
+
+.solo-share-done-icon {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  border-radius: var(--radius-full);
+  color: var(--on-primary-container);
+  background:
+    radial-gradient(
+      120% 140% at 20% 0%,
+      color-mix(in srgb, var(--tertiary-container) 65%, transparent),
+      transparent 65%
+    ),
+    var(--primary-container);
+}
+.solo-share-twinkle {
+  position: absolute;
+  font-style: normal;
+  font-size: 0.7rem;
+  line-height: 1;
+  color: var(--tertiary);
+  opacity: 0.55; /* softly visible when static; the motion block animates from 0 */
+}
+.solo-share-twinkle-1 {
+  top: -6px;
+  right: -3px;
+}
+.solo-share-twinkle-2 {
+  bottom: -4px;
+  left: -9px;
+  font-size: 0.55rem;
+}
+.solo-share-twinkle-3 {
+  top: 10px;
+  left: -13px;
+  font-size: 0.6rem;
+}
+
+.solo-share-done-title,
+.solo-share-fail-title {
+  margin: 0.25rem 0 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--on-surface);
+}
+.solo-share-done-detail,
+.solo-share-fail-detail {
+  margin: 0 0 0.5rem;
+  max-width: 34ch;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: var(--on-surface-variant);
+}
+.solo-share-done > .btn {
+  width: 100%;
+}
+.solo-share-fail-actions {
+  width: 100%;
+}
+
+.solo-share-fail-icon {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-full);
+  background: var(--surface-container-high);
+  color: var(--on-surface-variant);
+}
+
+/* ---------------------------------------------------------------------- */
+/* SoloWelcome                                                             */
+/* ---------------------------------------------------------------------- */
+
+.solo-welcome {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1.75rem 1.5rem 1.5rem;
+  text-align: center;
+  color: var(--on-surface);
+  border: 1px solid var(--outline-variant);
+  border-radius: var(--radius-lg);
+  /* A faint warm blush along the top — lamplight, not spotlight. */
+  background:
+    radial-gradient(
+      130% 90% at 50% 0%,
+      color-mix(in srgb, var(--tertiary-container) 30%, transparent),
+      transparent 70%
+    ),
+    var(--surface-container);
+}
+
+/* The scene: a trail of footsteps walking toward the compass. */
+.solo-welcome-scene {
+  position: relative;
+  width: min(220px, 100%);
+  height: 84px;
+  margin-bottom: 0.25rem;
+}
+.solo-welcome-glow {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 120px;
+  height: 120px;
+  transform: translate(-50%, -50%);
+  border-radius: var(--radius-full);
+  background: radial-gradient(circle, color-mix(in srgb, var(--primary) 20%, transparent), transparent 70%);
+}
+.solo-welcome-step {
+  position: absolute;
+  width: 7px;
+  height: 11px;
+  border-radius: 50%;
+  background: var(--on-surface-variant);
+  opacity: 0.5;
+}
+.solo-welcome-step-1 {
+  left: 18%;
+  bottom: 12%;
+  transform: rotate(34deg);
+}
+.solo-welcome-step-2 {
+  left: 32%;
+  bottom: 36%;
+  transform: rotate(24deg);
+  opacity: 0.6;
+}
+.solo-welcome-step-3 {
+  left: 46%;
+  bottom: 58%;
+  transform: rotate(14deg);
+  opacity: 0.7;
+}
+.solo-welcome-compass {
+  position: absolute;
+  left: 58%;
+  top: 6%;
+  font-size: 2.4rem;
+  line-height: 1;
+  transform-origin: 50% 80%;
+}
+
+.solo-welcome-title {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+.solo-welcome-body {
+  margin: 0;
+  max-width: 36ch;
+  font-size: 0.95rem;
+  line-height: 1.55;
+}
+.solo-welcome-hint {
+  margin: 0 0 0.75rem;
+  max-width: 38ch;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: var(--on-surface-variant);
+}
+
+/* ---------------------------------------------------------------------- */
+/* Motion — everything below is opt-in delight                             */
+/* ---------------------------------------------------------------------- */
+
+@media (prefers-reduced-motion: no-preference) {
+  .solo-share-spinner svg {
+    animation: solo-spin 1.1s linear infinite;
+  }
+  .solo-share-done-icon {
+    animation: solo-pop 0.5s cubic-bezier(0.2, 0.9, 0.2, 1) both;
+  }
+  .solo-share-twinkle {
+    opacity: 0;
+    animation: solo-twinkle 1.8s ease-in-out infinite;
+  }
+  .solo-share-twinkle-2 {
+    animation-delay: 0.5s;
+  }
+  .solo-share-twinkle-3 {
+    animation-delay: 1s;
+  }
+
+  .solo-welcome-glow {
+    animation: solo-breathe 4.5s ease-in-out infinite;
+  }
+  .solo-welcome-compass {
+    animation: solo-sway 5s ease-in-out infinite;
+  }
+  /* Footsteps brighten one after another — a path being walked, not a blink. */
+  .solo-welcome-step {
+    animation: solo-step 2.8s ease-in-out infinite;
+  }
+  .solo-welcome-step-2 {
+    animation-delay: 0.35s;
+  }
+  .solo-welcome-step-3 {
+    animation-delay: 0.7s;
+  }
+}
+
+@keyframes solo-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes solo-pop {
+  0% {
+    transform: scale(0.4) rotate(-10deg);
+    opacity: 0;
+  }
+  70% {
+    transform: scale(1.12) rotate(3deg);
+    opacity: 1;
+  }
+  100% {
+    transform: none;
+    opacity: 1;
+  }
+}
+@keyframes solo-twinkle {
+  0%,
+  100% {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@keyframes solo-breathe {
+  0%,
+  100% {
+    opacity: 0.6;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.12);
+  }
+}
+@keyframes solo-sway {
+  0%,
+  100% {
+    transform: rotate(-5deg);
+  }
+  50% {
+    transform: rotate(5deg);
+  }
+}
+@keyframes solo-step {
+  0%,
+  100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 0.85;
+  }
+}
