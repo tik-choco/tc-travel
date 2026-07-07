@@ -20,6 +20,7 @@ function stats(overrides: Partial<JourneyStats> = {}): JourneyStats {
     pinCount: 0,
     roomCount: 0,
     streakDays: 0,
+    longestStreakDays: 0,
     cardsCollected: 0,
     prefecturesVisited: 0,
     ...overrides,
@@ -116,8 +117,9 @@ describe("nextUnlock", () => {
 
   it("falls back to the nearest numeric unlock once the companion has woken", () => {
     // companion already woken (a pin); 8 photos (2 from golden) vs 0 cards (1
-    // from first card). The card is nearer, so it wins.
-    const n = nextUnlock(stats({ pinCount: 1, photoCount: 8, cardsCollected: 0 }));
+    // from first card). A room has been joined (social signal), so the nearer
+    // card unlock wins.
+    const n = nextUnlock(stats({ pinCount: 1, photoCount: 8, cardsCollected: 0, roomCount: 1 }));
     expect(n?.def.id).toBe("cardMotifs");
     expect(n?.remaining).toBe(1);
   });
@@ -133,6 +135,30 @@ describe("nextUnlock", () => {
 
   it("returns null when every unlock tier is maxed out", () => {
     expect(nextUnlock(stats({ pinCount: 1, photoCount: 50, cardsCollected: 10 }))).toBeNull();
+  });
+
+  it("does NOT whisper cardMotifs to a purely-solo traveller (no social signal)", () => {
+    // Companion woken (a pin), 8 photos (golden 2 away), but zero cards and zero
+    // rooms — cardMotifs (1 away) is suppressed, so the lens filter wins instead.
+    const n = nextUnlock(stats({ pinCount: 1, photoCount: 8 }));
+    expect(n?.def.id).toBe("lensFilters");
+  });
+
+  it("returns null for a solo traveller whose lens is maxed (Home falls back to the goal line)", () => {
+    // Every lens tier earned, cardMotifs suppressed (no cards, no rooms) —
+    // nothing left to whisper about.
+    expect(nextUnlock(stats({ pinCount: 1, photoCount: 50 }))).toBeNull();
+  });
+
+  it("whispers cardMotifs once a social signal exists (e.g. a joined room)", () => {
+    const n = nextUnlock(stats({ pinCount: 1, photoCount: 8, roomCount: 1 }));
+    expect(n?.def.id).toBe("cardMotifs");
+    expect(n?.remaining).toBe(1);
+  });
+
+  it("does not treat self-authored companion names as a social signal", () => {
+    const n = nextUnlock(stats({ pinCount: 1, photoCount: 8, companionsMet: ["Mai"] }));
+    expect(n?.def.id).toBe("lensFilters");
   });
 });
 

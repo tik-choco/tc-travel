@@ -1,6 +1,6 @@
 // Lazy wrapper so three.js + @pixiv/three-vrm stay out of the initial Home
-// bundle — users without a VRM never download the 3D stack on the landing
-// screen. Mirrors ARCameraLazy.tsx.
+// bundle — the landing screen paints first and the companion stage (VRM or
+// placeholder golem) streams in behind it. Mirrors ARCameraLazy.tsx.
 import { useEffect, useRef, useState } from "preact/hooks";
 import type { ComponentType } from "preact";
 import type { HomeVrmStageProps } from "./HomeVrmStage";

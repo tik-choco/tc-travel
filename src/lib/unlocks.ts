@@ -8,7 +8,7 @@
 // The tier number is what the CelebrationHost diffs against its ledger and what
 // the UI reads to decide what's selectable/how much chrome to show.
 import { useMemo } from "preact/hooks";
-import { ACHIEVEMENTS } from "./gamification";
+import { ACHIEVEMENTS, hasSocialSignal } from "./gamification";
 import { useJourneyStats } from "./journeyStats";
 import type { JourneyStats } from "./types";
 
@@ -120,9 +120,13 @@ export function nextUnlock(stats: JourneyStats): NextUnlock | null {
   const companionNext = toNextUnlock(companion, stats);
   if (companionNext) return companionNext;
 
+  const social = hasSocialSignal(stats);
   let best: NextUnlock | null = null;
   for (const def of UNLOCKS) {
     if (def.id === "companionWake") continue;
+    // cardMotifs advances only by meeting people face-to-face; don't whisper it
+    // to a purely-solo traveller who has shown no social signal yet.
+    if (def.id === "cardMotifs" && !social) continue;
     const candidate = toNextUnlock(def, stats);
     if (candidate && (!best || candidate.remaining < best.remaining)) best = candidate;
   }

@@ -36,7 +36,7 @@ export function CelebrationHost() {
   // Cheap fingerprint of everything that can trigger a burst, so the diff runs
   // only when the derived state actually changes — not on every render.
   const unlockFp = UNLOCKS.map((u) => unlocks[u.id]).join(",");
-  const fingerprint = `${japanSettled}|${rank.level}|${stats.streakDays}|${unlockedIds.join(",")}|${unlockFp}`;
+  const fingerprint = `${japanSettled}|${rank.level}|${stats.longestStreakDays}|${unlockedIds.join(",")}|${unlockFp}`;
 
   useEffect(() => {
     // Wait until Japan prefecture credit has settled: a late async load must not
@@ -45,7 +45,10 @@ export function CelebrationHost() {
     const next: CelebrationLedger = {
       level: rank.level,
       achievements: unlockedIds,
-      streakDays: stats.streakDays,
+      // Feed the high-water mark, not the live streak: a milestone fires once
+      // when your best-ever run first crosses it, and never re-fires when a
+      // broken streak is rebuilt back up to the same length.
+      streakDays: stats.longestStreakDays,
       unlocks,
     };
     const delta = diffLedger(loadLedger(), next);

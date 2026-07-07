@@ -86,6 +86,7 @@ export function useUnifiedJourney(): ReturnType<typeof useJourney> {
       localDiary.map(({ text: _text, ...meta }) => meta),
     ),
     streakDays: journey.streakDays,
+    longestStreakDays: journey.longestStreakDays,
     roomCount: journey.roomCount,
   };
 }

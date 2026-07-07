@@ -396,12 +396,13 @@ export function AvatarScreen() {
           </span>
           <p class="empty-state-title">{t("avatar.emptyTitle")}</p>
           <p class="empty-state-hint">{t("avatar.emptyHint")}</p>
-          <button type="button" class="btn btn-primary" onClick={handleLoadClick} disabled={vrmLoading}>
-            {vrmLoading ? <LoaderCircle class="avatar-spin" size={18} /> : <Upload size={18} />}
-            {t("avatar.summonBtn")}
+          <button type="button" class="btn btn-primary" onClick={() => setMode("stage")} disabled={vrmLoading}>
+            <Sparkles size={18} />
+            {t("avatar.meetCompanion")}
           </button>
-          <button type="button" class="btn btn-ghost" onClick={() => setMode("stage")} disabled={vrmLoading}>
-            {t("avatar.tryPlaceholder")}
+          <button type="button" class="btn btn-ghost" onClick={handleLoadClick} disabled={vrmLoading}>
+            {vrmLoading ? <LoaderCircle class="avatar-spin" size={18} /> : <Upload size={18} />}
+            {t("avatar.bringYourOwn")}
           </button>
         </div>
       </div>
