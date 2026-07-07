@@ -19,7 +19,11 @@ export function init(id: string, url: string): void;
 
 export function init_with_config(id: string, config: string): boolean;
 
+export function is_room_joined(room_id: string): boolean;
+
 export function join_room(room_id: string): void;
+
+export function join_room_async(room_id: string): Promise<any>;
 
 export function leave_room(): void;
 
@@ -73,7 +77,9 @@ export interface InitOutput {
     readonly get_stats: () => [number, number];
     readonly init: (a: number, b: number, c: number, d: number) => void;
     readonly init_with_config: (a: number, b: number, c: number, d: number) => number;
+    readonly is_room_joined: (a: number, b: number) => number;
     readonly join_room: (a: number, b: number) => void;
+    readonly join_room_async: (a: number, b: number) => any;
     readonly leave_room_id: (a: number, b: number) => [number, number];
     readonly publish_local_track: (a: number, b: number) => [number, number];
     readonly register_event_callback: (a: any) => void;
@@ -84,13 +90,13 @@ export interface InitOutput {
     readonly send_message_in_room: (a: number, b: number, c: number, d: number, e: number, f: number, g: number) => [number, number];
     readonly set_config: (a: number, b: number) => number;
     readonly set_local_track_enabled: (a: number, b: number, c: number) => [number, number];
-    readonly storage_add: (a: number, b: number, c: number, d: number) => any;
-    readonly storage_add_at: (a: number, b: number, c: number, d: number, e: number, f: number, g: number) => any;
-    readonly storage_get: (a: number, b: number) => any;
     readonly unpublish_local_track: (a: number, b: number) => [number, number];
     readonly update_position_in_room: (a: number, b: number, c: number, d: number, e: number) => [number, number];
     readonly leave_room: () => void;
     readonly update_position: (a: number, b: number, c: number) => void;
+    readonly storage_add: (a: number, b: number, c: number, d: number) => any;
+    readonly storage_add_at: (a: number, b: number, c: number, d: number, e: number, f: number, g: number) => any;
+    readonly storage_get: (a: number, b: number) => any;
     readonly wasm_bindgen__closure__destroy__h0709964b7b16cdd3: (a: number, b: number) => void;
     readonly wasm_bindgen__closure__destroy__h3636025321064955: (a: number, b: number) => void;
     readonly wasm_bindgen__closure__destroy__h4340dadbabf754e2: (a: number, b: number) => void;
