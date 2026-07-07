@@ -16,14 +16,16 @@
 //   parsed geometry stays in the loaders' module caches, so returning is
 //   cheap).
 //
-//   Layer 3 — MUNICIPALITIES (市区町村): the deepest band. When the focused
-//   country also has admin-2 data (jp today, 1742 polygons), its municipality
-//   borders fade in as the finest, lightest ink — the line-weight hierarchy
-//   country > prefecture > municipality makes the granularity read at a
-//   glance. The source geometry is ~220m-simplified, so this tier only
-//   appears at the closest zoom, after prefectures are already fully inked.
-//   Borders only, no labels (1742 names would be noise; the collection UI
-//   owns naming).
+//   Layer 3 — MUNICIPALITIES (admin-2, 市区町村): the deepest band, WORLDWIDE.
+//   Whatever country the camera is centered over, ensureCountryAdmin2 supplies
+//   its municipality boundaries (vendored for jp, IndexedDB/geoBoundaries for
+//   the rest — cached, offline-graceful, null when a country has no ADM2
+//   layer, in which case this tier quietly shows nothing). Borders draw as the
+//   finest, lightest ink — the line-weight hierarchy country > prefecture >
+//   municipality makes the granularity read at a glance. The source geometry
+//   is simplified (~110–220m), so this tier only appears at the closest zoom,
+//   after prefectures are already fully inked. Borders only, no labels
+//   (thousands of names would be noise; the collection UI owns naming).
 //
 // All fades are functions of camera distance — direct manipulation, not
 // time-based animation — so prefers-reduced-motion users still get the
@@ -37,7 +39,7 @@ import { getLanguage } from "../../../lib/i18n";
 import { clamp } from "../geoMath";
 import { SUBNATIONAL_COUNTRY_CODES } from "../subnational/registry";
 import { loadCountry } from "../subnational/subnationalGeo";
-import { hasMunicipalData, loadMunicipalities, type Municipality } from "../municipal/municipalGeo";
+import { ensureCountryAdmin2, type Admin2Feature } from "../../../lib/geo/municipalResolver";
 import { geometryAnchor, latLngToVec3, wrapLng, type LatLng } from "./geoSphere";
 import { mixHex, type GlobePalette } from "./globeTexture";
 
@@ -64,8 +66,9 @@ export const LABEL_FADE_IN = 1.5;
 export const LABEL_FULL = 1.32;
 const LABEL_ALPHA = 0.92;
 
-/** Municipality tier: the chunk load kicks off here — prefectures are fully
- *  inked by now, so the ~2.3MB geojson is usually parsed before the band opens. */
+/** Municipality tier: the boundary load kicks off here — prefectures are
+ *  fully inked by now, so the (vendored chunk or geoBoundaries fetch) data is
+ *  usually ready before the band opens. */
 export const MUNICIPAL_PRELOAD = 1.4;
 /** Borders fade in below this — the LAST detail to appear… */
 export const MUNICIPAL_FADE_IN = 1.32;
@@ -196,11 +199,11 @@ interface MuniLayer {
   birth: number;
 }
 
-// loadMunicipalities returns the SAME parsed array on every call, so the
-// tessellated buffer can be keyed on it: leaving the deep band frees the GPU
-// copy (geometry.dispose()), and diving back re-uploads the cached CPU
-// attributes instead of re-walking 1742 polygons.
-const muniGeometryCache = new WeakMap<readonly Municipality[], THREE.BufferGeometry>();
+// ensureCountryAdmin2 memoizes per country and returns the SAME array every
+// call, so the tessellated buffer can be keyed on it: leaving the deep band
+// frees the GPU copy (geometry.dispose()), and diving back re-uploads the
+// cached CPU attributes instead of re-walking thousands of polygons.
+const muniGeometryCache = new WeakMap<readonly Admin2Feature[], THREE.BufferGeometry>();
 
 export class GlobeDetail {
   private parent: THREE.Object3D;
@@ -212,6 +215,10 @@ export class GlobeDetail {
   private cancelIdleBuild: (() => void) | null = null;
 
   private focusCode = "";
+  /** The RAW country under the camera (any country, not just admin-1 ones) —
+   *  the municipality tier keys on this, so France gets its communes even
+   *  though no prefecture-tier data exists for it. */
+  private centerCountry = "";
   private lookupBusy = false;
   private lastLookupAt = 0;
   /** Center the last COMPLETED lookup resolved — while the live center stays
@@ -219,7 +226,9 @@ export class GlobeDetail {
   private lastResolvedCenter: LatLng | null = null;
   private subLayer: SubLayer | null = null;
   private muniLayer: MuniLayer | null = null;
-  private muniLoading = false;
+  /** Country whose admin-2 request was already kicked this band visit — one
+   *  ensure per (country, dive), reset by clearMuniLayer. */
+  private muniRequestedFor: string | null = null;
   /** Camera distance as of the last update — the async municipality load
    *  checks it so a chunk that arrives after zoom-out isn't built. */
   private lastDist = Number.POSITIVE_INFINITY;
@@ -324,10 +333,12 @@ export class GlobeDetail {
       }
     }
 
-    // Layer 3 — municipality tier, the deepest band. Rides the sub-national
-    // focus (clearSubLayer tears it down too); its own enter/exit hysteresis
-    // handles the zoom-out-a-little-then-back-in case without a reload.
-    if (this.focusCode && hasMunicipalData(this.focusCode) && dist <= MUNICIPAL_PRELOAD) {
+    // Layer 3 — municipality tier, the deepest band, for WHATEVER country is
+    // under the camera. Gated on a completed center lookup (lastResolvedCenter)
+    // so a stale centerCountry from a previous dive can't fetch the wrong
+    // borders; its own enter/exit hysteresis handles zoom-out-a-little-then-
+    // back-in without a reload, and clearSubLayer tears it down as well.
+    if (this.centerCountry && this.lastResolvedCenter && dist <= MUNICIPAL_PRELOAD) {
       this.ensureMuniLayer();
     }
     if (this.muniLayer && dist >= MUNICIPAL_EXIT) this.clearMuniLayer();
@@ -396,6 +407,12 @@ export class GlobeDetail {
         this.lookupBusy = false;
         if (this.disposed) return;
         this.lastResolvedCenter = snapshot;
+        // The raw center country feeds the worldwide municipality tier —
+        // crossing a border drops the previous country's admin-2 borders.
+        if (code !== this.centerCountry) {
+          this.clearMuniLayer();
+          this.centerCountry = code;
+        }
         const target = SUBNATIONAL_COUNTRY_CODES.includes(code) ? code : "";
         if (target === this.focusCode) return;
         this.clearSubLayer();
@@ -484,28 +501,26 @@ export class GlobeDetail {
   }
 
   private ensureMuniLayer(): void {
-    if (this.muniLayer || this.muniLoading || this.disposed) return;
-    const code = this.focusCode;
-    this.muniLoading = true;
-    void loadMunicipalities(code)
-      .then((munis) => {
-        this.muniLoading = false;
-        // The camera may have left the deep band (or the country) while the
-        // ~2.3MB chunk loaded — skip; the parsed data stays cached for the
-        // next dive, so retrying costs only the buffer re-upload.
-        if (this.disposed || this.focusCode !== code || this.muniLayer) return;
-        if (this.lastDist >= MUNICIPAL_EXIT || munis.length === 0) return;
-        this.buildMuniLayer(munis);
-        this.onNeedsRender();
-      })
-      .catch(() => {
-        // Chunk unreachable (offline) — allow a retry on the next approach;
-        // loadMunicipalities un-caches its own failures.
-        this.muniLoading = false;
-      });
+    const code = this.centerCountry;
+    if (!code || this.muniLayer || this.disposed || this.muniRequestedFor === code) return;
+    this.muniRequestedFor = code;
+    // ensureCountryAdmin2 never throws: vendored → IndexedDB → geoBoundaries,
+    // memoized per country (null included), in-flight de-duped. A null (no
+    // ADM2 layer / offline) simply shows nothing at this tier — no error, and
+    // the next band entry re-asks the (cheap, memoized) resolver.
+    void ensureCountryAdmin2(code).then((features) => {
+      // The camera may have left the deep band (or the country) while the
+      // boundaries loaded — skip; the resolver keeps them cached, so the
+      // next dive costs only the buffer re-upload.
+      if (this.disposed || this.centerCountry !== code || this.muniLayer) return;
+      if (!features || features.length === 0) return;
+      if (this.lastDist >= MUNICIPAL_EXIT) return;
+      this.buildMuniLayer(features);
+      this.onNeedsRender();
+    });
   }
 
-  private buildMuniLayer(munis: readonly Municipality[]): void {
+  private buildMuniLayer(munis: readonly Admin2Feature[]): void {
     let geometry = muniGeometryCache.get(munis);
     if (!geometry) {
       geometry = buildBorderGeometry(
@@ -528,6 +543,9 @@ export class GlobeDetail {
   }
 
   private clearMuniLayer(): void {
+    // Reset the once-per-dive request latch even when no layer was built
+    // (null-data country), so the next band entry / country asks again.
+    this.muniRequestedFor = null;
     const layer = this.muniLayer;
     if (!layer) return;
     this.muniLayer = null;

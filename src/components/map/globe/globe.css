@@ -92,9 +92,39 @@
   color: var(--on-surface-variant);
 }
 
+/* Stat card extras: the country-explored line demoted under the exploration
+   hero, and the transient "counting…" hint while background resolution runs. */
+.globe-stat-sub {
+  margin: 0 0 6px;
+  font-size: 0.76rem;
+  color: var(--on-surface-variant);
+}
+
+.globe-stat-counting {
+  margin: -2px 0 4px;
+  font-size: 0.72rem;
+  font-style: italic;
+  color: var(--on-surface-variant);
+  animation: globe-counting-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes globe-counting-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .globe-viewport--loading::after {
     animation: none;
     opacity: 0.75;
+  }
+
+  .globe-stat-counting {
+    animation: none;
   }
 }

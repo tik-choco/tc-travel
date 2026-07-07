@@ -19,6 +19,12 @@ import { addPinAuto, resolveAlbumPhotoUrl, useAlbumPhotos, useUnifiedJourney } f
 import { useLocalPins, removeLocalPin } from "../../../lib/local/localMemories";
 import { loadWorld, loadWorldDetailed, lookupCountry, countryName } from "../../../lib/geo";
 import type { CountryFeature } from "../../../lib/geo";
+import {
+  resolveMunicipality,
+  resolvedForPoint,
+  type ResolvedMunicipality,
+} from "../../../lib/geo/municipalResolver";
+import { useExplorationStats } from "../../../lib/explorationStats";
 import { geometryCentroid } from "../geoMath";
 import { continentOf, CONTINENT_ORDER, type ContinentId } from "../continents";
 import { EncounterSheet, type SheetTarget } from "../EncounterSheet";
@@ -60,6 +66,27 @@ export function GlobeMap({ onOpenPhoto, onOpenCountry, drillDownCodes }: GlobeMa
   const [worldError, setWorldError] = useState(false);
   const [glError, setGlError] = useState(false);
   const [sheet, setSheet] = useState<SheetTarget | null>(null);
+  // The open sheet's municipality, resolved at pin time (never blocks saving:
+  // the label just upgrades from "Japan" to "Shinjuku · Japan" when it lands).
+  const [sheetMuni, setSheetMuni] = useState<ResolvedMunicipality | null>(null);
+  const muniSeqRef = useRef(0);
+
+  /** Kick municipality resolution for a sheet's point. Sync-answers from the
+   *  warm index immediately; the async path fills in (or stays null for
+   *  ocean / no-ADM2 countries / offline — the sheet shows the country alone). */
+  function beginSheetMuniResolve(lat: number, lng: number): void {
+    const seq = ++muniSeqRef.current;
+    setSheetMuni(resolvedForPoint(lat, lng));
+    void resolveMunicipality(lat, lng).then((m) => {
+      if (muniSeqRef.current === seq && m) setSheetMuni(m);
+    });
+  }
+
+  function closeSheet(): void {
+    muniSeqRef.current++; // invalidate any in-flight municipality resolution
+    setSheetMuni(null);
+    setSheet(null);
+  }
 
   const hostRef = useRef<HTMLDivElement | null>(null);
   const sceneRef = useRef<GlobeScene | null>(null);
@@ -211,7 +238,10 @@ export function GlobeMap({ onOpenPhoto, onOpenCountry, drillDownCodes }: GlobeMa
     }
     if (hit.kind === "pin") {
       const pin = allPins.find((p) => p.id === hit.pinId);
-      if (pin) setSheet({ mode: "view", pin });
+      if (pin) {
+        beginSheetMuniResolve(pin.lat, pin.lng);
+        setSheet({ mode: "view", pin });
+      }
       return;
     }
     void handleSurfaceTap(hit.lat, hit.lng);
@@ -225,6 +255,7 @@ export function GlobeMap({ onOpenPhoto, onOpenCountry, drillDownCodes }: GlobeMa
       return;
     }
     // Code already resolved — the sheet opens without a "locating…" phase.
+    beginSheetMuniResolve(lat, lng);
     setSheet({ mode: "new", lat, lng, countryCode: code, resolving: false });
   }
 
@@ -233,6 +264,7 @@ export function GlobeMap({ onOpenPhoto, onOpenCountry, drillDownCodes }: GlobeMa
     const scene = sceneRef.current;
     if (!scene) return;
     const { lat, lng } = scene.getCenterLatLng();
+    beginSheetMuniResolve(lat, lng);
     setSheet({ mode: "new", lat, lng, countryCode: "", resolving: true });
     void lookupCountry(lat, lng).then((code) => {
       setSheet((s) => (s && s.mode === "new" && s.lat === lat && s.lng === lng ? { ...s, countryCode: code, resolving: false } : s));
@@ -240,6 +272,11 @@ export function GlobeMap({ onOpenPhoto, onOpenCountry, drillDownCodes }: GlobeMa
   }
 
   // --- stats + celebration ---------------------------------------------------------
+
+  // Hero metric: municipalities · countries (the exploration UNIT count — a
+  // world-% would round to 0 forever). Renders instantly with whatever the
+  // resolver already knows; fills in progressively while `resolving`.
+  const exploration = useExplorationStats();
 
   const exactPct = statsWorld && statsWorld.length > 0 ? (visited.size / statsWorld.length) * 100 : 0;
   const pct = Math.round(exactPct);
@@ -258,6 +295,19 @@ export function GlobeMap({ onOpenPhoto, onOpenCountry, drillDownCodes }: GlobeMa
     const timer = setTimeout(() => setCelebrate(""), REVEAL_ANIM_MS);
     return () => clearTimeout(timer);
   }, [pct, statsWorld]);
+
+  // The hero count deserves the same dopamine: pulse when a NEW municipality
+  // joins. Primed on the first value, and suppressed while the background
+  // back-fill of old memories is running — only a fresh footprint celebrates.
+  const prevMuniRef = useRef<number | null>(null);
+  useEffect(() => {
+    const prev = prevMuniRef.current;
+    prevMuniRef.current = exploration.municipalitiesVisited;
+    if (prev === null || exploration.resolving || exploration.municipalitiesVisited <= prev) return;
+    setCelebrate("pulse");
+    const timer = setTimeout(() => setCelebrate(""), REVEAL_ANIM_MS);
+    return () => clearTimeout(timer);
+  }, [exploration.municipalitiesVisited, exploration.resolving]);
 
   const continentStats = useMemo(() => {
     if (!statsWorld) return [] as { id: ContinentId; visited: number; total: number }[];
@@ -281,6 +331,16 @@ export function GlobeMap({ onOpenPhoto, onOpenCountry, drillDownCodes }: GlobeMa
     return countryName(code, lang);
   }
 
+  /** Sheet location line: "Shinjuku · Japan" once the municipality resolves,
+   *  plain country (or ocean / locating…) until then. */
+  function sheetLocationLabel(target: SheetTarget): string {
+    const base =
+      target.mode === "view" ? labelFor(target.pin.countryCode) : labelFor(target.countryCode, target.resolving);
+    const stillLocating = target.mode === "new" && target.resolving;
+    if (!sheetMuni || stillLocating) return base;
+    return t("globe.sheet.place", { muni: sheetMuni.name, country: base });
+  }
+
   const ready = sceneReady && renderWorld !== null;
 
   return (
@@ -296,8 +356,15 @@ export function GlobeMap({ onOpenPhoto, onOpenCountry, drillDownCodes }: GlobeMa
         {ready && statsWorld && (
           <div class={["panel", "panel-tight", "map-stat-card", celebrate ? `map-stat-card--${celebrate}` : ""].filter(Boolean).join(" ")}>
             <h1 class="map-stat-card__title">{t("map.title")}</h1>
-            <p class="map-stat-card__main">{t("map.explored", { count: visited.size, total: statsWorld.length, pct })}</p>
-            {/* Decorative: the stat line above already carries the numbers. */}
+            <p class="map-stat-card__main">
+              {t("globe.stats.hero", {
+                munis: exploration.municipalitiesVisited,
+                countries: exploration.countriesVisited,
+              })}
+            </p>
+            {exploration.resolving && <p class="globe-stat-counting">{t("globe.stats.counting")}</p>}
+            <p class="globe-stat-sub">{t("map.explored", { count: visited.size, total: statsWorld.length, pct })}</p>
+            {/* Decorative: the stat lines above already carry the numbers. */}
             <div class="map-progress" aria-hidden="true">
               <div class="map-progress__fill" style={{ width: `${barPct}%` }} />
             </div>
@@ -337,7 +404,7 @@ export function GlobeMap({ onOpenPhoto, onOpenCountry, drillDownCodes }: GlobeMa
       {sheet && (
         <EncounterSheet
           target={sheet}
-          locationLabel={sheet.mode === "view" ? labelFor(sheet.pin.countryCode) : labelFor(sheet.countryCode, sheet.resolving)}
+          locationLabel={sheetLocationLabel(sheet)}
           // addPinAuto routes to the room's Y.Doc in a party and the local
           // solo store otherwise — capture always works, unlike the old map.
           canSave={sheet.mode === "new"}
@@ -346,18 +413,18 @@ export function GlobeMap({ onOpenPhoto, onOpenCountry, drillDownCodes }: GlobeMa
             sheet.pin.by === profile.id &&
             (roomPins.some((p) => p.id === sheet.pin.id) || localPins.some((p) => p.id === sheet.pin.id))
           }
-          onClose={() => setSheet(null)}
+          onClose={closeSheet}
           onSave={(data) => {
             if (sheet.mode !== "new") return;
             addPinAuto({ lat: sheet.lat, lng: sheet.lng, countryCode: sheet.countryCode, ...data });
-            setSheet(null);
+            closeSheet();
           }}
           onDelete={() => {
             if (sheet.mode !== "view") return;
             // Route to whichever store owns this pin (solo pins live locally).
             if (localPins.some((p) => p.id === sheet.pin.id)) removeLocalPin(sheet.pin.id);
             else removePin(sheet.pin.id);
-            setSheet(null);
+            closeSheet();
           }}
         />
       )}
