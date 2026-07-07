@@ -12,6 +12,7 @@ import {
   saveLedger,
   type CelebrationLedger,
 } from "../../lib/celebrate";
+import { onTogether } from "../../lib/store";
 import type { CelebrationEvent } from "../../lib/types";
 import { tWithFallback } from "../guild/fallback";
 
@@ -89,6 +90,26 @@ export function CelebrationHost() {
     if (events.length) setQueue((q) => [...q, ...events]);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- fingerprint captures every value read above
   }, [fingerprint]);
+
+  // The "you're together" greeting: fired by store.ts on the 0→>0 peer
+  // transition (once per roomId per launch — a greeting, not an award, so it
+  // deliberately repeats across launches). Reuses the "achievement" burst
+  // styling, same as progressive unlocks above, so no shared type changes.
+  useEffect(
+    () =>
+      onTogether(() => {
+        setQueue((q) => [
+          ...q,
+          {
+            kind: "achievement",
+            icon: "\u{1F91D}",
+            title: t("celebrate.together"),
+            detail: t("celebrate.together.detail"),
+          },
+        ]);
+      }),
+    [t],
+  );
 
   // Promote the next queued burst once the stage is free.
   useEffect(() => {
