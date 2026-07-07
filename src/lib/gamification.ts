@@ -60,6 +60,12 @@ type JourneySnapshot = {
   diary: { geo: { countryCode: string } | null }[];
   streakDays: number;
   roomCount: number;
+  /** cards collected face-to-face (lib/cards.ts) — real-world meetings */
+  cardsCollected?: number;
+  /** distinct JP prefectures visited (japanGeo.visitedPrefectures) — the
+   *  Japan drill-down feeds the main economy through this. Optional because
+   *  the geometry loads lazily; treated as 0 until resolved. */
+  prefecturesVisited?: number;
 };
 
 export function computeStats(j: JourneySnapshot): JourneyStats {
@@ -85,6 +91,8 @@ export function computeStats(j: JourneySnapshot): JourneyStats {
     pinCount: j.pins.length,
     roomCount: j.roomCount,
     streakDays: j.streakDays,
+    cardsCollected: j.cardsCollected ?? 0,
+    prefecturesVisited: j.prefecturesVisited ?? 0,
   };
 }
 
@@ -92,11 +100,13 @@ export function computeStats(j: JourneySnapshot): JourneyStats {
 
 const XP = {
   country: 100,
+  card: 50, // meeting someone face-to-face is a real, deliberate act — weight it above a pin
   companion: 40,
+  prefecture: 25, // collection depth: filling Japan meaningfully moves the economy
   pin: 20,
   arPhoto: 15,
-  photo: 5,
   diary: 10,
+  photo: 5,
   streakDay: 5,
 } as const;
 
@@ -107,7 +117,9 @@ function computeXp(stats: JourneyStats): number {
   const plainPhotoCount = Math.max(0, stats.photoCount - stats.arPhotoCount);
   return (
     stats.countriesVisited.length * XP.country +
+    stats.cardsCollected * XP.card +
     stats.companionsMet.length * XP.companion +
+    stats.prefecturesVisited * XP.prefecture +
     stats.pinCount * XP.pin +
     stats.arPhotoCount * XP.arPhoto +
     plainPhotoCount * XP.photo +
@@ -140,77 +152,56 @@ export function computeRank(stats: JourneyStats): RankInfo {
 
 // --- achievements -----------------------------------------------------
 
+// A countable achievement: `need` is the threshold, `have` reads the tracked
+// stat. `achieved`/`progress` are both derived from these so a tile's meter and
+// its unlocked state can never disagree.
+function counted(
+  id: string,
+  icon: string,
+  need: number,
+  have: (s: JourneyStats) => number,
+): AchievementDef {
+  return {
+    id,
+    titleKey: `ach.${id}.title`,
+    descKey: `ach.${id}.desc`,
+    icon,
+    achieved: (s) => have(s) >= need,
+    progress: (s) => ({ have: Math.min(have(s), need), need }),
+  };
+}
+
+const countries = (s: JourneyStats) => s.countriesVisited.length;
+const continents = (s: JourneyStats) => continentsVisited(s).size;
+const companions = (s: JourneyStats) => s.companionsMet.length;
+
+// Ordered roughly by the journey they trace: first touches, meeting people,
+// spreading across the map, filling Japan, keeping the habit. earnedBadges and
+// the achievements grid both preserve this order.
 export const ACHIEVEMENTS: AchievementDef[] = [
-  {
-    id: "firstSteps",
-    titleKey: "ach.firstSteps.title",
-    descKey: "ach.firstSteps.desc",
-    icon: "\u{1F463}",
-    achieved: (s) => s.pinCount + s.photoCount + s.diaryCount >= 1,
-  },
-  {
-    id: "fellowship5",
-    titleKey: "ach.fellowship5.title",
-    descKey: "ach.fellowship5.desc",
-    icon: "\u{1F91D}",
-    achieved: (s) => s.companionsMet.length >= 5,
-  },
-  {
-    id: "socialButterfly10",
-    titleKey: "ach.socialButterfly10.title",
-    descKey: "ach.socialButterfly10.desc",
-    icon: "\u{1F98B}",
-    achieved: (s) => s.companionsMet.length >= 10,
-  },
-  {
-    id: "continental3",
-    titleKey: "ach.continental3.title",
-    descKey: "ach.continental3.desc",
-    icon: "\u{1F30D}",
-    achieved: (s) => continentsVisited(s).size >= 3,
-  },
-  {
-    id: "worldTraveler5",
-    titleKey: "ach.worldTraveler5.title",
-    descKey: "ach.worldTraveler5.desc",
-    icon: "✈️",
-    achieved: (s) => continentsVisited(s).size >= 5,
-  },
-  {
-    id: "cartographer10",
-    titleKey: "ach.cartographer10.title",
-    descKey: "ach.cartographer10.desc",
-    icon: "\u{1F5FA}️",
-    achieved: (s) => s.countriesVisited.length >= 10,
-  },
-  {
-    id: "halfWorldExplored",
-    titleKey: "ach.halfWorldExplored.title",
-    descKey: "ach.halfWorldExplored.desc",
-    icon: "\u{1FA99}",
-    achieved: (s) => s.countriesVisited.length >= Math.ceil(TOTAL_ATLAS_COUNTRIES / 2),
-  },
-  {
-    id: "chronicler10",
-    titleKey: "ach.chronicler10.title",
-    descKey: "ach.chronicler10.desc",
-    icon: "\u{1F4D6}",
-    achieved: (s) => s.diaryCount >= 10,
-  },
-  {
-    id: "pinDropper10",
-    titleKey: "ach.pinDropper10.title",
-    descKey: "ach.pinDropper10.desc",
-    icon: "\u{1F4CD}",
-    achieved: (s) => s.pinCount >= 10,
-  },
-  {
-    id: "photographer25",
-    titleKey: "ach.photographer25.title",
-    descKey: "ach.photographer25.desc",
-    icon: "\u{1F4F8}",
-    achieved: (s) => s.photoCount >= 25,
-  },
+  counted("firstSteps", "\u{1F463}", 1, (s) => s.pinCount + s.photoCount + s.diaryCount),
+  // meeting people — cards are real-world proof, companions are pin free-text
+  counted("namecard1", "\u{1FAAA}", 1, (s) => s.cardsCollected),
+  counted("namecard10", "\u{1F4C7}", 10, (s) => s.cardsCollected),
+  counted("fellowship5", "\u{1F91D}", 5, companions),
+  counted("socialButterfly10", "\u{1F98B}", 10, companions),
+  // spreading across the world
+  counted("continental3", "\u{1F30D}", 3, continents),
+  counted("worldTraveler5", "✈️", 5, continents),
+  counted("worldTraveler6", "\u{1F9F3}", 6, continents),
+  counted("cartographer10", "\u{1F5FA}️", 10, countries),
+  counted("explorer25", "\u{1F9ED}", 25, countries),
+  counted("globetrotter50", "\u{1F310}", 50, countries),
+  counted("halfWorldExplored", "\u{1FA99}", Math.ceil(TOTAL_ATLAS_COUNTRIES / 2), countries),
+  // filling Japan — the prefecture drill-down feeds the main economy here
+  counted("japan10", "\u{1F5FE}", 10, (s) => s.prefecturesVisited),
+  counted("japanHalf", "⛩️", 24, (s) => s.prefecturesVisited),
+  counted("japanComplete", "\u{1F38C}", 47, (s) => s.prefecturesVisited),
+  // keeping the journal & the habit
+  counted("chronicler10", "\u{1F4D6}", 10, (s) => s.diaryCount),
+  counted("chronicler30", "\u{1F4DA}", 30, (s) => s.diaryCount),
+  counted("pinDropper10", "\u{1F4CD}", 10, (s) => s.pinCount),
+  counted("photographer25", "\u{1F4F8}", 25, (s) => s.photoCount),
   {
     id: "portraitOfLegends",
     titleKey: "ach.portraitOfLegends.title",
@@ -218,32 +209,28 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     icon: "\u{1F5BC}️",
     achieved: (s) => s.arPhotoCount >= 1,
   },
-  {
-    id: "legendaryLens5",
-    titleKey: "ach.legendaryLens5.title",
-    descKey: "ach.legendaryLens5.desc",
-    icon: "✨",
-    achieved: (s) => s.arPhotoCount >= 5,
-  },
-  {
-    id: "weekStreak",
-    titleKey: "ach.weekStreak.title",
-    descKey: "ach.weekStreak.desc",
-    icon: "\u{1F525}",
-    achieved: (s) => s.streakDays >= 7,
-  },
-  {
-    id: "monthStreak",
-    titleKey: "ach.monthStreak.title",
-    descKey: "ach.monthStreak.desc",
-    icon: "\u{1F31F}",
-    achieved: (s) => s.streakDays >= 30,
-  },
-  {
-    id: "guildVeteran5",
-    titleKey: "ach.guildVeteran5.title",
-    descKey: "ach.guildVeteran5.desc",
-    icon: "\u{1F3D5}️",
-    achieved: (s) => s.roomCount >= 5,
-  },
+  counted("legendaryLens5", "✨", 5, (s) => s.arPhotoCount),
+  counted("weekStreak", "\u{1F525}", 7, (s) => s.streakDays),
+  counted("monthStreak", "\u{1F31F}", 30, (s) => s.streakDays),
+  counted("guildVeteran5", "\u{1F3D5}️", 5, (s) => s.roomCount),
 ];
+
+/** The nearest unmet goal — the achievement whose remaining count is smallest,
+ *  for a "you're N away from X" nudge on Home and the Guild card. Streak
+ *  achievements are excluded: "come back N more days" isn't an action the user
+ *  can take right now, so it makes a poor call-to-action. Returns null once
+ *  every non-streak achievement is unlocked. */
+export function nextGoal(
+  stats: JourneyStats,
+): { def: AchievementDef; have: number; need: number; remaining: number } | null {
+  const STREAK_IDS = new Set(["weekStreak", "monthStreak"]);
+  let best: { def: AchievementDef; have: number; need: number; remaining: number } | null = null;
+  for (const def of ACHIEVEMENTS) {
+    if (!def.progress || STREAK_IDS.has(def.id) || def.achieved(stats)) continue;
+    const { have, need } = def.progress(stats);
+    const remaining = need - have;
+    if (remaining <= 0) continue;
+    if (!best || remaining < best.remaining) best = { def, have, need, remaining };
+  }
+  return best;
+}

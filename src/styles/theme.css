@@ -221,6 +221,13 @@
   text-transform: uppercase;
   color: var(--on-surface-variant);
 }
+/* Letter-spacing spreads CJK glyphs apart unpleasantly (uppercase itself is a
+   harmless no-op there). Reset it for CJK — html[lang] is set by setLanguage(). */
+:lang(ja) .section-title,
+:lang(zh) .section-title,
+:lang(ko) .section-title {
+  letter-spacing: normal;
+}
 
 /* ---------------------------------------------------------------------- */
 /* .panel — MD3 filled card                                                 */

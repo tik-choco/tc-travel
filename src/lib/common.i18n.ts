@@ -38,6 +38,7 @@ registerTranslations({
   "common.back": { en: "Back", ja: "戻る", zh: "返回", ko: "뒤로", es: "Atrás", fr: "Retour", de: "Zurück", pt: "Voltar" },
   "common.share": { en: "Share", ja: "共有", zh: "分享", ko: "공유", es: "Compartir", fr: "Partager", de: "Teilen", pt: "Compartilhar" },
   "common.retry": { en: "Retry", ja: "再試行", zh: "重试", ko: "다시 시도", es: "Reintentar", fr: "Réessayer", de: "Erneut versuchen", pt: "Tentar novamente" },
+  "common.anonymous": { en: "Anonymous", ja: "名無し", zh: "匿名", ko: "익명", es: "Anónimo", fr: "Anonyme", de: "Anonym", pt: "Anônimo" },
 
   // --- adventurer rank titles (see gamification.ts's rank bands) -----------
   "rank.wanderer": { en: "Wanderer", ja: "放浪者", zh: "流浪者", ko: "방랑자", es: "Errante", fr: "Vagabond", de: "Wanderer", pt: "Errante" },

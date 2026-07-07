@@ -1,7 +1,7 @@
 import { useState } from "preact/hooks";
 import { X, Trash2 } from "lucide-preact";
 import type { EncounterPin } from "../../lib/types";
-import { useT } from "../../lib/i18n";
+import { getLanguage, useT } from "../../lib/i18n";
 import { ChipInput } from "./ChipInput";
 import "./map.i18n";
 
@@ -35,6 +35,9 @@ export function EncounterSheet({
   const [title, setTitle] = useState(isView ? target.pin.title : "");
   const [companions, setCompanions] = useState<string[]>(isView ? target.pin.companions : []);
   const [note, setNote] = useState(isView ? target.pin.note : "");
+  // Deleting a pin is irreversible, so guard it with a two-tap confirm rather
+  // than a jarring native window.confirm — the first tap arms, the second erases.
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   return (
     <div class="modal-backdrop" onClick={onClose}>
@@ -62,15 +65,20 @@ export function EncounterSheet({
                 </div>
               )}
               <p class="map-sheet__date">
-                {new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(
+                {new Intl.DateTimeFormat(getLanguage(), { dateStyle: "medium", timeStyle: "short" }).format(
                   new Date(target.pin.at),
                 )}
               </p>
               {target.pin.note && <p class="map-sheet__note">{target.pin.note}</p>}
               {canDelete && (
-                <button type="button" class="btn btn-danger map-sheet__delete" onClick={onDelete}>
+                <button
+                  type="button"
+                  class={`btn btn-danger map-sheet__delete${confirmDelete ? " is-confirming" : ""}`}
+                  aria-live="polite"
+                  onClick={() => (confirmDelete ? onDelete() : setConfirmDelete(true))}
+                >
                   <Trash2 size={16} />
-                  {t("map.sheet.delete")}
+                  {confirmDelete ? t("map.sheet.deleteConfirm") : t("map.sheet.delete")}
                 </button>
               )}
             </div>

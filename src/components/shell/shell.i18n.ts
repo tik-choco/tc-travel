@@ -2,6 +2,26 @@
 import { registerTranslations } from "../../lib/i18n";
 
 registerTranslations({
+  "tab.nav": {
+    en: "Main navigation",
+    ja: "メインナビゲーション",
+    zh: "主导航",
+    ko: "메인 내비게이션",
+    es: "Navegación principal",
+    fr: "Navigation principale",
+    de: "Hauptnavigation",
+    pt: "Navegação principal",
+  },
+  // Short tab-bar labels. The fantasy screen names (`tab.*` in common.i18n.ts)
+  // overflow the fixed ~60px tab width in European languages, so the visible
+  // label uses these; keep every language to one short word.
+  "tab.short.map": { en: "Map", ja: "地図", zh: "地图", ko: "지도", es: "Mapa", fr: "Carte", de: "Karte", pt: "Mapa" },
+  "tab.short.album": { en: "Album", ja: "アルバム", zh: "相册", ko: "앨범", es: "Álbum", fr: "Album", de: "Album", pt: "Álbum" },
+  "tab.short.diary": { en: "Journal", ja: "日記", zh: "日记", ko: "일기", es: "Diario", fr: "Journal", de: "Tagebuch", pt: "Diário" },
+  "tab.short.camera": { en: "Avatar", ja: "アバター", zh: "化身", ko: "아바타", es: "Avatar", fr: "Avatar", de: "Avatar", pt: "Avatar" },
+  "tab.short.post": { en: "Cards", ja: "名刺", zh: "名片", ko: "명함", es: "Tarjetas", fr: "Cartes", de: "Karten", pt: "Cartões" },
+  "tab.short.guild": { en: "Guild", ja: "ギルド", zh: "公会", ko: "길드", es: "Gremio", fr: "Guilde", de: "Gilde", pt: "Guilda" },
+
   "header.connected": {
     en: "Connected",
     ja: "接続中",

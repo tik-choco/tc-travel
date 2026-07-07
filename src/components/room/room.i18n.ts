@@ -195,6 +195,36 @@ registerTranslations({
     de: "Avatar-Foto festlegen",
     pt: "Defina sua foto de avatar",
   },
+
+  // --- Home progress strip (your journey at a glance) ---
+  "home.levelShort": {
+    en: (p) => `Lv ${p.level}`, ja: (p) => `Lv ${p.level}`, zh: (p) => `Lv ${p.level}`, ko: (p) => `Lv ${p.level}`,
+    es: (p) => `Nv ${p.level}`, fr: (p) => `Nv ${p.level}`, de: (p) => `Lv ${p.level}`, pt: (p) => `Nv ${p.level}`,
+  },
+  "home.statCountries": {
+    en: (p) => `${p.n} countries`, ja: (p) => `${p.n} か国`, zh: (p) => `${p.n} 个国家`, ko: (p) => `${p.n}개국`,
+    es: (p) => `${p.n} países`, fr: (p) => `${p.n} pays`, de: (p) => `${p.n} Länder`, pt: (p) => `${p.n} países`,
+  },
+  "home.streakDays": {
+    en: (p) => `${p.days}-day streak`, ja: (p) => `${p.days}日連続`, zh: (p) => `连续 ${p.days} 天`, ko: (p) => `${p.days}일 연속`,
+    es: (p) => `Racha de ${p.days} días`, fr: (p) => `Série de ${p.days} j`, de: (p) => `${p.days}-Tage-Serie`, pt: (p) => `Sequência de ${p.days} dias`,
+  },
+  "home.streakStart": {
+    en: "Start a streak today", ja: "今日から連続記録を", zh: "今天开启连续记录", ko: "오늘부터 연속 기록",
+    es: "Empieza una racha hoy", fr: "Commencez une série", de: "Starte heute eine Serie", pt: "Comece uma sequência hoje",
+  },
+  "home.nextGoal": {
+    en: (p) => `${p.remaining} more → ${p.title}`, ja: (p) => `あと${p.remaining} → ${p.title}`, zh: (p) => `还差 ${p.remaining} → ${p.title}`, ko: (p) => `${p.remaining} 남음 → ${p.title}`,
+    es: (p) => `${p.remaining} más → ${p.title}`, fr: (p) => `encore ${p.remaining} → ${p.title}`, de: (p) => `noch ${p.remaining} → ${p.title}`, pt: (p) => `mais ${p.remaining} → ${p.title}`,
+  },
+  "home.allGoalsDone": {
+    en: "Every goal complete — legendary!", ja: "全ての目標を達成 — 伝説級！", zh: "所有目标已完成——传奇！", ko: "모든 목표 달성 — 전설!",
+    es: "¡Todos los objetivos cumplidos!", fr: "Tous les objectifs atteints !", de: "Alle Ziele erreicht!", pt: "Todos os objetivos concluídos!",
+  },
+  "home.journeyLabel": {
+    en: "Your journey", ja: "あなたの旅", zh: "你的旅程", ko: "당신의 여정",
+    es: "Tu viaje", fr: "Votre voyage", de: "Deine Reise", pt: "Sua jornada",
+  },
   "home.scanCardTitle": {
     en: "Scan to join",
     ja: "スキャンして参加",
