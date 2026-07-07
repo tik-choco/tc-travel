@@ -12,6 +12,8 @@
     "preview": "vite preview --host",
     "fetch-mistlib": "node scripts/fetch-mistlib.mjs",
     "fetch-subnational": "node scripts/fetch-subnational.mjs",
+    "fetch-municipalities": "node scripts/fetch-municipalities.mjs",
+    "fetch-admin2-counts": "node scripts/fetch-admin2-counts.mjs",
     "test": "vitest run"
   },
   "dependencies": {

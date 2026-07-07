@@ -1,0 +1,240 @@
+/* Municipality (市区町村) collection tier — a fog→gold chip grid one zoom
+   level below the Japan prefecture map. Namespaced muni-* and self-contained
+   (only theme.css tokens shared); includes the two classes JapanMap's entry
+   point uses (.muni-overall, .muni-open-btn). Warm-light default. */
+
+/* Full-viewport overlay above the Japan drill-down (which stays mounted). */
+.muni-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 9;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface-dim);
+  animation: muni-overlay-in 0.25s ease-out;
+}
+
+@keyframes muni-overlay-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* --- header ------------------------------------------------------------- */
+
+.muni-header {
+  margin: 12px 12px 8px;
+  box-shadow: var(--shadow-1);
+}
+
+.muni-header__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.muni-title {
+  flex: 1;
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--on-surface);
+}
+
+.muni-count {
+  margin: 4px 0 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--on-surface);
+}
+
+.muni-progress {
+  height: 5px;
+  border-radius: var(--radius-full);
+  background: var(--surface-container-high);
+  overflow: hidden;
+}
+
+.muni-progress__fill {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--primary), var(--gold));
+  transition: width 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes muni-stat-pulse {
+  0% {
+    transform: scale(1);
+    box-shadow: var(--shadow-1);
+  }
+  25% {
+    transform: scale(1.012);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--gold) 40%, transparent), var(--shadow-2);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: var(--shadow-1);
+  }
+}
+
+.muni-header--pulse {
+  animation: muni-stat-pulse 1.1s ease-out;
+}
+
+@keyframes muni-progress-glint {
+  0%,
+  100% {
+    filter: brightness(1);
+  }
+  30% {
+    filter: brightness(1.5);
+  }
+}
+
+.muni-header--pulse .muni-progress__fill {
+  animation: muni-progress-glint 1.1s ease-out;
+}
+
+/* --- chip grid ------------------------------------------------------------ */
+
+.muni-grid-area {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0 12px 8px;
+}
+
+.muni-status {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 24px;
+  color: var(--on-surface-variant);
+}
+
+.muni-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-content: flex-start;
+  padding-bottom: 8px;
+  animation: muni-grid-in 0.3s ease-out;
+}
+
+@keyframes muni-grid-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.muni-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.75rem;
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--outline-variant);
+  white-space: nowrap;
+}
+
+/* Fog: quiet, waiting under the mist. */
+.muni-chip--fog {
+  background: var(--surface-container-low);
+  color: var(--on-surface-variant);
+  opacity: 0.75;
+}
+
+/* Visited: the same warm gold-washed land language as the maps. */
+.muni-chip--visited {
+  font-weight: 600;
+  background: color-mix(in srgb, var(--gold) 12%, var(--primary-container));
+  border-color: color-mix(in srgb, var(--gold) 50%, var(--outline-variant));
+  color: var(--on-primary-container);
+  box-shadow: 0 0 5px color-mix(in srgb, var(--gold) 30%, transparent);
+}
+
+/* Fresh unlock while the grid is open: golden flash + pop. */
+@keyframes muni-chip-reveal {
+  0% {
+    transform: scale(0.85);
+    background: var(--surface-container-low);
+    box-shadow: 0 0 0 transparent;
+  }
+  40% {
+    transform: scale(1.12);
+    background: color-mix(in srgb, var(--gold) 55%, var(--primary-container));
+    box-shadow: 0 0 14px var(--gold);
+  }
+  100% {
+    transform: scale(1);
+    background: color-mix(in srgb, var(--gold) 12%, var(--primary-container));
+    box-shadow: 0 0 5px color-mix(in srgb, var(--gold) 30%, transparent);
+  }
+}
+
+.muni-chip--revealing {
+  animation: muni-chip-reveal 1.4s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* --- attribution (CC BY-SA requirement — keep visible wherever the tier shows) */
+
+.muni-credit {
+  margin: 0;
+  padding: 4px 12px calc(8px + env(safe-area-inset-bottom));
+  font-size: 0.66rem;
+  text-align: center;
+  color: var(--on-surface-variant);
+  opacity: 0.85;
+}
+
+/* --- JapanMap entry-point pieces ------------------------------------------ */
+
+/* Overall "市区町村 N/1742" line in the Japan header. */
+.muni-overall {
+  margin: 6px 0 0;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--on-surface-variant);
+}
+
+/* "Open this prefecture's municipalities" button in the selected card. */
+.muni-open-btn {
+  margin-top: 8px;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 100%;
+}
+
+/* Motion opt-out: everything the municipality tier animates stops. */
+@media (prefers-reduced-motion: reduce) {
+  .muni-overlay,
+  .muni-grid,
+  .muni-header--pulse,
+  .muni-header--pulse .muni-progress__fill,
+  .muni-chip--revealing {
+    animation: none;
+  }
+
+  .muni-progress__fill {
+    transition: none;
+  }
+}
