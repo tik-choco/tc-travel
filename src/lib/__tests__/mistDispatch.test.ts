@@ -147,4 +147,39 @@ describe("CollabSession room scoping", () => {
 
     expect(leaveRoomCalls).toEqual(["room-a"]);
   });
+
+  it("survives a room-scoped send racing mistlib's async room build", async () => {
+    // mistlib builds a room's session asynchronously after joinRoom(); until it
+    // settles, send_message_in_room throws a raw string "Room not joined: <id>"
+    // (see collab.ts isRoomNotJoinedError). The first awareness/sync sends fire
+    // right after join, inside that window — they must be dropped, never thrown,
+    // or an invite-link join rejects with an uncaught "Room not joined".
+    let built = false;
+    const sends: FakeNodeCall[] = [];
+    const fake = {
+      joinRoom: () => {},
+      sendMessage: (toId: string | null | undefined, _payload: unknown, _delivery?: number, roomId?: string) => {
+        if (roomId && !built) throw `Room not joined: ${roomId}`; // mirrors the wasm's JsValue string
+        sends.push({ toId, roomId });
+      },
+      leaveRoom: () => {},
+    } as unknown as InstanceType<typeof MistNode>;
+    session = new CollabSession(testUser, {}, createNodeAccess(fake, "peer-1"));
+
+    // join() broadcasts awareness before the build settles — must not reject.
+    await expect(session.join("room-a")).resolves.toBeUndefined();
+    // A local edit during the build window must not throw out of transact() either.
+    expect(() =>
+      session!.transact(() => {
+        session!.doc.getArray("t").push([1]);
+      }),
+    ).not.toThrow();
+
+    // Once the room is built, sends flow again as normal, room-scoped.
+    built = true;
+    session.transact(() => {
+      session!.doc.getArray("t").push([2]);
+    });
+    expect(sends.some((c) => c.roomId === "room-a")).toBe(true);
+  });
 });

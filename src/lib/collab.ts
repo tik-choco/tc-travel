@@ -146,6 +146,21 @@ export function normalizeColor(color: string): string {
   return COLOR_PATTERN.test(color) ? color : FALLBACK_COLOR;
 }
 
+// mistlib builds a room's transport session ASYNCHRONOUSLY after joinRoom()
+// returns (WebRTC/signaling handshake); until that build completes,
+// send_message_in_room throws a plain-string "Room not joined: <id>" (see
+// mistlib-wasm src/app.rs + layers/wasm_l0.rs — the join is "still in flight").
+// A room-scoped broadcast that lands in that window — the very first awareness/
+// sync sends right after join, worst case on a cold invite-link page load — must
+// be DROPPED, not thrown: any peer that connects later is caught up in full on
+// EVENT_PEER_CONNECTED (sendSyncStep1 + sendFullAwareness), so losing one
+// best-effort broadcast during the build is harmless. The thrown value is the
+// raw JsValue string, not an Error, so match defensively on both shapes.
+function isRoomNotJoinedError(err: unknown): boolean {
+  const msg = typeof err === "string" ? err : err instanceof Error ? err.message : "";
+  return msg.includes("Room not joined");
+}
+
 export interface CollabCallbacks {
   onStatusChange?: (status: CollabStatus) => void;
   onPeersChange?: (peers: PeerInfo[]) => void;
@@ -228,7 +243,7 @@ export class CollabSession {
     const encoder = encoding.createEncoder();
     encoding.writeVarUint(encoder, MSG_POSE);
     encoding.writeUint8Array(encoder, new TextEncoder().encode(JSON.stringify(full)));
-    this.node.sendMessage(null, encoding.toUint8Array(encoder), DELIVERY_UNRELIABLE, this.roomId ?? undefined);
+    this.send(null, encoding.toUint8Array(encoder), DELIVERY_UNRELIABLE);
   }
 
   /** Subscribes to incoming poses. Returns an unsubscribe function. Never delivers this session's own memberId's poses. */
@@ -303,12 +318,26 @@ export class CollabSession {
     this.callbacks.onPeersChange?.(peers);
   }
 
+  /** The single room-scoped outbound path for this session. Funnelling every
+   *  send through here means a "Room not joined" thrown during mistlib's
+   *  async-join build window (see isRoomNotJoinedError) is swallowed as a
+   *  dropped best-effort broadcast instead of bubbling up as an uncaught
+   *  rejection out of join()/transact()/an awareness change. */
+  private send(toId: string | null, payload: Uint8Array, delivery: number): void {
+    if (!this.node) return;
+    try {
+      this.node.sendMessage(toId, payload, delivery, this.roomId ?? undefined);
+    } catch (err) {
+      if (!isRoomNotJoinedError(err)) console.warn("tc-travel: collab send failed", err);
+    }
+  }
+
   private broadcastUpdate(update: Uint8Array): void {
     if (!this.node) return;
     const encoder = encoding.createEncoder();
     encoding.writeVarUint(encoder, MSG_SYNC);
     syncProtocol.writeUpdate(encoder, update);
-    this.node.sendMessage(null, encoding.toUint8Array(encoder), DELIVERY_RELIABLE, this.roomId ?? undefined);
+    this.send(null, encoding.toUint8Array(encoder), DELIVERY_RELIABLE);
   }
 
   private broadcastAwareness(clientIds: number[]): void {
@@ -319,7 +348,7 @@ export class CollabSession {
       encoder,
       awarenessProtocol.encodeAwarenessUpdate(this.awareness, clientIds),
     );
-    this.node.sendMessage(null, encoding.toUint8Array(encoder), DELIVERY_RELIABLE, this.roomId ?? undefined);
+    this.send(null, encoding.toUint8Array(encoder), DELIVERY_RELIABLE);
   }
 
   private sendSyncStep1(toId: string): void {
@@ -327,7 +356,7 @@ export class CollabSession {
     const encoder = encoding.createEncoder();
     encoding.writeVarUint(encoder, MSG_SYNC);
     syncProtocol.writeSyncStep1(encoder, this.doc);
-    this.node.sendMessage(toId, encoding.toUint8Array(encoder), DELIVERY_RELIABLE, this.roomId ?? undefined);
+    this.send(toId, encoding.toUint8Array(encoder), DELIVERY_RELIABLE);
   }
 
   private sendFullAwareness(toId: string): void {
@@ -340,7 +369,7 @@ export class CollabSession {
       encoder,
       awarenessProtocol.encodeAwarenessUpdate(this.awareness, clientIds),
     );
-    this.node.sendMessage(toId, encoding.toUint8Array(encoder), DELIVERY_RELIABLE, this.roomId ?? undefined);
+    this.send(toId, encoding.toUint8Array(encoder), DELIVERY_RELIABLE);
   }
 
   private handleRawMessage(fromId: string, payload: Uint8Array): void {
@@ -359,7 +388,7 @@ export class CollabSession {
       // step2); step2/update messages produce no reply, so skip sending an
       // empty frame.
       if (replyType === syncProtocol.messageYjsSyncStep1) {
-        this.node?.sendMessage(fromId, encoding.toUint8Array(encoder), DELIVERY_RELIABLE, this.roomId ?? undefined);
+        this.send(fromId, encoding.toUint8Array(encoder), DELIVERY_RELIABLE);
       }
     } else if (msgType === MSG_AWARENESS) {
       const update = decoding.readVarUint8Array(decoder);
@@ -443,6 +472,15 @@ export class CollabSession {
         }
       });
 
+      // Start the room build BEFORE broadcasting anything room-scoped. joinRoom
+      // only kicks off mistlib's async session build (see isRoomNotJoinedError);
+      // it returns immediately, so setLocalState's awareness broadcast right
+      // below may still land in the build window — that send is now dropped
+      // harmlessly by this.send() rather than throwing. The event handler was
+      // registered above, so no peer-connected that fires during the build is
+      // missed. (Ordered join-then-announce is also just the correct sequence.)
+      node.joinRoom(roomId);
+
       this.awareness.setLocalState({
         peerId: nodeId,
         memberId: this.user.memberId,
@@ -453,7 +491,6 @@ export class CollabSession {
         vrmCid: this.user.vrmCid,
       } satisfies AwarenessState);
 
-      node.joinRoom(roomId);
       this.setStatus("connected");
     } catch (err) {
       this.setStatus("error");
