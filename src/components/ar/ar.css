@@ -143,6 +143,52 @@
   gap: 20px;
 }
 
+/* Lens-filter selector: a scrollable pill row that floats just above the
+   bottom control cluster. Only rendered once at least one filter is unlocked. */
+.ar-filter-row {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 160px);
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 max(1rem, env(safe-area-inset-left));
+  overflow-x: auto;
+  scrollbar-width: none;
+  z-index: 4;
+}
+
+.ar-filter-row::-webkit-scrollbar {
+  display: none;
+}
+
+.ar-filter-chip {
+  flex: 0 0 auto;
+  padding: 6px 14px;
+  border-radius: var(--radius-full);
+  border: 1px solid color-mix(in srgb, #fff 30%, transparent);
+  background: rgba(0, 0, 0, 0.42);
+  backdrop-filter: blur(4px);
+  color: #fff;
+  font-size: 0.82rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.15s ease, transform 0.08s ease;
+}
+
+.ar-filter-chip:active {
+  transform: scale(0.95);
+}
+
+.ar-filter-chip.is-selected {
+  background: var(--primary);
+  color: var(--on-primary);
+  border-color: transparent;
+}
+
 .ar-action-row {
   display: flex;
   align-items: center;

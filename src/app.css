@@ -650,6 +650,28 @@
   white-space: nowrap;
 }
 
+/* The unlock anticipation whisper — occupies the same single nudge slot as the
+   achievement goal (one at a time), but in a gentler, wondering voice: italic,
+   tertiary-tinted spark, a secret about to wake rather than a target to hit. */
+.home-progress-whisper {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0;
+  font-size: 0.82rem;
+  font-style: italic;
+  color: var(--on-surface-variant);
+}
+.home-progress-whisper svg {
+  flex: 0 0 auto;
+  color: var(--tertiary);
+}
+.home-progress-whisper span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .home-actions {
   display: grid;
   grid-template-columns: 1fr 1fr;
