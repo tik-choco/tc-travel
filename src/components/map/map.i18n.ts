@@ -106,6 +106,9 @@ registerTranslations({
   "map.sheet.delete": {
     en: "Erase Record", ja: "記録を消す", zh: "删除记录", ko: "기록 삭제", es: "Borrar Registro", fr: "Effacer le Registre", de: "Eintrag Löschen", pt: "Apagar Registro",
   },
+  "map.sheet.deleteConfirm": {
+    en: "Tap again to erase", ja: "もう一度タップで消去", zh: "再次点击以删除", ko: "한 번 더 누르면 삭제", es: "Toca de nuevo para borrar", fr: "Touchez encore pour effacer", de: "Zum Löschen erneut tippen", pt: "Toque novamente para apagar",
+  },
   "map.fab.add": {
     en: "New Encounter", ja: "出会いを記録", zh: "记录相遇", ko: "새로운 만남",
     es: "Nuevo Encuentro", fr: "Nouvelle Rencontre", de: "Neue Begegnung", pt: "Novo Encontro",

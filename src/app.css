@@ -187,6 +187,15 @@
   width: 22px;
   height: 22px;
 }
+/* Keep each label to a single line that shrinks to its cell rather than wrapping
+   the 64px bar to two rows — the short tab.short.* keys fit, but this guards any
+   longer translation (e.g. German) from breaking the layout. */
+.tab-bar-label {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
 /* ---------------------------------------------------------------------- */
 /* Error boundary                                                          */
@@ -532,6 +541,81 @@
 .avatar-sheet-danger .avatar-sheet-option-icon {
   background: color-mix(in srgb, var(--error) 12%, transparent);
   color: var(--error);
+}
+
+/* "Your journey" at-a-glance strip — the personal progress hub on Home. */
+.home-progress {
+  margin: 0 0 1.25rem;
+  padding: 0.9rem 1rem;
+  background: var(--surface-container);
+  border: 1px solid var(--outline-variant);
+  border-radius: var(--radius-lg);
+}
+.home-progress-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+.home-progress-rank {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+.home-progress-level {
+  flex: 0 0 auto;
+  font-weight: 700;
+  font-size: 0.75rem;
+}
+.home-progress-title {
+  font-weight: 600;
+  color: var(--on-surface);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.home-progress-streak {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  flex: 0 0 auto;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--on-surface-variant);
+}
+.home-progress-streak.is-active {
+  color: var(--error);
+}
+.home-progress-xp {
+  height: 6px;
+  margin: 0.6rem 0 0.5rem;
+  border-radius: var(--radius-full);
+  background: var(--surface-container-highest);
+  overflow: hidden;
+}
+.home-progress-xp-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: var(--primary);
+  transition: width 0.4s cubic-bezier(0.2, 0, 0, 1);
+}
+.home-progress-goal {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--on-surface-variant);
+}
+.home-progress-goal svg {
+  flex: 0 0 auto;
+  color: var(--primary);
+}
+.home-progress-goal span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .home-actions {

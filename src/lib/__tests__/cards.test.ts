@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { upsertCard } from "../cards";
 import { encodeCard, parseCard } from "../cardQr";
+import { translate } from "../i18n";
 import type { Card } from "../types";
 
 let seq = 0;
@@ -115,7 +116,9 @@ describe("encodeCard / parseCard", () => {
 
   it("defaults an empty name and non-string message", () => {
     const parsed = parseCard(encodePayload({ id: "aria", name: "   ", message: 7 }));
-    expect(parsed!.name).toBe("Anonymous");
+    // The fallback name is localized (common.anonymous), so the expectation
+    // resolves through the same dictionary rather than pinning one locale.
+    expect(parsed!.name).toBe(translate("common.anonymous"));
     expect(parsed!.message).toBe("");
   });
 });

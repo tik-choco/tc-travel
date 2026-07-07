@@ -80,6 +80,18 @@ registerTranslations({
     de: "Starte heute deine Serie",
     pt: "Comece sua sequência hoje",
   },
+  "guild.nextGoal": {
+    en: "Next goal", ja: "次の目標", zh: "下一个目标", ko: "다음 목표",
+    es: "Próximo objetivo", fr: "Prochain objectif", de: "Nächstes Ziel", pt: "Próximo objetivo",
+  },
+  "guild.nextGoalRemaining": {
+    en: (p) => `${p.remaining} to go`, ja: (p) => `あと ${p.remaining}`, zh: (p) => `还差 ${p.remaining}`, ko: (p) => `${p.remaining} 남음`,
+    es: (p) => `faltan ${p.remaining}`, fr: (p) => `plus que ${p.remaining}`, de: (p) => `noch ${p.remaining}`, pt: (p) => `faltam ${p.remaining}`,
+  },
+  "guild.japanCollection": {
+    en: (p) => `Japan ${p.count}/${p.total} · ${p.pct}%`, ja: (p) => `日本 ${p.count}/${p.total}・${p.pct}%`, zh: (p) => `日本 ${p.count}/${p.total}·${p.pct}%`, ko: (p) => `일본 ${p.count}/${p.total} · ${p.pct}%`,
+    es: (p) => `Japón ${p.count}/${p.total} · ${p.pct}%`, fr: (p) => `Japon ${p.count}/${p.total} · ${p.pct}%`, de: (p) => `Japan ${p.count}/${p.total} · ${p.pct}%`, pt: (p) => `Japão ${p.count}/${p.total} · ${p.pct}%`,
+  },
 
   // --- Stats grid ---
   "stats.title": {
@@ -415,6 +427,140 @@ registerTranslations({
     fr: "Vous avez rejoint 5 groupes différents.",
     de: "5 verschiedenen Gruppen beigetreten.",
     pt: "Participou de 5 grupos diferentes.",
+  },
+
+  // Meeting people in the real world (message cards, lib/cards.ts).
+  "ach.namecard1.title": {
+    en: "First Introduction", ja: "はじめての名刺", zh: "初次交换", ko: "첫 명함",
+    es: "Primera Presentación", fr: "Première Rencontre", de: "Erste Vorstellung", pt: "Primeira Apresentação",
+  },
+  "ach.namecard1.desc": {
+    en: "Received your first card, face to face.",
+    ja: "初めて対面で名刺を受け取った。",
+    zh: "第一次面对面收到名片。",
+    ko: "처음으로 직접 만나 명함을 받았습니다.",
+    es: "Recibiste tu primera tarjeta en persona.",
+    fr: "Vous avez reçu votre première carte en personne.",
+    de: "Deine erste Karte persönlich erhalten.",
+    pt: "Recebeu seu primeiro cartão pessoalmente.",
+  },
+  "ach.namecard10.title": {
+    en: "Card Collector", ja: "名刺コレクター", zh: "名片收藏家", ko: "명함 수집가",
+    es: "Coleccionista de Tarjetas", fr: "Collectionneur de Cartes", de: "Kartensammler", pt: "Colecionador de Cartões",
+  },
+  "ach.namecard10.desc": {
+    en: "Collected 10 cards from people you met in person.",
+    ja: "対面で出会った人から10枚の名刺を集めた。",
+    zh: "从面对面相遇的人那里收集了10张名片。",
+    ko: "직접 만난 사람들에게서 명함 10장을 모았습니다.",
+    es: "Reuniste 10 tarjetas de personas que conociste en persona.",
+    fr: "Vous avez réuni 10 cartes de personnes rencontrées en personne.",
+    de: "10 Karten von persönlich getroffenen Menschen gesammelt.",
+    pt: "Reuniu 10 cartões de pessoas que conheceu pessoalmente.",
+  },
+
+  // Spreading further across the world (mid-game country/continent goals).
+  "ach.worldTraveler6.title": {
+    en: "Across the World", ja: "世界を股にかける者", zh: "环游世界", ko: "세계 정복자",
+    es: "Alrededor del Mundo", fr: "Autour du Monde", de: "Rund um die Welt", pt: "Ao Redor do Mundo",
+  },
+  "ach.worldTraveler6.desc": {
+    en: "Visited countries on 6 continents.",
+    ja: "6つの大陸の国々を訪れた。",
+    zh: "游历了六个大洲的国家。",
+    ko: "6개 대륙의 국가를 방문했습니다.",
+    es: "Visitaste países en 6 continentes.",
+    fr: "Vous avez visité des pays sur 6 continents.",
+    de: "Länder auf 6 Kontinenten besucht.",
+    pt: "Visitou países em 6 continentes.",
+  },
+  "ach.explorer25.title": {
+    en: "Seasoned Explorer", ja: "熟練の探検家", zh: "资深探险家", ko: "노련한 탐험가",
+    es: "Explorador Experto", fr: "Explorateur Aguerri", de: "Erfahrener Entdecker", pt: "Explorador Experiente",
+  },
+  "ach.explorer25.desc": {
+    en: "Charted 25 countries on your map.",
+    ja: "地図上に25の国を記した。",
+    zh: "在地图上标记了25个国家。",
+    ko: "지도에 25개국을 기록했습니다.",
+    es: "Cartografiaste 25 países en tu mapa.",
+    fr: "Vous avez cartographié 25 pays.",
+    de: "25 Länder auf deiner Karte verzeichnet.",
+    pt: "Mapeou 25 países em seu mapa.",
+  },
+  "ach.globetrotter50.title": {
+    en: "Globetrotter", ja: "世界の踏破者", zh: "环球旅人", ko: "지구 여행자",
+    es: "Viajero Global", fr: "Voyageur Planétaire", de: "Globetrotter", pt: "Viajante Global",
+  },
+  "ach.globetrotter50.desc": {
+    en: "Charted 50 countries on your map.",
+    ja: "地図上に50の国を記した。",
+    zh: "在地图上标记了50个国家。",
+    ko: "지도에 50개국을 기록했습니다.",
+    es: "Cartografiaste 50 países en tu mapa.",
+    fr: "Vous avez cartographié 50 pays.",
+    de: "50 Länder auf deiner Karte verzeichnet.",
+    pt: "Mapeou 50 países em seu mapa.",
+  },
+
+  // Filling the Japan prefecture collection (feeds the main economy).
+  "ach.japan10.title": {
+    en: "Japan Wayfarer", ja: "日本の道行き", zh: "扶桑行者", ko: "일본 여행자",
+    es: "Andariego de Japón", fr: "Marcheur du Japon", de: "Japan-Wanderer", pt: "Andarilho do Japão",
+  },
+  "ach.japan10.desc": {
+    en: "Visited 10 of Japan's 47 prefectures.",
+    ja: "日本の47都道府県のうち10を訪れた。",
+    zh: "游历了日本47个都道府县中的10个。",
+    ko: "일본 47개 도도부현 중 10곳을 방문했습니다.",
+    es: "Visitaste 10 de las 47 prefecturas de Japón.",
+    fr: "Vous avez visité 10 des 47 préfectures du Japon.",
+    de: "10 der 47 Präfekturen Japans besucht.",
+    pt: "Visitou 10 das 47 províncias do Japão.",
+  },
+  "ach.japanHalf.title": {
+    en: "Half of Japan", ja: "日本の半分", zh: "半个日本", ko: "일본의 절반",
+    es: "Medio Japón", fr: "La Moitié du Japon", de: "Halbes Japan", pt: "Metade do Japão",
+  },
+  "ach.japanHalf.desc": {
+    en: "Visited 24 of Japan's 47 prefectures.",
+    ja: "日本の47都道府県のうち24を訪れた。",
+    zh: "游历了日本47个都道府县中的24个。",
+    ko: "일본 47개 도도부현 중 24곳을 방문했습니다.",
+    es: "Visitaste 24 de las 47 prefecturas de Japón.",
+    fr: "Vous avez visité 24 des 47 préfectures du Japon.",
+    de: "24 der 47 Präfekturen Japans besucht.",
+    pt: "Visitou 24 das 47 províncias do Japão.",
+  },
+  "ach.japanComplete.title": {
+    en: "All Japan", ja: "全都道府県制覇", zh: "走遍日本", ko: "일본 완주",
+    es: "Todo Japón", fr: "Tout le Japon", de: "Ganz Japan", pt: "Todo o Japão",
+  },
+  "ach.japanComplete.desc": {
+    en: "Visited all 47 prefectures of Japan.",
+    ja: "日本の全47都道府県を訪れた。",
+    zh: "游历了日本全部47个都道府县。",
+    ko: "일본의 47개 도도부현을 모두 방문했습니다.",
+    es: "Visitaste las 47 prefecturas de Japón.",
+    fr: "Vous avez visité les 47 préfectures du Japon.",
+    de: "Alle 47 Präfekturen Japans besucht.",
+    pt: "Visitou todas as 47 províncias do Japão.",
+  },
+
+  // Keeping the journal.
+  "ach.chronicler30.title": {
+    en: "Loremaster", ja: "記録の達人", zh: "编年大师", ko: "기록의 대가",
+    es: "Maestro Cronista", fr: "Maître Chroniqueur", de: "Meisterchronist", pt: "Mestre Cronista",
+  },
+  "ach.chronicler30.desc": {
+    en: "Wrote 30 entries in your travel journal.",
+    ja: "旅日記に30の記録を書いた。",
+    zh: "在旅行日记中写下了30篇条目。",
+    ko: "여행 일기에 30개의 글을 썼습니다.",
+    es: "Escribiste 30 entradas en tu diario de viaje.",
+    fr: "Vous avez écrit 30 entrées dans votre journal de voyage.",
+    de: "30 Einträge in deinem Reisetagebuch verfasst.",
+    pt: "Escreveu 30 entradas em seu diário de viagem.",
   },
 
   // --- Chronicle ---

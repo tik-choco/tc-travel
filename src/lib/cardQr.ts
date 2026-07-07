@@ -6,6 +6,8 @@
 // every field, clamping the cosmetic ones and rejecting only structural rot,
 // and never throws.
 import type { Card } from "./types";
+import { translate } from "./i18n";
+import "./common.i18n"; // registers common.anonymous for standalone importers (tests)
 
 const PREFIX = "tctravel-card:1:";
 
@@ -15,7 +17,6 @@ const EMOJI_MAX = 16;
 const MESSAGE_MAX = 300;
 const COLOR_PATTERN = /^#[0-9a-fA-F]{3,8}$/;
 
-const FALLBACK_NAME = "Anonymous";
 const FALLBACK_EMOJI = "\u{1F9ED}"; // compass — matches Avatar.tsx's fallback
 const FALLBACK_COLOR = "#888888";
 
@@ -67,7 +68,7 @@ export function parseCard(text: string): Omit<Card, "receivedAt"> | null {
   const name =
     typeof obj.name === "string" && obj.name.trim() !== ""
       ? obj.name.trim().slice(0, NAME_MAX)
-      : FALLBACK_NAME;
+      : translate("common.anonymous"); // resolved at parse time, not import time
   // Oversized "emoji" is replaced, not sliced — slicing mid-glyph would split
   // surrogate pairs / ZWJ sequences into mojibake.
   const avatarEmoji =

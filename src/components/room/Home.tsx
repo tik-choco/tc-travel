@@ -1,14 +1,17 @@
 import "./room.i18n";
 import { useEffect, useRef, useState } from "preact/hooks";
-import { ScanLine, Plus, Users, ChevronRight, ArrowRight, Camera, Sparkles } from "lucide-preact";
-import { useT } from "../../lib/i18n";
+import { ScanLine, Plus, Users, ChevronRight, ArrowRight, Camera, Sparkles, Flame, Target } from "lucide-preact";
+import { getLanguage, useT } from "../../lib/i18n";
 import { useJoinedRooms, useProfile } from "../../lib/personal";
+import { useJourneyStats } from "../../lib/journeyStats";
+import { nextGoal } from "../../lib/gamification";
 import { createRoom, joinRoom } from "../../lib/store";
 import { setProfileAvatar } from "../../lib/avatar";
 import { parseJoinInput } from "../../lib/qr";
 import { loadVrmBytes } from "../ar/vrmStorage";
 import { maybeAdoptFamilyVrm } from "../../lib/familyVrm";
 import { Avatar } from "../common/Avatar";
+import { tWithFallback } from "../guild/fallback";
 import { QrModal } from "./QrModal";
 import { AvatarSheet } from "./AvatarSheet";
 import { HomeVrmStageLazy } from "./HomeVrmStageLazy";
@@ -27,6 +30,14 @@ export function Home() {
   const t = useT();
   const [profile] = useProfile();
   const joinedRooms = useJoinedRooms();
+
+  // Home is the reliable return surface (the room session is lost on reload), so
+  // it's where "your journey at a glance" belongs — rank, streak and the next
+  // goal, all derived from the same shared stats the Guild and map use.
+  const { stats, rank } = useJourneyStats();
+  const goal = nextGoal(stats);
+  const xpPct =
+    rank.xpForNextLevel > 0 ? Math.min(100, Math.round((rank.xpIntoLevel / rank.xpForNextLevel) * 100)) : 100;
 
   const [createOpen, setCreateOpen] = useState(false);
   const [createName, setCreateName] = useState("");
@@ -177,6 +188,39 @@ export function Home() {
         )}
       </div>
 
+      <section class="home-progress" aria-label={t("home.journeyLabel")}>
+        <div class="home-progress-top">
+          <span class="home-progress-rank">
+            <span class="chip home-progress-level">{t("home.levelShort", { level: rank.level })}</span>
+            <span class="home-progress-title">{t(rank.titleKey)}</span>
+          </span>
+          <span class={`home-progress-streak${stats.streakDays > 0 ? " is-active" : ""}`}>
+            <Flame size={14} aria-hidden="true" />
+            {stats.streakDays > 0 ? t("home.streakDays", { days: stats.streakDays }) : t("home.streakStart")}
+          </span>
+        </div>
+        <div
+          class="home-progress-xp"
+          role="progressbar"
+          aria-valuenow={xpPct}
+          aria-valuemin={0}
+          aria-valuemax={100}
+        >
+          <div class="home-progress-xp-fill" style={{ width: `${xpPct}%` }} />
+        </div>
+        <p class="home-progress-goal">
+          <Target size={13} aria-hidden="true" />
+          <span>
+            {goal
+              ? t("home.nextGoal", {
+                  remaining: goal.remaining,
+                  title: tWithFallback(t, goal.def.titleKey, goal.def.id),
+                })
+              : t("home.allGoalsDone")}
+          </span>
+        </p>
+      </section>
+
       <div class="home-actions">
         <button type="button" class="home-action-card" onClick={() => setScanOpen(true)}>
           <span class="home-action-icon" aria-hidden="true">
@@ -239,7 +283,7 @@ export function Home() {
               </span>
               <div class="list-item-body">
                 <span class="list-item-title">{room.name}</span>
-                <span class="list-item-sub">{new Date(room.lastOpened).toLocaleDateString()}</span>
+                <span class="list-item-sub">{new Date(room.lastOpened).toLocaleDateString(getLanguage())}</span>
               </div>
               <span class="list-item-trailing" aria-hidden="true">
                 <ChevronRight />

@@ -129,6 +129,10 @@ export interface JourneyStats {
   pinCount: number;
   roomCount: number;
   streakDays: number;
+  /** message cards collected face-to-face (proof of real-world meetings) */
+  cardsCollected: number;
+  /** distinct Japanese prefectures visited (derived from journey geo points) */
+  prefecturesVisited: number;
 }
 
 export interface AchievementDef {
@@ -138,6 +142,23 @@ export interface AchievementDef {
   descKey: string;
   icon: string; // emoji
   achieved: (s: JourneyStats) => boolean;
+  /** Optional progress-to-unlock for countable achievements, used to render
+   *  "N of M" meters on locked tiles and to pick the nearest "next goal".
+   *  Omitted for one-shot/binary achievements (e.g. a single AR photo). */
+  progress?: (s: JourneyStats) => { have: number; need: number };
+}
+
+/** A momentary reward the CelebrationHost surfaces when the derived state
+ *  crosses a threshold (see lib/celebrate.ts). Purely a UI signal — the
+ *  underlying progress is always the source of truth. */
+export interface CelebrationEvent {
+  kind: "level" | "achievement" | "streak";
+  /** localized headline, e.g. "Level 4" / achievement title / "7-day streak" */
+  title: string;
+  /** localized supporting line, e.g. the rank name or achievement description */
+  detail?: string;
+  /** emoji / glyph shown in the burst */
+  icon: string;
 }
 
 export interface RankInfo {

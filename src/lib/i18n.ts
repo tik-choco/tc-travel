@@ -31,13 +31,31 @@ export function registerTranslations(entries: Record<string, TranslationEntry>):
 const STORAGE_KEY = "tc-travel:language";
 
 export function detectLanguage(): Language {
-  const stored = localStorage.getItem(STORAGE_KEY);
-  if (stored && (LANGUAGES as readonly string[]).includes(stored)) return stored as Language;
-  const nav = navigator.language.toLowerCase();
-  for (const lang of LANGUAGES) {
-    if (nav === lang || nav.startsWith(`${lang}-`)) return lang;
+  // try/catch rather than feature-detection: lets non-DOM importers (vitest's
+  // node runner, where a stub localStorage global may exist but not work) load
+  // this module, and covers browsers where storage access throws.
+  let stored: string | null = null;
+  try {
+    stored = localStorage.getItem(STORAGE_KEY);
+  } catch {
+    stored = null;
   }
-  if (nav.startsWith("zh")) return "zh";
+  if (stored && (LANGUAGES as readonly string[]).includes(stored)) return stored as Language;
+  // navigator.languages is the user's full preference list — a supported
+  // secondary language beats falling back to English on the primary alone.
+  const candidates =
+    typeof navigator === "undefined"
+      ? []
+      : navigator.languages?.length
+        ? navigator.languages
+        : [navigator.language];
+  for (const candidate of candidates) {
+    const nav = candidate.toLowerCase();
+    for (const lang of LANGUAGES) {
+      if (nav === lang || nav.startsWith(`${lang}-`)) return lang;
+    }
+    if (nav.startsWith("zh")) return "zh";
+  }
   return "en";
 }
 
@@ -52,6 +70,9 @@ export function setLanguage(lang: Language): void {
   currentLanguage = lang;
   localStorage.setItem(STORAGE_KEY, lang);
   document.documentElement.lang = lang;
+  // All 8 supported languages are LTR today; set it explicitly so a future
+  // RTL language only has to change this one spot.
+  document.documentElement.dir = "ltr";
   for (const fn of listeners) fn();
 }
 

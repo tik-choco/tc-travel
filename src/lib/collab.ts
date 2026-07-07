@@ -31,6 +31,8 @@ import {
   DELIVERY_UNRELIABLE,
 } from "../vendor/mistlib/wrappers/web/index.js";
 import { ensureMistNode, currentNodeId, addNodeEventHandler } from "./mistNode";
+import { translate } from "./i18n";
+import "./common.i18n"; // registers common.anonymous for standalone importers (tests)
 
 const MSG_SYNC = 0;
 const MSG_AWARENESS = 1;
@@ -137,7 +139,7 @@ const FALLBACK_EMOJI = "\u{1F9ED}"; // compass
 
 export function clampUserName(name: string): string {
   const trimmed = name.trim().slice(0, NAME_MAX_LEN);
-  return trimmed || "Anonymous";
+  return trimmed || translate("common.anonymous");
 }
 
 export function normalizeColor(color: string): string {
@@ -290,7 +292,7 @@ export class CollabSession {
         clientId,
         peerId: s.peerId ?? "",
         memberId: s.memberId ?? "",
-        name: clampUserName(s.name ?? "Anonymous"),
+        name: clampUserName(s.name ?? translate("common.anonymous")),
         color: normalizeColor(s.color ?? FALLBACK_COLOR),
         avatarEmoji: s.avatarEmoji || FALLBACK_EMOJI,
         avatarCid: s.avatarCid || undefined,

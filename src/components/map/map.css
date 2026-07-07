@@ -481,6 +481,13 @@
 .map-sheet__delete {
   align-self: stretch;
 }
+/* Armed (second-tap) state: solid fill so "tap again to erase" reads as the
+   point of no return, distinct from the quiet default. */
+.map-sheet__delete.is-confirming {
+  background: var(--error);
+  color: var(--on-error);
+  border-color: var(--error);
+}
 
 .map-sheet__hint {
   font-size: 0.85rem;

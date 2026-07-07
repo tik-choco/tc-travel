@@ -251,6 +251,118 @@
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
+/* uppercase is a harmless no-op on CJK, but the tracking above spreads the
+   glyphs apart unpleasantly — reset it for those scripts (html[lang] is set). */
+:lang(ja) .ach-sheet-locked,
+:lang(zh) .ach-sheet-locked,
+:lang(ko) .ach-sheet-locked,
+:lang(ja) .guild-level-badge,
+:lang(zh) .guild-level-badge,
+:lang(ko) .guild-level-badge,
+:lang(ja) .settings-label,
+:lang(zh) .settings-label,
+:lang(ko) .settings-label {
+  letter-spacing: normal;
+}
+
+/* --- Progress meters (locked-achievement + next-goal bars) --- */
+
+.ach-meter {
+  display: block;
+  width: 100%;
+  height: 4px;
+  margin-top: 0.1rem;
+  border-radius: var(--radius-full);
+  background: var(--surface-container-highest);
+  overflow: hidden;
+}
+
+.ach-meter-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--primary);
+  transition: width 0.4s cubic-bezier(0.2, 0, 0, 1);
+}
+
+.ach-next-goal {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  width: 100%;
+  margin: 0 0 0.85rem;
+  padding: 0.7rem 0.85rem;
+  border: 1px solid var(--primary-container);
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--primary-container) 45%, transparent);
+  color: var(--on-surface);
+  text-align: start;
+  cursor: pointer;
+  font: inherit;
+}
+
+.ach-next-goal-icon {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-full);
+  background: var(--primary);
+  color: var(--on-primary);
+}
+
+.ach-next-goal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+  flex: 1;
+}
+
+.ach-next-goal-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--primary);
+}
+:lang(ja) .ach-next-goal-label,
+:lang(zh) .ach-next-goal-label,
+:lang(ko) .ach-next-goal-label {
+  letter-spacing: normal;
+}
+
+.ach-next-goal-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.guild-japan-line {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  margin: -0.4rem 0 0.9rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--on-surface-variant);
+}
+
+.ach-sheet-progress {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  width: 100%;
+  max-width: 12rem;
+}
+
+.ach-sheet-progress-label {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--on-surface-variant);
+}
 
 /* --- Chronicle --- */
 

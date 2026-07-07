@@ -293,6 +293,12 @@
   text-transform: uppercase;
   color: var(--on-surface-variant);
 }
+/* Reset tracking for CJK (over-spaces the glyphs); uppercase is a no-op there. */
+:lang(ja) .ar-chooser-section-label,
+:lang(zh) .ar-chooser-section-label,
+:lang(ko) .ar-chooser-section-label {
+  letter-spacing: normal;
+}
 
 .ar-chooser-body .list-item:disabled {
   opacity: 0.5;

@@ -15,6 +15,7 @@ import { DiaryScreen } from "./components/diary/DiaryScreen";
 import { ARCameraLazy } from "./components/ar/ARCameraLazy";
 import { PostScreen } from "./components/post/PostScreen";
 import { GuildScreen } from "./components/guild/GuildScreen";
+import { CelebrationHost } from "./components/common/CelebrationHost";
 
 export function App() {
   const [profile] = useProfile();
@@ -72,6 +73,9 @@ export function App() {
   return (
     <ErrorBoundary>
       <div class="app-shell">{content}</div>
+      {/* App-wide reward layer: fires wherever progress is made, and surfaces
+          any threshold crossed while away on the next launch. */}
+      {hasProfile && <CelebrationHost />}
     </ErrorBoundary>
   );
 }

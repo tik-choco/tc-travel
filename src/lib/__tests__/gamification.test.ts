@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ACHIEVEMENTS, computeRank, computeStats, xpForLevel } from "../gamification";
+import { ACHIEVEMENTS, computeRank, computeStats, nextGoal, xpForLevel } from "../gamification";
 import type { JourneyStats } from "../types";
 
 function stats(overrides: Partial<JourneyStats> = {}): JourneyStats {
@@ -12,6 +12,8 @@ function stats(overrides: Partial<JourneyStats> = {}): JourneyStats {
     pinCount: 0,
     roomCount: 0,
     streakDays: 0,
+    cardsCollected: 0,
+    prefecturesVisited: 0,
     ...overrides,
   };
 }
@@ -33,6 +35,9 @@ describe("computeStats", () => {
     expect(result.pinCount).toBe(1);
     expect(result.roomCount).toBe(2);
     expect(result.streakDays).toBe(3);
+    // cards/prefectures default to 0 when the snapshot omits them
+    expect(result.cardsCollected).toBe(0);
+    expect(result.prefecturesVisited).toBe(0);
   });
 
   it("ignores blank companion names", () => {
@@ -45,6 +50,20 @@ describe("computeStats", () => {
     });
     expect(result.companionsMet).toEqual(["Zoe"]);
     expect(result.countriesVisited).toEqual([]);
+  });
+
+  it("threads collected cards and visited prefectures through", () => {
+    const result = computeStats({
+      pins: [],
+      photos: [],
+      diary: [],
+      streakDays: 0,
+      roomCount: 0,
+      cardsCollected: 4,
+      prefecturesVisited: 12,
+    });
+    expect(result.cardsCollected).toBe(4);
+    expect(result.prefecturesVisited).toBe(12);
   });
 });
 
@@ -128,5 +147,84 @@ describe("ACHIEVEMENTS", () => {
     const portrait = ACHIEVEMENTS.find((a) => a.id === "portraitOfLegends")!;
     expect(portrait.achieved(stats({ photoCount: 5, arPhotoCount: 0 }))).toBe(false);
     expect(portrait.achieved(stats({ photoCount: 5, arPhotoCount: 1 }))).toBe(true);
+  });
+
+  it("rewards real-world meetings (cards) with their own achievements", () => {
+    const namecard1 = ACHIEVEMENTS.find((a) => a.id === "namecard1")!;
+    const namecard10 = ACHIEVEMENTS.find((a) => a.id === "namecard10")!;
+    expect(namecard1.achieved(stats({ cardsCollected: 0 }))).toBe(false);
+    expect(namecard1.achieved(stats({ cardsCollected: 1 }))).toBe(true);
+    expect(namecard10.achieved(stats({ cardsCollected: 9 }))).toBe(false);
+    expect(namecard10.achieved(stats({ cardsCollected: 10 }))).toBe(true);
+  });
+
+  it("feeds the Japan prefecture collection into the main economy", () => {
+    const japanComplete = ACHIEVEMENTS.find((a) => a.id === "japanComplete")!;
+    expect(japanComplete.achieved(stats({ prefecturesVisited: 46 }))).toBe(false);
+    expect(japanComplete.achieved(stats({ prefecturesVisited: 47 }))).toBe(true);
+    // completing all 47 prefectures grants meaningful XP, not just one country's
+    expect(computeRank(stats({ prefecturesVisited: 47 })).xp).toBeGreaterThan(
+      computeRank(stats({ prefecturesVisited: 0 })).xp,
+    );
+  });
+
+  it("every countable achievement's progress agrees with its achieved() state", () => {
+    for (const a of ACHIEVEMENTS) {
+      if (!a.progress) continue;
+      for (const s of [stats(), stats({ countriesVisited: ["jp", "fr", "us", "de", "cn"], diaryCount: 12, photoCount: 30, cardsCollected: 12, prefecturesVisited: 25, arPhotoCount: 6, pinCount: 15, roomCount: 6, companionsMet: ["a", "b", "c", "d", "e", "f"], streakDays: 40 })]) {
+        const { have, need } = a.progress(s);
+        expect(have).toBeLessThanOrEqual(need); // meter never overfills
+        expect(have >= need).toBe(a.achieved(s)); // full meter iff unlocked
+      }
+    }
+  });
+});
+
+describe("nextGoal", () => {
+  it("returns null when there is nothing left to chase", () => {
+    // Real codes spanning all six continents (aq = Antarctica is the only way
+    // to reach 6), padded with fakes purely to clear the 89-country threshold.
+    const sixContinents = ["jp", "fr", "us", "za", "au", "aq"];
+    const maxed = stats({
+      countriesVisited: [...sixContinents, ...Array.from({ length: 84 }, (_, i) => `x${i}`)],
+      companionsMet: Array.from({ length: 20 }, (_, i) => `p${i}`),
+      cardsCollected: 20,
+      prefecturesVisited: 47,
+      diaryCount: 40,
+      pinCount: 20,
+      photoCount: 40,
+      arPhotoCount: 10,
+      roomCount: 10,
+    });
+    expect(nextGoal(maxed)).toBeNull();
+  });
+
+  it("returns the unmet non-streak goal with the fewest remaining", () => {
+    const s = stats({
+      countriesVisited: Array.from({ length: 9 }, (_, i) => `c${i}`),
+      pinCount: 3,
+      cardsCollected: 2,
+      diaryCount: 4,
+    });
+    const goal = nextGoal(s);
+    expect(goal).not.toBeNull();
+    // it is genuinely unmet and its meter matches what it reports
+    expect(goal!.def.achieved(s)).toBe(false);
+    expect(goal!.need - goal!.have).toBe(goal!.remaining);
+    // and no other unmet non-streak achievement is closer
+    const STREAK = new Set(["weekStreak", "monthStreak"]);
+    const minRemaining = Math.min(
+      ...ACHIEVEMENTS.filter((a) => a.progress && !STREAK.has(a.id) && !a.achieved(s)).map((a) => {
+        const p = a.progress!(s);
+        return p.need - p.have;
+      }),
+    );
+    expect(goal!.remaining).toBe(minRemaining);
+  });
+
+  it("never nudges toward a streak goal (can't be actioned right now)", () => {
+    const nearStreak = nextGoal(stats({ streakDays: 6, diaryCount: 5, pinCount: 2 }));
+    expect(nearStreak?.def.id).not.toBe("weekStreak");
+    expect(nearStreak?.def.id).not.toBe("monthStreak");
   });
 });
