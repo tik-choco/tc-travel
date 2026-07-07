@@ -4,6 +4,36 @@ This document is the binding contract for the 2026-07 redesign. All implementati
 agents follow it exactly. It supersedes the "Fantasy UI theme" section of DESIGN.md
 for visuals; data model / P2P architecture in DESIGN.md is unchanged unless stated here.
 
+> **Addendum — 2026-07 "warm M3 Expressive" evolution.** Two things below have
+> since evolved and this addendum, not the original text, is authoritative where
+> they differ:
+>
+> 1. **Theme is warm-light-default, not dark-only.** The parchment/travel-journal
+>    identity was *kept*, not dropped: `:root` is a warm cozy LIGHT palette and
+>    dark is a toggle (`[data-theme="dark"]`) + an OS-`auto` fallback. The two
+>    dark blocks in theme.css are byte-identical by necessity — keep them in sync.
+>    The emotional north star is 愛着 (attachment): modern ≠ cold. "Modern" here
+>    means **M3 Expressive done in warm tones**, not a white admin dashboard.
+> 2. **An M3 Expressive token layer was added** (all additive — every token below
+>    still works):
+>    - Motion: `--ease-standard`, `--ease-emphasized`, `--ease-emphasized-decel`,
+>      `--ease-emphasized-accel`, `--ease-spring` (overshoot), and durations
+>      `--dur-fast` 120ms / `--dur-medium` 220ms / `--dur-slow` 380ms.
+>    - State layers (as percentages, drop into `color-mix()`): `--state-hover` 8%,
+>      `--state-focus` 10%, `--state-press` 12%.
+>    - Elevation: `--shadow-1..5` (4–5 lift FAB press / sheets / dialogs).
+>    - Fluid type: `--text-display/-headline` (clamp-based), `--text-title/-body/
+>      -label`; utility classes `.title-ornate` (fluid headline) and NEW
+>      `.display-title`.
+>    - Shared primitives (`.btn`, `.chip`, `.list-item`, `.fab`, `.input`, tab-bar
+>      indicator) use these tokens: state-layer hover/press + springy press
+>      micro-motion, every one with a `prefers-reduced-motion` opt-out.
+>    - Bottom sheets rise with emphasized-decelerate + `--shadow-5`; the scrim
+>      fades in.
+>    - Font stack extended with `"Noto Sans KR"`, `"Noto Sans SC"` for worldwide
+>      CJK coverage; CJK tracking resets now cover `.title-ornate`/`.display-title`
+>      as well as `.section-title`.
+
 ## Goals
 
 1. **Modern Material Design 3, dark-first.** Drop the parchment/gold fantasy skin.
