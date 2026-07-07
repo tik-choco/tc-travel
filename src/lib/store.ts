@@ -11,10 +11,12 @@
 // observers, but correct, simple, and plenty fast at meetup scale (dozens
 // of members/photos/entries/pins).
 import { useEffect, useState } from "preact/hooks";
+import * as Y from "yjs";
 import { storage_add, storage_get } from "../vendor/mistlib/wrappers/web/index.js";
 import { ensureMistNode } from "./mistNode";
 import { CollabSession, isValidRoomId, type PeerInfo, type CompanionPose } from "./collab";
 export type { CompanionPose };
+import { attachDocPersistence, loadDocState } from "./docPersist";
 import { getProfile, recordJourney, touchJoinedRoom } from "./personal";
 import type { DiaryEntry, EncounterPin, Member, Photo, RoomMeta } from "./types";
 
@@ -25,12 +27,57 @@ interface ActiveSession {
   roomId: string;
   connected: boolean;
   peers: PeerInfo[];
+  /** Detaches this session's Y.Doc persistence (docPersist.ts) — must run at
+   *  every session.destroy() site so the final flush isn't lost. */
+  detachPersist: (() => void) | null;
 }
 
 let active: ActiveSession | null = null;
 const listeners = new Set<() => void>();
 function notify(): void {
   listeners.forEach((fn) => fn());
+}
+
+// --- "you're together" moment ------------------------------------------
+// Fired on the 0→>0 peer transition of a room: the instant a partner is
+// actually there (truthful presence, not the optimistic connected flag).
+// Deduped once per roomId per app launch — module-level, so re-joining the
+// same room in one launch doesn't re-greet, but the next launch does.
+// Repetition across launches is intended: it's a greeting, not an award.
+
+const togetherSeenRoomIds = new Set<string>();
+const togetherListeners = new Set<() => void>();
+
+/** Subscribes to the "partner just arrived" moment (see above). Returns an
+ *  unsubscribe function — same pattern as the notify/listener set. */
+export function onTogether(cb: () => void): () => void {
+  togetherListeners.add(cb);
+  return () => {
+    togetherListeners.delete(cb);
+  };
+}
+
+/** Pure transition core of the together-greeting, extracted for testability:
+ *  true only on a 0→>0 peer-count crossing not yet seen for this roomId (the
+ *  roomId is recorded in `seen` as a side effect when it fires). */
+export function shouldCelebrateTogether(
+  prevPeerCount: number,
+  nextPeerCount: number,
+  roomId: string,
+  seen: Set<string>,
+): boolean {
+  if (prevPeerCount > 0 || nextPeerCount === 0) return false;
+  if (seen.has(roomId)) return false;
+  seen.add(roomId);
+  return true;
+}
+
+/** Pure presence derivation, extracted for testability. `connected` is the
+ *  transport's (optimistic) status; a partner is only truly there once the
+ *  awareness roster has a peer in it. */
+export function derivePresence(connected: boolean, peerCount: number): "connecting" | "waiting" | "together" {
+  if (!connected) return "connecting";
+  return peerCount > 0 ? "together" : "waiting";
 }
 
 function useStoreVersion(): void {
@@ -176,6 +223,8 @@ function mirrorJourney(roomId: string): void {
 
 async function openSession(roomId: string, seed?: { name: string; emoji: string }): Promise<void> {
   if (active) {
+    // Detach BEFORE destroy so the final debounced flush encodes a live doc.
+    active.detachPersist?.();
     active.session.destroy();
     active = null;
   }
@@ -187,6 +236,7 @@ async function openSession(roomId: string, seed?: { name: string; emoji: string 
     roomId,
     connected: false,
     peers: [],
+    detachPersist: null,
   };
   const session = new CollabSession(
     { memberId: profile.id, name: profile.name, color: profile.color, avatarEmoji: profile.avatarEmoji },
@@ -200,7 +250,11 @@ async function openSession(roomId: string, seed?: { name: string; emoji: string 
         mirrorJourney(roomId);
       },
       onPeersChange: (peers) => {
+        const prevCount = record.peers.length;
         record.peers = peers;
+        if (shouldCelebrateTogether(prevCount, peers.length, roomId, togetherSeenRoomIds)) {
+          togetherListeners.forEach((fn) => fn());
+        }
         notify();
       },
     },
@@ -208,6 +262,20 @@ async function openSession(roomId: string, seed?: { name: string; emoji: string 
   record.session = session;
   active = record;
   notify();
+
+  // Restore the last-persisted doc state BEFORE join — order is load-bearing:
+  // the metaMap.has("name") seed check below must see restored meta (so a
+  // restored room is never re-seeded), and the first Yjs sync exchange then
+  // merges with peers instead of starting from an empty doc. Applying pre-join
+  // is safe: the update handler only broadcasts LOCAL_ORIGIN transactions, and
+  // the session's node is null until join() anyway (see collab.ts send()).
+  const saved = await loadDocState(roomId);
+  // The user may have switched rooms (or left) while the load was in flight;
+  // `active` is module-global mutable state, so never apply this room's saved
+  // state — or proceed to join — for a session that was already replaced.
+  if (active !== record) return;
+  if (saved) Y.applyUpdate(session.doc, saved);
+  record.detachPersist = attachDocPersistence(roomId, session.doc);
 
   await session.join(roomId);
 
@@ -264,6 +332,8 @@ export async function joinRoom(roomId: string): Promise<void> {
 
 export async function leaveRoom(): Promise<void> {
   if (!active) return;
+  // Detach BEFORE destroy so the final debounced flush encodes a live doc.
+  active.detachPersist?.();
   active.session.destroy();
   active = null;
   notify();
@@ -276,7 +346,15 @@ export function inRoom(): boolean {
   return active !== null;
 }
 
-export function useSession(): { roomId: string; meta: RoomMeta; connected: boolean } | null {
+export function useSession(): {
+  roomId: string;
+  meta: RoomMeta;
+  connected: boolean;
+  /** Truthful presence: `connected` alone is optimistic (set right after the
+   *  async room join kicks off), so "together" additionally requires an actual
+   *  peer in the awareness roster. */
+  presence: "connecting" | "waiting" | "together";
+} | null {
   useStoreVersion();
   if (!active) return null;
   const metaMap = active.session.doc.getMap<string | number>("meta");
@@ -285,7 +363,12 @@ export function useSession(): { roomId: string; meta: RoomMeta; connected: boole
     createdAt: (metaMap.get("createdAt") as number) ?? 0,
     emoji: (metaMap.get("emoji") as string) ?? "",
   };
-  return { roomId: active.roomId, meta, connected: active.connected };
+  return {
+    roomId: active.roomId,
+    meta,
+    connected: active.connected,
+    presence: derivePresence(active.connected, active.peers.length),
+  };
 }
 
 // --- members ---------------------------------------------------------

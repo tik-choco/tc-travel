@@ -20,6 +20,25 @@ registerTranslations({
     es: "¡Mantén la racha!", fr: "Continue comme ça !", de: "Bleib dran!", pt: "Mantenha o ritmo!",
   },
 
+  // --- The "you're together" greeting: fires the moment a partner actually
+  //     joins your party (see store.ts onTogether). A warm hello, not an
+  //     award — it repeats on later launches by design. ---
+  "celebrate.together": {
+    en: "You found each other", ja: "ふたりがつながりました", zh: "你们找到了彼此",
+    ko: "서로를 찾았어요", es: "Se han encontrado", fr: "Vous vous êtes trouvés",
+    de: "Ihr habt euch gefunden", pt: "Vocês se encontraram",
+  },
+  "celebrate.together.detail": {
+    en: "Your journeys are linked — travel well together.",
+    ja: "旅がひとつに結ばれました。いってらっしゃい。",
+    zh: "旅程已连结——愿你们同行顺遂。",
+    ko: "여정이 하나로 이어졌어요. 함께 좋은 여행 되세요.",
+    es: "Sus viajes están unidos: buen camino juntos.",
+    fr: "Vos voyages sont liés — bonne route ensemble.",
+    de: "Eure Reisen sind verbunden — gute Reise zusammen.",
+    pt: "Suas jornadas estão unidas — boa viagem juntos.",
+  },
+
   // --- Progressive unlocks (see lib/unlocks.ts). The app "noticing" in a warm,
   //     second-person voice — never gamer-speak. title + ".detail" per tier. ---
   "unlock.companionWake": {

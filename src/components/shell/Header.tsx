@@ -46,8 +46,10 @@ export function Header() {
       <div class="app-header-info">
         <span class="app-header-name">{session.meta.name}</span>
         <span class="app-header-status">
-          <span class={`status-dot${session.connected ? " is-connected" : ""}`} aria-hidden="true" />
-          {session.connected ? t("header.connected") : t("header.disconnected")}
+          {/* Three truthful states (see useSession's presence): the transport
+              being up isn't "together" until a partner is actually here. */}
+          <span class={`status-dot status-dot--${session.presence}`} aria-hidden="true" />
+          {t(`header.presence.${session.presence}`)}
         </span>
       </div>
 

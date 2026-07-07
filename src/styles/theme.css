@@ -520,11 +520,36 @@
   width: 8px;
   height: 8px;
   border-radius: var(--radius-full);
-  background: var(--error);
+  background: var(--outline-variant);
   transition: background-color 0.2s ease;
 }
-.status-dot.is-connected {
-  background: var(--success);
+/* Truthful presence states (Header): neutral while the transport comes up, a
+   soft pulse while waiting for a partner, warm-filled once you're together. */
+.status-dot--connecting {
+  background: var(--outline-variant);
+}
+.status-dot--waiting {
+  background: var(--outline);
+  animation: status-dot-pulse 1.8s ease-in-out infinite;
+}
+.status-dot--together {
+  background: var(--tertiary);
+  box-shadow: 0 0 6px var(--tertiary-container);
+}
+@keyframes status-dot-pulse {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .status-dot--waiting {
+    animation: none;
+    opacity: 0.7;
+  }
 }
 
 /* ---------------------------------------------------------------------- */
