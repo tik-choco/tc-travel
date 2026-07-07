@@ -166,15 +166,28 @@
   font-weight: 600;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
+  transition: color var(--dur-fast) var(--ease-standard);
+}
+.tab-bar-btn:focus-visible {
+  outline: none;
 }
 .tab-bar-indicator {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 52px;
-  height: 28px;
+  width: 56px;
+  height: 32px;
   border-radius: var(--radius-full);
-  transition: background-color 0.15s ease;
+  transition: background-color var(--dur-medium) var(--ease-standard);
+}
+/* Keyboard focus lands the ring on the pill, not the whole cell. */
+.tab-bar-btn:focus-visible .tab-bar-indicator {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+/* Press feedback for the tab you're tapping (active or not). */
+.tab-bar-btn:active .tab-bar-indicator {
+  background: color-mix(in srgb, var(--on-surface) var(--state-press), transparent);
 }
 .tab-bar-btn.is-active {
   color: var(--on-surface);
@@ -182,10 +195,29 @@
 .tab-bar-btn.is-active .tab-bar-indicator {
   background: var(--primary-container);
   color: var(--on-primary-container);
+  /* Expressive pop when a tab becomes active — the pill springs in behind the
+     icon. Only the active cell animates, so switching tabs feels responsive. */
+  animation: tab-indicator-pop var(--dur-medium) var(--ease-spring);
+}
+.tab-bar-btn.is-active:active .tab-bar-indicator {
+  background: var(--primary-container);
 }
 .tab-bar-btn svg {
   width: 22px;
   height: 22px;
+}
+@keyframes tab-indicator-pop {
+  from {
+    transform: scale(0.7);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tab-bar-btn.is-active .tab-bar-indicator {
+    animation: none;
+  }
 }
 /* Keep each label to a single line that shrinks to its cell rather than wrapping
    the 64px bar to two rows — the short tab.short.* keys fit, but this guards any
@@ -639,13 +671,20 @@
   font: inherit;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
-  transition: background-color 0.15s ease;
+  transition: background-color var(--dur-fast) var(--ease-standard),
+    transform var(--dur-medium) var(--ease-spring);
 }
 .home-action-card:hover {
-  background: color-mix(in srgb, var(--on-surface) 6%, var(--surface-container));
+  background: color-mix(in srgb, var(--on-surface) var(--state-hover), var(--surface-container));
 }
 .home-action-card:active {
-  background: color-mix(in srgb, var(--on-surface) 10%, var(--surface-container));
+  transform: scale(0.98);
+  background: color-mix(in srgb, var(--on-surface) var(--state-press), var(--surface-container));
+}
+@media (prefers-reduced-motion: reduce) {
+  .home-action-card:active {
+    transform: none;
+  }
 }
 .home-action-icon {
   display: inline-flex;
