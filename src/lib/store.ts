@@ -269,6 +269,13 @@ export async function leaveRoom(): Promise<void> {
   notify();
 }
 
+/** Non-hook check: is a P2P room session currently active? Used by the unified
+ *  capture layer (memories.ts) to route a new photo/pin/diary to the room's
+ *  Y.Doc vs. the local solo store, without needing a hook at the call site. */
+export function inRoom(): boolean {
+  return active !== null;
+}
+
 export function useSession(): { roomId: string; meta: RoomMeta; connected: boolean } | null {
   useStoreVersion();
   if (!active) return null;

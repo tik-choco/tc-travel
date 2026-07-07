@@ -1,24 +1,24 @@
 import { useEffect, useRef, useState } from "preact/hooks";
 import { Check, ChevronLeft, ChevronRight, Download, HardDriveDownload, LoaderCircle, MapPin, Sparkles, Trash2, X } from "lucide-preact";
-import { usePhotoUrl } from "../../lib/store";
+import { useAlbumPhotoUrl } from "../../lib/memories";
 import { countryName } from "../../lib/geo";
 import { getLanguage, useT } from "../../lib/i18n";
 import { ensureMistNode } from "../../lib/mistNode";
 import { exportPhotoToDrive, isPhotoExported } from "../../lib/drive/export";
 import { storage_get } from "../../vendor/mistlib/wrappers/web/index.js";
-import type { Member, Photo } from "../../lib/types";
+import type { AlbumPhoto, Member } from "../../lib/types";
 import { Avatar } from "../common/Avatar";
 
 const TOAST_MS = 3200;
 
 interface PhotoViewerProps {
-  photos: Photo[];
+  photos: AlbumPhoto[];
   index: number;
   memberById: Map<string, Member>;
   ownId: string;
   onClose: () => void;
   onIndexChange: (index: number) => void;
-  onDelete: (id: string) => void;
+  onDelete: (photo: AlbumPhoto) => void;
 }
 
 const SWIPE_THRESHOLD = 40;
@@ -37,7 +37,11 @@ export function PhotoViewer({
 }: PhotoViewerProps) {
   const t = useT();
   const photo = photos[index];
-  const url = usePhotoUrl(photo);
+  const url = useAlbumPhotoUrl(photo);
+  // Drive export re-reads the JPEG from mist storage by cid, which only exists
+  // for room photos; solo photos live in IndexedDB with no cid, so the button
+  // is hidden for them (the auto-export loop in app.tsx is likewise room-only).
+  const canExport = photo?.source === "room";
   const touchStartX = useRef<number | null>(null);
   const toastTimerRef = useRef<number | null>(null);
   // Which photo the viewer is showing right now / whether we're still mounted —
@@ -77,6 +81,7 @@ export function PhotoViewer({
   };
 
   const handleExportToDrive = async () => {
+    if (!photo.cid) return; // room-only: solo photos have no mist cid to fetch
     const exportingId = photo.id;
     setExporting(true);
     try {
@@ -143,7 +148,7 @@ export function PhotoViewer({
   };
 
   const handleDelete = () => {
-    if (window.confirm(t("album.confirmDelete"))) onDelete(photo.id);
+    if (window.confirm(t("album.confirmDelete"))) onDelete(photo);
   };
 
   return (
@@ -199,21 +204,23 @@ export function PhotoViewer({
           <button type="button" class="btn btn-tonal" onClick={handleDownload} disabled={!url}>
             <Download size={16} /> {t("album.download")}
           </button>
-          <button
-            type="button"
-            class="btn btn-tonal"
-            onClick={handleExportToDrive}
-            disabled={exporting || exported}
-          >
-            {exporting ? (
-              <LoaderCircle class="spin" size={16} />
-            ) : exported ? (
-              <Check size={16} />
-            ) : (
-              <HardDriveDownload size={16} />
-            )}
-            {exported ? t("album.drive.saved") : t("album.drive.save")}
-          </button>
+          {canExport && (
+            <button
+              type="button"
+              class="btn btn-tonal"
+              onClick={handleExportToDrive}
+              disabled={exporting || exported}
+            >
+              {exporting ? (
+                <LoaderCircle class="spin" size={16} />
+              ) : exported ? (
+                <Check size={16} />
+              ) : (
+                <HardDriveDownload size={16} />
+              )}
+              {exported ? t("album.drive.saved") : t("album.drive.save")}
+            </button>
+          )}
           {isOwn && (
             <button type="button" class="btn btn-danger" onClick={handleDelete}>
               <Trash2 size={16} /> {t("album.delete")}

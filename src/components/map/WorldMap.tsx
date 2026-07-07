@@ -2,8 +2,10 @@ import { useEffect, useMemo, useRef, useState } from "preact/hooks";
 import { ChevronRight, Compass, MapPin, Sparkles } from "lucide-preact";
 import { getLanguage, useT } from "../../lib/i18n";
 import type { EncounterPin } from "../../lib/types";
-import { useSession, useMembers, usePins, addPin, removePin } from "../../lib/store";
-import { useProfile, useJourney } from "../../lib/personal";
+import { useMembers, usePins, removePin } from "../../lib/store";
+import { useProfile } from "../../lib/personal";
+import { useUnifiedJourney, addPinAuto } from "../../lib/memories";
+import { useLocalPins, removeLocalPin } from "../../lib/local/localMemories";
 import { loadWorld, loadWorldDetailed, lookupCountry, countryName } from "../../lib/geo";
 import type { CountryFeature } from "../../lib/geo";
 import { MAP_W, MAP_H, project, unproject, geometryToPath, geometryCentroid, clamp } from "./geoMath";
@@ -57,11 +59,14 @@ function revealAnchor(geometry: SimpleGeometry): [number, number] | null {
 export function WorldMap() {
   const t = useT();
   const lang = getLanguage();
-  const session = useSession();
   const [profile] = useProfile();
   const members = useMembers();
   const roomPins = usePins();
-  const journey = useJourney();
+  const localPins = useLocalPins();
+  // Unified journey folds solo memories into pins/photos/diary, so fog reveal,
+  // explored %, continent counts and the Japan drill-down all light up for solo
+  // captures exactly as they do for room ones.
+  const journey = useUnifiedJourney();
 
   const [world, setWorld] = useState<CountryFeature[] | null>(null);
   // Stats (explored %, per-continent counts) stay on the 110m atlas: that's
@@ -189,12 +194,17 @@ export function WorldMap() {
     }));
   }, [statsWorld, visitedKey]);
 
+  // journey.pins already includes local pins (unified), but union the live
+  // room + local arrays too: those are the current mutable sources, so a pin
+  // just added/removed shows or clears immediately, before the journey mirror
+  // settles. De-duped by id, so the overlap is harmless.
   const allPins = useMemo(() => {
     const map = new Map<string, EncounterPin>();
     for (const p of journey.pins) map.set(p.id, p);
+    for (const p of localPins) map.set(p.id, p);
     for (const p of roomPins) map.set(p.id, p);
     return [...map.values()];
-  }, [journey.pins, roomPins]);
+  }, [journey.pins, localPins, roomPins]);
 
   // Path strings only depend on the (immutable-once-loaded) world geometry,
   // not on fog/reveal state, so compute them once instead of on every render.
@@ -535,17 +545,24 @@ export function WorldMap() {
         <EncounterSheet
           target={sheet}
           locationLabel={sheet.mode === "view" ? labelFor(sheet.pin.countryCode) : labelFor(sheet.countryCode, sheet.resolving)}
-          canSave={sheet.mode === "new" && session !== null}
-          canDelete={sheet.mode === "view" && sheet.pin.by === profile.id && roomPins.some((p) => p.id === sheet.pin.id)}
+          canSave={sheet.mode === "new"}
+          canDelete={
+            sheet.mode === "view" &&
+            sheet.pin.by === profile.id &&
+            (roomPins.some((p) => p.id === sheet.pin.id) || localPins.some((p) => p.id === sheet.pin.id))
+          }
           onClose={() => setSheet(null)}
           onSave={(data) => {
             if (sheet.mode !== "new") return;
-            addPin({ lat: sheet.lat, lng: sheet.lng, countryCode: sheet.countryCode, ...data });
+            // Routes to the room Y.Doc in a party, else the local solo store.
+            addPinAuto({ lat: sheet.lat, lng: sheet.lng, countryCode: sheet.countryCode, ...data });
             setSheet(null);
           }}
           onDelete={() => {
             if (sheet.mode !== "view") return;
-            removePin(sheet.pin.id);
+            // A pin lives in exactly one home; delete it from the right one.
+            if (localPins.some((p) => p.id === sheet.pin.id)) removeLocalPin(sheet.pin.id);
+            else removePin(sheet.pin.id);
             setSheet(null);
           }}
         />

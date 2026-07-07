@@ -1,19 +1,20 @@
 import { LoaderCircle, Sparkles } from "lucide-preact";
-import { usePhotoUrl } from "../../lib/store";
+import { useAlbumPhotoUrl } from "../../lib/memories";
 import { useT } from "../../lib/i18n";
-import type { Photo } from "../../lib/types";
+import type { AlbumPhoto } from "../../lib/types";
 
 interface PhotoThumbProps {
-  photo: Photo;
+  photo: AlbumPhoto;
   index: number;
   onOpen: () => void;
 }
 
-/** One grid cell. Its own component because usePhotoUrl is a hook and can't
- * be called from inside a .map() callback on the parent. */
+/** One grid cell. Its own component because useAlbumPhotoUrl is a hook and
+ * can't be called from inside a .map() callback on the parent. It resolves the
+ * bytes from whichever home the photo lives in (room mist cid / local IDB). */
 export function PhotoThumb({ photo, index, onOpen }: PhotoThumbProps) {
   const t = useT();
-  const url = usePhotoUrl(photo);
+  const url = useAlbumPhotoUrl(photo);
 
   return (
     <button

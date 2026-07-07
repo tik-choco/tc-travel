@@ -8,7 +8,7 @@
 import type { MultiPolygon, Polygon } from "geojson";
 import { useEffect, useMemo, useState } from "preact/hooks";
 import { pointInGeometry } from "../../lib/geo";
-import { useJourney } from "../../lib/personal";
+import { useUnifiedJourney } from "../../lib/memories";
 
 export interface Prefecture {
   /** ISO 3166-2, e.g. "JP-13" */
@@ -298,7 +298,7 @@ export function useJapanCollection(active: boolean): {
   prefs: Prefecture[] | null;
   visited: Set<string>;
 } {
-  const journey = useJourney();
+  const journey = useUnifiedJourney();
   const [prefs, setPrefs] = useState<Prefecture[] | null>(null);
 
   useEffect(() => {

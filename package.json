@@ -11,6 +11,7 @@
     "build": "tsc -b && vite build",
     "preview": "vite preview --host",
     "fetch-mistlib": "node scripts/fetch-mistlib.mjs",
+    "fetch-subnational": "node scripts/fetch-subnational.mjs",
     "test": "vitest run"
   },
   "dependencies": {

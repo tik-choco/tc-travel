@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "preact/hooks";
 import { Camera, ImagePlus, LoaderCircle, Trash2, X } from "lucide-preact";
-import { addPhoto } from "../../lib/store";
+import { addPhotoAuto } from "../../lib/memories";
 import { compressImage } from "../../lib/photo";
 import { lookupCountry } from "../../lib/geo";
 import { useT } from "../../lib/i18n";
@@ -110,7 +110,9 @@ export function AddPhotoSheet({ onClose }: AddPhotoSheetProps) {
     for (const item of ready) {
       patch(item.key, { status: "saving" });
       try {
-        await addPhoto(item.bytes as Uint8Array, {
+        // Routes to the room Y.Doc when in a party, else the local solo store —
+        // capture works with or without peers.
+        await addPhotoAuto(item.bytes as Uint8Array, {
           caption: item.caption.trim(),
           geo: item.geo,
           width: item.width,

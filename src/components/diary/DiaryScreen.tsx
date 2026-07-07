@@ -1,13 +1,14 @@
 import { useMemo, useState } from "preact/hooks";
 import { PenLine, ScrollText } from "lucide-preact";
-import { useSession, useMembers, useDiary, removeDiaryEntry } from "../../lib/store";
+import { useMembers } from "../../lib/store";
 import { useProfile } from "../../lib/personal";
+import { useDiaryEntries, removeDiaryAuto, type SourcedDiaryEntry } from "../../lib/memories";
 import { getLanguage, useT } from "../../lib/i18n";
+import type { Member } from "../../lib/types";
 import { Avatar } from "../common/Avatar";
 import { DiaryEditor } from "./DiaryEditor";
 import { DiaryReader } from "./DiaryReader";
 import { MoodChip } from "./moodMeta";
-import type { DiaryEntry } from "../../lib/types";
 import "./diary.i18n";
 import "./diary.css";
 
@@ -21,29 +22,31 @@ function excerpt(text: string): string {
 
 export function DiaryScreen() {
   const t = useT();
-  const session = useSession();
-  const diary = useDiary();
+  // Room + solo entries, each tagged with its source so edit/delete route home
+  // correctly (see removeDiaryAuto / DiaryEditor). No session gate — the journal
+  // is always writable now.
+  const diary = useDiaryEntries();
   const members = useMembers();
   const [profile] = useProfile();
-  const [reading, setReading] = useState<DiaryEntry | null>(null);
-  const [editing, setEditing] = useState<DiaryEntry | null | "new">(null);
+  const [reading, setReading] = useState<SourcedDiaryEntry | null>(null);
+  const [editing, setEditing] = useState<SourcedDiaryEntry | null | "new">(null);
 
   const sorted = useMemo(() => [...diary].sort((a, b) => b.at - a.at), [diary]);
-  const memberById = useMemo(() => new Map(members.map((m) => [m.id, m])), [members]);
-
-  if (!session) {
-    return (
-      <div class="screen diary-screen">
-        <div class="empty-state">
-          <div class="empty-state-icon">
-            <ScrollText size={28} />
-          </div>
-          <p class="empty-state-title">{t("diary.needSessionTitle")}</p>
-          <p class="empty-state-hint">{t("diary.needSession")}</p>
-        </div>
-      </div>
-    );
-  }
+  // Fold the local profile in as a synthetic member so your own solo entries
+  // show as yours; a room member record, when present, is never overridden.
+  const memberById = useMemo(() => {
+    const map = new Map<string, Member>(members.map((m) => [m.id, m]));
+    if (!map.has(profile.id)) {
+      map.set(profile.id, {
+        id: profile.id,
+        name: profile.name,
+        color: profile.color,
+        avatarEmoji: profile.avatarEmoji,
+        joinedAt: 0,
+      });
+    }
+    return map;
+  }, [members, profile.id, profile.name, profile.color, profile.avatarEmoji]);
 
   return (
     <div class="screen diary-screen">
@@ -110,7 +113,7 @@ export function DiaryScreen() {
             setReading(null);
           }}
           onDelete={() => {
-            removeDiaryEntry(reading.id);
+            removeDiaryAuto(reading);
             setReading(null);
           }}
         />

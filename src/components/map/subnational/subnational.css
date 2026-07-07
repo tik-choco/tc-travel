@@ -1,0 +1,420 @@
+/* World-wide sub-national drill-down (SubnationalMap) — speaks the same
+   fog/visited/gold-reveal language as the world map and the Japan drill-down,
+   fully namespaced (sub-*) and self-contained so it can mount anywhere inside
+   the map viewport without depending on map.css being loaded. Colors are all
+   theme tokens; warm-light default per the app's emotional-design goals. */
+
+/* Full-viewport overlay above the world map (which stays mounted beneath). */
+.sub-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface-dim);
+  animation: sub-overlay-in 0.25s ease-out;
+}
+
+@keyframes sub-overlay-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* --- header ------------------------------------------------------------- */
+
+.sub-header {
+  margin: 12px 12px 8px;
+  box-shadow: var(--shadow-1);
+}
+
+.sub-header__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sub-title {
+  flex: 1;
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--on-surface);
+}
+
+.sub-completion {
+  margin: 4px 0 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--on-surface);
+}
+
+/* The brag line — a quiet, warm sentence under the bar. */
+.sub-summary {
+  margin: 6px 0 0;
+  font-size: 0.8rem;
+  font-style: italic;
+  color: var(--on-surface-variant);
+}
+
+/* 100% chip — the header's little crown. */
+.sub-complete-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  background: color-mix(in srgb, var(--gold) 14%, var(--surface-container-high));
+  border: 1px solid color-mix(in srgb, var(--gold) 45%, var(--outline-variant));
+  color: var(--on-surface);
+  white-space: nowrap;
+}
+
+/* Explored-% progress track — primary-to-gold fill, eased so each new region
+   visibly sweeps the bar forward. */
+.sub-progress {
+  height: 5px;
+  border-radius: var(--radius-full);
+  background: var(--surface-container-high);
+  overflow: hidden;
+}
+
+.sub-progress__fill {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--primary), var(--gold));
+  transition: width 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Celebration pulses: fired when explored % rises ("pulse") or crosses a
+   tens bracket / hits 100% ("milestone"). */
+@keyframes sub-stat-pulse {
+  0% {
+    transform: scale(1);
+    box-shadow: var(--shadow-1);
+  }
+  25% {
+    transform: scale(1.012);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--gold) 40%, transparent), var(--shadow-2);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: var(--shadow-1);
+  }
+}
+
+.sub-header--pulse {
+  animation: sub-stat-pulse 1.1s ease-out;
+}
+
+@keyframes sub-stat-milestone {
+  0% {
+    transform: scale(1);
+    box-shadow: var(--shadow-1);
+  }
+  20% {
+    transform: scale(1.03);
+    box-shadow:
+      0 0 0 4px color-mix(in srgb, var(--gold) 55%, transparent),
+      0 0 22px color-mix(in srgb, var(--gold-bright) 45%, transparent);
+  }
+  55% {
+    transform: scale(1.01);
+    box-shadow:
+      0 0 0 2px color-mix(in srgb, var(--gold) 35%, transparent),
+      0 0 10px color-mix(in srgb, var(--gold-bright) 25%, transparent);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: var(--shadow-1);
+  }
+}
+
+.sub-header--milestone {
+  animation: sub-stat-milestone 1.3s ease-out;
+}
+
+@keyframes sub-progress-glint {
+  0%,
+  100% {
+    filter: brightness(1);
+  }
+  30% {
+    filter: brightness(1.5);
+  }
+}
+
+.sub-header--pulse .sub-progress__fill,
+.sub-header--milestone .sub-progress__fill {
+  animation: sub-progress-glint 1.1s ease-out;
+}
+
+/* --- map ------------------------------------------------------------------ */
+
+.sub-map-area {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  padding: 0 8px 8px;
+}
+
+.sub-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.sub-status {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 24px;
+  color: var(--on-surface-variant);
+}
+
+/* Ocean: soft light pools at the center and deepens toward the edges — the
+   same old-atlas vignette as the world map, one zoom level in. */
+.sub-ocean {
+  fill: url(#sub-ocean-grad);
+  rx: 12px;
+}
+
+.sub-ocean-stop--core {
+  stop-color: color-mix(in srgb, var(--surface-dim) 94%, var(--primary) 6%);
+}
+
+.sub-ocean-stop--mid {
+  stop-color: var(--surface-dim);
+}
+
+.sub-ocean-stop--edge {
+  stop-color: color-mix(in srgb, var(--surface-dim) 88%, var(--ink) 12%);
+}
+
+.sub-land-stop--north {
+  stop-color: color-mix(in srgb, var(--primary-container) 80%, var(--gold) 20%);
+}
+
+.sub-land-stop--mid {
+  stop-color: var(--primary-container);
+}
+
+.sub-land-stop--south {
+  stop-color: color-mix(in srgb, var(--primary-container) 84%, var(--tertiary-container) 16%);
+}
+
+.sub-inset-frame {
+  fill: none;
+  stroke: var(--outline-variant);
+  stroke-width: 1;
+  stroke-dasharray: 4 4;
+  vector-effect: non-scaling-stroke;
+}
+
+/* Subdivisions speak the world map's fog/visited language. */
+.sub-region {
+  stroke-width: 0.7;
+  vector-effect: non-scaling-stroke;
+  transition: fill 0.4s ease;
+  cursor: pointer;
+}
+
+.sub-region--fog {
+  fill: var(--surface-container-low);
+  stroke: var(--outline-variant);
+}
+
+.sub-region--visited {
+  fill: url(#sub-land-grad);
+  paint-order: stroke;
+  stroke: color-mix(in srgb, var(--gold) 45%, var(--primary) 55%);
+  stroke-width: 1.6;
+}
+
+/* One drop-shadow on the whole visited group — a real glow at the cost of a
+   single filter pass, instead of one per subdivision. */
+.sub-land-glow {
+  filter: drop-shadow(0 0 5px color-mix(in srgb, var(--gold) 40%, transparent));
+}
+
+@keyframes sub-fog-reveal {
+  0% {
+    fill: var(--surface-container-low);
+    filter: brightness(0.6) drop-shadow(0 0 0 transparent);
+  }
+  40% {
+    fill: var(--gold);
+    filter: brightness(1.35) drop-shadow(0 0 10px var(--gold));
+  }
+  70% {
+    fill: var(--primary);
+    filter: brightness(1.15) drop-shadow(0 0 5px var(--gold));
+  }
+  100% {
+    fill: var(--primary-container);
+    filter: brightness(1) drop-shadow(0 0 0 transparent);
+  }
+}
+
+.sub-region--revealing {
+  animation: sub-fog-reveal 1.4s ease-out forwards;
+}
+
+.sub-region--selected {
+  stroke: var(--gold-bright);
+  stroke-width: 2.2;
+}
+
+/* One-shot golden flourish at a freshly-unlocked subdivision's anchor point:
+   two staggered ripples + a compass-star pop. Unmounted by the same timer
+   that clears the reveal set, so nothing lingers. */
+.sub-reveal-burst {
+  pointer-events: none;
+}
+
+.sub-reveal-burst__ripple {
+  fill: none;
+  stroke: var(--gold);
+  stroke-width: 1.6;
+  vector-effect: non-scaling-stroke;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: sub-burst-ripple 1.1s ease-out both;
+}
+
+.sub-reveal-burst__ripple--late {
+  animation-delay: 0.25s;
+}
+
+@keyframes sub-burst-ripple {
+  0% {
+    transform: scale(0.25);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(4);
+    opacity: 0;
+  }
+}
+
+.sub-reveal-burst__star {
+  fill: var(--gold-bright);
+  stroke: var(--gold);
+  stroke-width: 0.5;
+  vector-effect: non-scaling-stroke;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: sub-burst-star 1.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes sub-burst-star {
+  0% {
+    transform: scale(0) rotate(-45deg);
+    opacity: 0;
+  }
+  30% {
+    transform: scale(1.15) rotate(0deg);
+    opacity: 1;
+  }
+  70% {
+    transform: scale(0.9) rotate(14deg);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(0.55) rotate(24deg);
+    opacity: 0;
+  }
+}
+
+/* --- tapped-subdivision card, floating at the foot of the map ------------- */
+
+.sub-selected {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 12px;
+  z-index: 2;
+  box-shadow: var(--shadow-2);
+  animation: sub-selected-rise 0.2s ease-out;
+}
+
+@keyframes sub-selected-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.sub-selected__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sub-selected__name {
+  flex: 1;
+  margin: 0;
+  font-size: 1.05rem;
+  color: var(--on-surface);
+}
+
+.sub-selected__sub {
+  margin: 2px 0 6px;
+  font-size: 0.8rem;
+  color: var(--on-surface-variant);
+}
+
+.sub-selected__state {
+  margin: 0;
+  font-size: 0.85rem;
+  font-style: italic;
+  color: var(--on-surface-variant);
+}
+
+.sub-selected__state--visited {
+  font-style: normal;
+  font-weight: 600;
+  color: var(--primary);
+}
+
+/* Motion opt-out: every drill-down animation stops; the reveal burst renders
+   nothing at all (its resting frames are invisible anyway). */
+@media (prefers-reduced-motion: reduce) {
+  .sub-overlay,
+  .sub-selected,
+  .sub-header--pulse,
+  .sub-header--milestone,
+  .sub-header--pulse .sub-progress__fill,
+  .sub-header--milestone .sub-progress__fill,
+  .sub-region--revealing {
+    animation: none;
+  }
+
+  .sub-region {
+    transition: none;
+  }
+
+  .sub-progress__fill {
+    transition: none;
+  }
+
+  .sub-reveal-burst {
+    display: none;
+  }
+}

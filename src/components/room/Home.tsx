@@ -15,6 +15,8 @@ import { tWithFallback } from "../guild/fallback";
 import { QrModal } from "./QrModal";
 import { AvatarSheet } from "./AvatarSheet";
 import { HomeVrmStageLazy } from "./HomeVrmStageLazy";
+import { SoloWelcome } from "./SoloWelcome";
+import { hasLocalMemories } from "../../lib/local/localMemories";
 
 const ROOM_EMOJI_CHOICES = ["🏕️", "🎉", "🗺️", "🏔️", "⚓", "🌲", "🏯", "🍻"];
 
@@ -26,7 +28,7 @@ function greetingKey(hour: number): string {
   return "home.greetEvening";
 }
 
-export function Home() {
+export function Home({ onStartJourney }: { onStartJourney?: () => void }) {
   const t = useT();
   const [profile] = useProfile();
   const joinedRooms = useJoinedRooms();
@@ -259,6 +261,10 @@ export function Home() {
         </button>
       </form>
       {joinError && <p class="home-join-error">{t("home.joinError")}</p>}
+
+      {/* Brand-new solo traveller (no memories yet, no parties): a warm nudge to
+          begin alone — the journey doesn't need a crowd to start. */}
+      {joinedRooms.length === 0 && !hasLocalMemories() && <SoloWelcome onStart={onStartJourney} />}
 
       <p class="section-title">{t("home.yourParties")}</p>
       {joinedRooms.length === 0 ? (

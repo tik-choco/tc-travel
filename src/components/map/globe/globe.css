@@ -1,0 +1,100 @@
+/* 3D globe map. The interactive chrome (stat card, chips, sheet, FAB,
+   celebrations) reuses map.css's classes so the globe and the SVG atlas stay
+   one visual family; this file adds only what the WebGL canvas needs. */
+
+/* Standalone shell for the lazy placeholder/failure states: gives the
+   viewport a flexing column without needing map.css (which lives inside the
+   heavy chunk and may never arrive). GlobeMap itself uses .map-screen. */
+.globe-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 0;
+  gap: 0;
+}
+
+.globe-viewport {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--surface-dim);
+  touch-action: none;
+}
+
+.globe-canvas-host {
+  position: absolute;
+  inset: 0;
+}
+
+.globe-canvas-host canvas {
+  cursor: grab;
+}
+
+.globe-canvas-host canvas:active {
+  cursor: grabbing;
+}
+
+/* Warm vignette over the scene — the cozy reading-lamp edge. Pure CSS so it
+   costs nothing per frame and follows the theme automatically. */
+.globe-vignette {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background: radial-gradient(
+    120% 95% at 50% 42%,
+    transparent 55%,
+    color-mix(in srgb, var(--ink) 14%, transparent) 100%
+  );
+}
+
+/* Lazy-chunk placeholder: a soft breathing orb where the globe will appear,
+   so module-load and scene-boot read as one continuous state. */
+.globe-viewport--loading::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: min(58vw, 300px);
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 38% 32%,
+    var(--surface-container-high),
+    var(--surface-container) 55%,
+    color-mix(in srgb, var(--surface-dim) 80%, var(--ink) 20%)
+  );
+  box-shadow: 0 0 40px color-mix(in srgb, var(--primary) 12%, transparent);
+  animation: globe-breathe 1.8s ease-in-out infinite;
+}
+
+@keyframes globe-breathe {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 0.9;
+  }
+}
+
+/* Chunk-load failure message (map.css may not be loaded in this state). */
+.globe-fallback-msg {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 24px;
+  color: var(--on-surface-variant);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .globe-viewport--loading::after {
+    animation: none;
+    opacity: 0.75;
+  }
+}
