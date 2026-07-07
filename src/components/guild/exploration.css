@@ -1,0 +1,223 @@
+/* Exploration panel — the reward payoff for worldwide municipality exploration.
+   World lens: a celebratory hero COUNT (municipalities + countries; never a
+   world %). Domestic lens: per-country coverage rows with slim bars.
+   Design tokens only (src/styles/theme.css); every animation sits behind a
+   prefers-reduced-motion guard. */
+
+/* --- World lens (hero) --- */
+
+.explore-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 1rem 0.75rem 0.9rem;
+  border-radius: var(--radius);
+  /* Warm sunrise wash: both container tokens are theme-aware, so this stays
+     cozy in light and settles down in dark. */
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--primary-container) 55%, transparent),
+    color-mix(in srgb, var(--tertiary-container) 50%, transparent)
+  );
+  text-align: center;
+}
+
+.explore-hero-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 0.4rem;
+}
+
+.explore-hero-count {
+  font-size: 2.3rem;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--on-surface);
+  font-variant-numeric: tabular-nums;
+}
+
+.explore-hero-unit {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--on-surface);
+}
+
+.explore-hero-caption {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--on-surface-variant);
+}
+
+.explore-hero-meta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.75rem;
+  margin-top: 0.35rem;
+}
+
+.explore-countries-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.25rem 0.7rem;
+  border-radius: var(--radius-full);
+  background: color-mix(in srgb, var(--surface) 65%, transparent);
+  color: var(--on-surface);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.explore-resolving {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.72rem;
+  color: var(--on-surface-variant);
+}
+
+.explore-resolving-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-full);
+  background: var(--tertiary);
+}
+
+/* --- Domestic lens (per-country coverage) --- */
+
+.explore-countries {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  margin-top: 1rem;
+}
+
+.explore-depth-title {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--on-surface-variant);
+}
+/* Same CJK tracking reset as guild.css's badges/labels. */
+:lang(ja) .explore-depth-title,
+:lang(zh) .explore-depth-title,
+:lang(ko) .explore-depth-title {
+  letter-spacing: normal;
+}
+
+.explore-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  column-gap: 0.6rem;
+  row-gap: 0.3rem;
+  align-items: center;
+}
+
+.explore-row-flag {
+  grid-row: span 2;
+  font-size: 1.15rem;
+  line-height: 1;
+}
+
+.explore-row-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--on-surface);
+}
+
+.explore-row-count {
+  font-size: 0.78rem;
+  color: var(--on-surface-variant);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.explore-row-bar {
+  grid-column: 2 / 4;
+  height: 4px;
+  border-radius: var(--radius-full);
+  background: var(--surface-container-highest);
+  overflow: hidden;
+}
+
+.explore-row-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--primary), var(--tertiary));
+}
+
+.explore-more-btn {
+  align-self: center;
+  font-size: 0.8rem;
+}
+
+/* --- Empty state (no journey yet) --- */
+
+.explore-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 0.75rem 0.5rem;
+  text-align: center;
+  color: var(--on-surface-variant);
+}
+
+.explore-empty-icon {
+  color: var(--tertiary);
+}
+
+.explore-empty p {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.55;
+  max-width: 26rem;
+}
+
+/* --- Motion (opt-in only; still under reduced motion) --- */
+
+@media (prefers-reduced-motion: no-preference) {
+  .explore-hero-count-bump {
+    animation: explore-count-bump 0.7s cubic-bezier(0.2, 0, 0, 1);
+  }
+  .explore-resolving-dot {
+    animation: explore-dot-breathe 1.6s ease-in-out infinite;
+  }
+  .explore-row-fill {
+    transition: width 0.5s cubic-bezier(0.2, 0, 0, 1);
+  }
+}
+
+@keyframes explore-count-bump {
+  0% {
+    transform: scale(1);
+  }
+  35% {
+    transform: scale(1.14);
+    color: var(--tertiary);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes explore-dot-breathe {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(0.8);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}

@@ -36,4 +36,36 @@ registerTranslations({
     de: "Der Globus konnte nicht beschworen werden. Prüfe deine Verbindung und versuche es erneut.",
     pt: "O globo não pôde ser invocado. Verifique sua conexão e tente novamente.",
   },
+  // Exploration hero: municipality-unit counts (a world-% would round to 0 forever).
+  "globe.stats.hero": {
+    en: (p) => `${p.munis} municipalities · ${p.countries} countries`,
+    ja: (p) => `${p.munis}市町村・${p.countries}カ国`,
+    zh: (p) => `${p.munis}个市镇 · ${p.countries}个国家`,
+    ko: (p) => `${p.munis}개 시군구 · ${p.countries}개국`,
+    es: (p) => `${p.munis} municipios · ${p.countries} países`,
+    fr: (p) => `${p.munis} communes · ${p.countries} pays`,
+    de: (p) => `${p.munis} Gemeinden · ${p.countries} Länder`,
+    pt: (p) => `${p.munis} municípios · ${p.countries} países`,
+  },
+  "globe.stats.counting": {
+    en: "Charting your footprints…",
+    ja: "足あとを数えています……",
+    zh: "正在清点足迹……",
+    ko: "발자취를 세는 중...",
+    es: "Contando tus huellas…",
+    fr: "On recense vos traces…",
+    de: "Deine Spuren werden gezählt…",
+    pt: "Contando suas pegadas…",
+  },
+  // Sheet location line once the municipality resolves, e.g. "Shinjuku · Japan".
+  "globe.sheet.place": {
+    en: (p) => `${p.muni} · ${p.country}`,
+    ja: (p) => `${p.muni}・${p.country}`,
+    zh: (p) => `${p.muni}・${p.country}`,
+    ko: (p) => `${p.muni} · ${p.country}`,
+    es: (p) => `${p.muni} · ${p.country}`,
+    fr: (p) => `${p.muni} · ${p.country}`,
+    de: (p) => `${p.muni} · ${p.country}`,
+    pt: (p) => `${p.muni} · ${p.country}`,
+  },
 });

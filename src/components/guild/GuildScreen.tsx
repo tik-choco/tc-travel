@@ -7,6 +7,7 @@ import { useJourneyStats } from "../../lib/journeyStats";
 import { completionStats } from "../map/collection";
 import { GuildCard } from "./GuildCard";
 import { StatsGrid } from "./StatsGrid";
+import { ExplorationPanel } from "./ExplorationPanel";
 import { AchievementsGrid } from "./AchievementsGrid";
 import { Chronicle } from "./Chronicle";
 import { SettingsSection } from "./SettingsSection";
@@ -33,6 +34,7 @@ export function GuildScreen() {
           <span>{t("guild.japanCollection", { count: japan.count, total: japan.total, pct: japan.pct })}</span>
         </p>
       )}
+      <ExplorationPanel />
       <AchievementsGrid stats={stats} />
       <Chronicle />
       <SettingsSection profile={profile} onProfileChange={updateProfile} />
