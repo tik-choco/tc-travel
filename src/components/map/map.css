@@ -902,6 +902,37 @@
   flex: 1;
 }
 
+/* World brag card trigger for the WebGL globe view (MapScreen.tsx) — GlobeMap
+   owns its own stat card + "New Encounter" FAB, so this is a standalone
+   secondary button on the opposite corner, echoing .fab's (theme.css) look
+   without touching that shared class. */
+.map-world-brag-fab {
+  position: fixed;
+  left: max(1rem, env(safe-area-inset-left));
+  bottom: var(--fab-bottom);
+  z-index: 40;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-full);
+  background: var(--surface-container-high);
+  color: var(--on-surface);
+  border: 1px solid color-mix(in srgb, var(--gold) 55%, var(--outline-variant));
+  box-shadow: var(--shadow-2);
+  cursor: pointer;
+}
+
+.map-world-brag-fab:hover {
+  background: color-mix(in srgb, var(--gold) 10%, var(--surface-container-high));
+  box-shadow: var(--shadow-3);
+}
+
+.map-world-brag-fab:active {
+  transform: scale(0.94);
+}
+
 /* Motion opt-out for everything the Japan drill-down adds. */
 @media (prefers-reduced-motion: reduce) {
   .jp-overlay,

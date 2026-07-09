@@ -34,6 +34,7 @@ import { setProfileAvatar } from "../../lib/avatar";
 import { listDriveFiles, loadDriveFileBytes, type DriveFileEntry } from "../../lib/drive/reader";
 import { loadTownCharacters, subscribeTownCharacters, type CharacterIndexEntry } from "../../lib/town/characterIndex";
 import { resolveTownVrmBytes } from "../../lib/town/vrmResolve";
+import { townAppUrl } from "../../lib/town/townLink";
 import { loadAiSettings, saveAiSettings } from "../../lib/ai/aiSettings";
 import type { Companion } from "../ar/companion";
 import { createArScene, type ArScene } from "../ar/arScene";
@@ -224,18 +225,16 @@ export function AvatarScreen() {
     [mode, swapCompanion],
   );
 
-  // Both the empty-state hero button and the stage upload button land here. A
-  // drive with at least one .vrm file, or at least one published tc-town
-  // character, gets a chooser sheet (device vs. drive vs. tc-town);
-  // otherwise behavior is unchanged — straight to the native file picker.
+  // Both the empty-state hero button and the stage upload button land here.
+  // Always opens the chooser sheet (device vs. drive vs. tc-town) rather than
+  // skipping straight to the native file picker when drive/tc-town are empty:
+  // the tc-town section always renders something now — either the character
+  // list or the P0-4 cross-sell card pointing at tc-town's character
+  // workshop — so it's never a dead end to show it.
   function handleLoadClick(): void {
     const entries = listDriveFiles({ extensions: [".vrm"] });
     setDriveEntries(entries);
-    if (entries.length > 0 || townEntries.length > 0) {
-      setShowVrmChooser(true);
-      return;
-    }
-    fileInputRef.current?.click();
+    setShowVrmChooser(true);
   }
 
   function handleChooseFromDevice(): void {
@@ -374,9 +373,10 @@ export function AvatarScreen() {
     <input ref={fileInputRef} type="file" accept=".vrm" class="avatar-file-input" onChange={handleFileChange} />
   );
 
-  // "Device" vs. "Drive" source picker — only ever opened when driveEntries
-  // is non-empty (handleLoadClick skips straight to the native file input
-  // otherwise).
+  // "Device" vs. "Drive" vs. "tc-town" source picker — always available from
+  // handleLoadClick; the drive section is simply empty when driveEntries is
+  // empty, and the tc-town section falls back to the P0-4 cross-sell card
+  // when townEntries is empty.
   const vrmChooserSheet = showVrmChooser && (
     <div
       class="modal-backdrop"
@@ -427,31 +427,46 @@ export function AvatarScreen() {
             );
           })}
 
-          {townEntries.length > 0 && (
-            <>
-              <p class="avatar-chooser-section-label">
-                <Users size={14} aria-hidden="true" />
-                {t("avatar.chooserFromTown")}
-              </p>
-              {townEntries.map((entry) => (
-                <button
-                  key={entry.id}
-                  type="button"
-                  class="list-item"
-                  onClick={() => handleChooseTownEntry(entry)}
-                >
-                  <span class="list-item-body">
-                    <span class="list-item-title">{entry.name}</span>
-                    <span class="list-item-sub">{entry.summary}</span>
+          <p class="avatar-chooser-section-label">
+            <Users size={14} aria-hidden="true" />
+            {t("avatar.chooserFromTown")}
+          </p>
+          {townEntries.length > 0 ? (
+            townEntries.map((entry) => (
+              <button
+                key={entry.id}
+                type="button"
+                class="list-item"
+                onClick={() => handleChooseTownEntry(entry)}
+              >
+                <span class="list-item-body">
+                  <span class="list-item-title">{entry.name}</span>
+                  <span class="list-item-sub">{entry.summary}</span>
+                </span>
+                {(entry.vrmChecksum || entry.vrmCid) && (
+                  <span class="list-item-trailing" aria-label={t("avatar.chooserHasVrm")}>
+                    <Box size={16} aria-hidden="true" />
                   </span>
-                  {(entry.vrmChecksum || entry.vrmCid) && (
-                    <span class="list-item-trailing" aria-label={t("avatar.chooserHasVrm")}>
-                      <Box size={16} aria-hidden="true" />
-                    </span>
-                  )}
-                </button>
-              ))}
-            </>
+                )}
+              </button>
+            ))
+          ) : (
+            // P0-4 cross-sell: the character-index receiving end is otherwise
+            // silent when tc-town hasn't published anything yet — spell out
+            // that this is where a tc-town character would show up, and offer
+            // a direct hand-off (new tab; same-origin sibling subpath).
+            <div class="avatar-town-empty">
+              <p class="avatar-town-empty-hint">{t("avatar.townEmptyHint")}</p>
+              <a
+                class="btn btn-ghost btn-block avatar-town-empty-link"
+                href={townAppUrl()}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Sparkles size={16} aria-hidden="true" />
+                {t("avatar.townEmptyOpen")}
+              </a>
+            </div>
           )}
         </div>
       </div>

@@ -205,6 +205,16 @@ export const soloTranslations = {
     de: "Halte deinen ersten Ort fest",
     pt: "Marque seu primeiro lugar",
   },
+  "solo.welcomeDismiss": {
+    en: "Dismiss",
+    ja: "閉じる",
+    zh: "关闭",
+    ko: "닫기",
+    es: "Descartar",
+    fr: "Ignorer",
+    de: "Schließen",
+    pt: "Dispensar",
+  },
 } satisfies Record<string, TranslationEntry>;
 
 registerTranslations(soloTranslations);

@@ -94,7 +94,9 @@ export function App() {
       <>
         <Header />
         <div class="app-content">
-          {activeTab === "home" && <Home onStartJourney={goToMap} />}
+          {activeTab === "home" && (
+            <Home onStartJourney={goToMap} onOpenAvatar={() => setTab("avatar")} onOpenDiary={() => setTab("diary")} />
+          )}
           {activeTab === "map" && <MapScreen />}
           {activeTab === "album" && <AlbumScreen />}
           {activeTab === "diary" && <DiaryScreen />}

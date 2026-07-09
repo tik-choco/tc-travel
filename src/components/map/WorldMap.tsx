@@ -15,6 +15,7 @@ import { EncounterSheet, type SheetTarget } from "./EncounterSheet";
 import { useJapanCollection } from "./japanGeo";
 import { JapanMap } from "./JapanMap";
 import { BragCard } from "./BragCard";
+import { WorldBragCard } from "./WorldBragCard";
 import "./map.i18n";
 import "./map.css";
 
@@ -79,6 +80,7 @@ export function WorldMap() {
   const [sheet, setSheet] = useState<SheetTarget | null>(null);
   const [jpOpen, setJpOpen] = useState(false);
   const [bragOpen, setBragOpen] = useState(false);
+  const [worldBragOpen, setWorldBragOpen] = useState(false);
 
   const svgRef = useRef<SVGSVGElement | null>(null);
   const viewRef = useRef<ViewState>({ x: 0, y: 0, scale: 1 });
@@ -479,16 +481,25 @@ export function WorldMap() {
                 </span>
               ))}
             </div>
-            {japanUnlocked && (
+            {(japanUnlocked || visited.size > 0) && (
               <div class="map-japan-row">
-                <button type="button" class="map-continent-chip map-japan-chip" onClick={() => setJpOpen(true)}>
-                  🇯🇵 {t("map.jp.open")}
-                  {japan.prefs ? ` ${japan.visited.size}/${japan.prefs.length}` : ""}
-                  <ChevronRight size={12} />
-                </button>
-                {japan.visited.size > 0 && (
+                {japanUnlocked && (
+                  <button type="button" class="map-continent-chip map-japan-chip" onClick={() => setJpOpen(true)}>
+                    🇯🇵 {t("map.jp.open")}
+                    {japan.prefs ? ` ${japan.visited.size}/${japan.prefs.length}` : ""}
+                    <ChevronRight size={12} />
+                  </button>
+                )}
+                {japanUnlocked && japan.visited.size > 0 && (
                   <button type="button" class="map-continent-chip map-japan-chip" onClick={() => setBragOpen(true)}>
                     <Sparkles size={12} /> {t("map.brag.make")}
+                  </button>
+                )}
+                {/* World brag card: available as soon as any country is visited,
+                    regardless of the Japan drill-down being unlocked. */}
+                {visited.size > 0 && (
+                  <button type="button" class="map-continent-chip map-japan-chip" onClick={() => setWorldBragOpen(true)}>
+                    <Sparkles size={12} /> {t("map.brag.makeWorld")}
                   </button>
                 )}
               </div>
@@ -540,6 +551,7 @@ export function WorldMap() {
       )}
 
       {bragOpen && <BragCard onClose={() => setBragOpen(false)} />}
+      {worldBragOpen && <WorldBragCard onClose={() => setWorldBragOpen(false)} />}
 
       {sheet && (
         <EncounterSheet

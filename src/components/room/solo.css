@@ -169,6 +169,7 @@
 /* ---------------------------------------------------------------------- */
 
 .solo-welcome {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -186,6 +187,30 @@
       transparent 70%
     ),
     var(--surface-container);
+}
+
+/* Closing is a one-way, persisted decision — a quiet corner control, not a
+   competing CTA, so it never fights with the primary "mark your first place"
+   button for attention. */
+.solo-welcome-dismiss {
+  position: absolute;
+  top: 0.6rem;
+  right: 0.6rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: var(--radius-full);
+  color: var(--on-surface-variant);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.solo-welcome-dismiss:hover {
+  background: color-mix(in srgb, var(--on-surface) var(--state-hover), transparent);
 }
 
 /* The scene: a trail of footsteps walking toward the compass. */

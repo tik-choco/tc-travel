@@ -25,6 +25,8 @@ dist-ssr
 # Claude Code session artifacts
 .claude/
 
+docs/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

@@ -9,6 +9,8 @@
 // The globe deliberately imports neither the viewer nor the drill-down (they
 // were built concurrently), so this thin layer is the single place they meet.
 import { useMemo, useState } from "preact/hooks";
+import { Sparkles } from "lucide-preact";
+import { useT } from "../../lib/i18n";
 import type { AlbumPhoto, Member } from "../../lib/types";
 import { useMembers } from "../../lib/store";
 import { useProfile } from "../../lib/personal";
@@ -16,13 +18,18 @@ import { useAlbumPhotos, removeAlbumPhoto } from "../../lib/memories";
 import { WorldMap } from "./WorldMap";
 import { JapanMap } from "./JapanMap";
 import { BragCard } from "./BragCard";
+import { WorldBragCard } from "./WorldBragCard";
+import { useVisitedCountries } from "./worldCollection";
 import { PhotoViewer } from "../album/PhotoViewer";
 import { supportsWebGL } from "./globe/supportsWebgl";
 import { GlobeMapLazy } from "./globe/GlobeMapLazy";
 import { SubnationalMap } from "./subnational/SubnationalMap";
 import { subnationalEntry, SUBNATIONAL_COUNTRY_CODES } from "./subnational/registry";
+import "./map.i18n";
+import "./map.css";
 
 export function MapScreen() {
+  const t = useT();
   // Probe once per mount — WebGL availability is a fixed property of the device.
   const webgl = useMemo(() => supportsWebGL(), []);
   const albumPhotos = useAlbumPhotos();
@@ -31,6 +38,11 @@ export function MapScreen() {
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
   const [drillCountry, setDrillCountry] = useState<string | null>(null);
   const [bragOpen, setBragOpen] = useState(false);
+  // GlobeMap owns its own stat card chrome (not ours to edit), so the world
+  // brag trigger lives here instead as a standalone secondary button — same
+  // gating (hidden until a country is actually visited) as WorldMap's chip.
+  const visited = useVisitedCountries();
+  const [worldBragOpen, setWorldBragOpen] = useState(false);
 
   // Fold the local profile in as a synthetic member so a SOLO photo (whose `by`
   // is the local profile id, absent from the room's member map) still reads as
@@ -75,6 +87,19 @@ export function MapScreen() {
         drillDownCodes={SUBNATIONAL_COUNTRY_CODES as string[]}
       />
 
+      {/* World brag card trigger — opposite corner from GlobeMap's own "New
+          Encounter" FAB, hidden until there's actually a country to brag about. */}
+      {visited.size > 0 && (
+        <button
+          type="button"
+          class="map-world-brag-fab"
+          onClick={() => setWorldBragOpen(true)}
+          aria-label={t("map.brag.makeWorld")}
+        >
+          <Sparkles size={22} />
+        </button>
+      )}
+
       {viewerIndex !== null && albumPhotos[viewerIndex] && (
         <PhotoViewer
           photos={albumPhotos}
@@ -100,6 +125,7 @@ export function MapScreen() {
         <SubnationalMap countryCode={drillCountry} onClose={() => setDrillCountry(null)} />
       )}
       {bragOpen && <BragCard onClose={() => setBragOpen(false)} />}
+      {worldBragOpen && <WorldBragCard onClose={() => setWorldBragOpen(false)} />}
     </>
   );
 }

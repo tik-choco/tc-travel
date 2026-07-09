@@ -1,12 +1,39 @@
-// A warm, self-contained welcome for a traveller journeying alone with nothing
-// recorded yet. Mounted by the orchestrator on an empty solo hub. Going solo
-// should feel inviting, not lonely: a little trail of footsteps walks toward
-// the compass (the app's identity glyph — the same one Avatar falls back to),
-// and the copy frames one person as already a whole journey.
+// A warm, self-contained welcome for a traveller journeying alone. Mounted by
+// the orchestrator for as long as no party has been joined (not just in the
+// first empty instant) — going solo is a whole valid way to play, so this
+// stays around as a standing invitation rather than flashing once and
+// disappearing. Going solo should feel inviting, not lonely: a little trail
+// of footsteps walks toward the compass (the app's identity glyph — the same
+// one Avatar falls back to), and the copy frames one person as already a
+// whole journey.
+//
+// Self-dismissible: closing it (✕) is a one-way decision, persisted in
+// localStorage under the app's `tc-travel:` key prefix, so it never resurfaces
+// for that install even if the traveller stays partyless forever.
 import "./solo.i18n";
 import "./solo.css";
-import { Footprints } from "lucide-preact";
+import { useState } from "preact/hooks";
+import { Footprints, X } from "lucide-preact";
 import { useT } from "../../lib/i18n";
+
+const DISMISSED_KEY = "tc-travel:soloWelcomeDismissed";
+
+function loadDismissed(): boolean {
+  try {
+    return localStorage.getItem(DISMISSED_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function persistDismissed(): void {
+  try {
+    localStorage.setItem(DISMISSED_KEY, "1");
+  } catch {
+    // storage full / unavailable (private mode) — worst case the card just
+    // reappears next time; nothing else depends on this persisting.
+  }
+}
 
 export function SoloWelcome(props: {
   /** CTA the parent wires (e.g. open capture to record the first place).
@@ -14,8 +41,25 @@ export function SoloWelcome(props: {
   onStart?: () => void;
 }) {
   const t = useT();
+  const [dismissed, setDismissed] = useState(loadDismissed);
+
+  if (dismissed) return null;
+
+  function handleDismiss() {
+    persistDismissed();
+    setDismissed(true);
+  }
+
   return (
     <section class="solo-welcome" aria-label={t("solo.welcomeTitle")}>
+      <button
+        type="button"
+        class="solo-welcome-dismiss"
+        aria-label={t("solo.welcomeDismiss")}
+        onClick={handleDismiss}
+      >
+        <X size={16} aria-hidden="true" />
+      </button>
       <div class="solo-welcome-scene" aria-hidden="true">
         <span class="solo-welcome-glow" />
         <span class="solo-welcome-step solo-welcome-step-1" />

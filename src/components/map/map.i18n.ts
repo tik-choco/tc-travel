@@ -242,6 +242,14 @@ registerTranslations({
     en: "My Japan Conquest", ja: "わたしの日本踏破", zh: "我的日本足迹", ko: "나의 일본 정복",
     es: "Mi Conquista de Japón", fr: "Ma Conquête du Japon", de: "Meine Japan-Eroberung", pt: "Minha Conquista do Japão",
   },
+  "map.brag.makeWorld": {
+    en: "World Card", ja: "世界カード", zh: "世界卡片", ko: "세계 카드",
+    es: "Tarjeta Mundial", fr: "Carte du Monde", de: "Weltkarte", pt: "Cartão Mundial",
+  },
+  "map.brag.worldTitle": {
+    en: "My World Conquest", ja: "わたしの世界踏破", zh: "我的世界足迹", ko: "나의 세계 정복",
+    es: "Mi Conquista del Mundo", fr: "Ma Conquête du Monde", de: "Meine Welt-Eroberung", pt: "Minha Conquista do Mundo",
+  },
   "map.brag.share": {
     en: "Share", ja: "共有", zh: "分享", ko: "공유",
     es: "Compartir", fr: "Partager", de: "Teilen", pt: "Compartilhar",
