@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "preact/hooks";
-import { ImagePlus, Monitor, Moon, Sun, Trash2, Upload } from "lucide-preact";
+import { Compass, ImagePlus, Monitor, Moon, Sun, Trash2, Upload } from "lucide-preact";
 import type { Language, Profile, ThemePref } from "../../lib/types";
 import { LANGUAGES } from "../../lib/types";
 import { LANGUAGE_LABELS, getLanguage, setLanguage, useT } from "../../lib/i18n";
@@ -9,6 +9,7 @@ import { setMemberVrmBytes } from "../../lib/store";
 import { clearVrmBytes, loadVrmBytes, saveVrmBytes } from "../ar/vrmStorage";
 import { Avatar } from "../common/Avatar";
 import { loadAiSettings, saveAiSettings, type AiCompanionSettings } from "../../lib/ai/aiSettings";
+import { requestOnboarding } from "../../lib/onboarding";
 
 interface SettingsSectionProps {
   profile: Profile;
@@ -250,6 +251,13 @@ export function SettingsSection({ profile, onProfileChange }: SettingsSectionPro
             />
           ))}
         </div>
+      </div>
+
+      <div class="settings-row">
+        <span class="settings-label">{t("settings.onboardingHint")}</span>
+        <button type="button" class="btn btn-outlined" onClick={requestOnboarding}>
+          <Compass size={16} /> {t("settings.onboardingReplay")}
+        </button>
       </div>
 
       <h2 class="title-ornate guild-section-title">{t("settings.ai.title")}</h2>

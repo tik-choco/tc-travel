@@ -17,6 +17,10 @@ const JOURNEY_KEY = "tc-travel:journey";
 const AVATAR_EMOJIS = ["\u{1F9ED}", "\u{1F5FA}️", "⚔️", "\u{1F6E1}️", "\u{1F3F9}", "\u{1F52E}", "\u{1F409}", "\u{1F989}"];
 const PROFILE_COLORS = ["#c9a227", "#8c2f28", "#4a6fa5", "#5a8f5a", "#a5527a", "#e8925c"];
 
+/** The name every fresh profile starts with — exported so onboarding.ts can
+ *  tell a genuinely new install apart from one that already personalized it. */
+export const DEFAULT_PROFILE_NAME = "Wanderer";
+
 function randomOf<T>(arr: readonly T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
 }
@@ -30,7 +34,7 @@ function loadProfileFromStorage(): Profile {
   }
   const profile: Profile = {
     id: crypto.randomUUID(),
-    name: "Wanderer",
+    name: DEFAULT_PROFILE_NAME,
     color: randomOf(PROFILE_COLORS),
     avatarEmoji: randomOf(AVATAR_EMOJIS),
     language: "auto",
@@ -95,6 +99,11 @@ export function touchJoinedRoom(roomId: string, name: string): void {
   if (idx >= 0) rooms[idx] = entry;
   else rooms.push(entry);
   saveJoinedRooms(rooms);
+}
+
+/** Non-hook count for use outside components (onboarding.ts's fresh-install check). */
+export function joinedRoomCount(): number {
+  return loadJoinedRooms().length;
 }
 
 export function useJoinedRooms(): JoinedRoom[] {

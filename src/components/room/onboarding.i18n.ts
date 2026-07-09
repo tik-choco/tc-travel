@@ -1,0 +1,175 @@
+// Translations for the first-run onboarding wizard (Onboarding.tsx). Nav and
+// field labels are deliberately reused from room.i18n.ts/common.i18n.ts
+// (profile.*, tab.short.*, common.back/close) rather than duplicated here —
+// only copy unique to the wizard lives in this file.
+import { registerTranslations, type TranslationEntry } from "../../lib/i18n";
+
+export const onboardingTranslations = {
+  // --- Step 0: welcome ---------------------------------------------------
+  "onboarding.welcomeTitle": {
+    en: "Welcome to TC Travel",
+    ja: "TC Travel へようこそ",
+    zh: "欢迎来到 TC Travel",
+    ko: "TC Travel에 오신 것을 환영해요",
+    es: "Bienvenido a TC Travel",
+    fr: "Bienvenue sur TC Travel",
+    de: "Willkommen bei TC Travel",
+    pt: "Bem-vindo ao TC Travel",
+  },
+  "onboarding.welcomeBody1": {
+    en: "This is your traveler's guild — record every place, photo and story from your travels, and watch the world map fill in as you go.",
+    ja: "ここはあなたの冒険者ギルド。旅先の場所や写真、物語を記録すると、世界地図が少しずつ彩られていきます。",
+    zh: "这里是你的旅行者公会——记录旅途中的每一个地点、照片和故事，世界地图也会随之逐渐点亮。",
+    ko: "이곳은 당신의 여행자 길드예요. 여행지의 장소와 사진, 이야기를 기록하면 세계 지도가 조금씩 채워져요.",
+    es: "Este es tu gremio de viajeros: registra cada lugar, foto e historia de tus viajes, y observa cómo se va llenando el mapa del mundo.",
+    fr: "Voici votre guilde de voyageurs : enregistrez chaque lieu, photo et récit de vos voyages, et regardez la carte du monde se remplir peu à peu.",
+    de: "Das ist deine Reisegilde — halte jeden Ort, jedes Foto und jede Geschichte deiner Reisen fest und beobachte, wie sich die Weltkarte nach und nach füllt.",
+    pt: "Esta é sua guilda de viajantes — registre cada lugar, foto e história das suas viagens, e veja o mapa-múndi se preencher aos poucos.",
+  },
+  "onboarding.welcomeBody2": {
+    en: "Travel solo at your own pace, or form a party with family and friends to share the journey together.",
+    ja: "ひとりで自分のペースで旅してもいいし、家族や友達とパーティーを組んでいっしょに旅してもいい。",
+    zh: "既可以独自按自己的节奏旅行，也可以和家人朋友组队一起分享旅程。",
+    ko: "혼자 자기만의 속도로 여행해도 좋고, 가족이나 친구와 파티를 이뤄 함께 여정을 나눠도 좋아요.",
+    es: "Viaja en solitario a tu propio ritmo, o forma un grupo con familiares y amigos para compartir el viaje juntos.",
+    fr: "Voyagez en solo à votre rythme, ou formez un groupe avec famille et amis pour partager le voyage ensemble.",
+    de: "Reise allein in deinem eigenen Tempo oder gründe mit Familie und Freunden eine Gruppe, um die Reise gemeinsam zu erleben.",
+    pt: "Viaje sozinho no seu próprio ritmo, ou forme um grupo com família e amigos para compartilhar a jornada juntos.",
+  },
+  "onboarding.begin": {
+    en: "Get Started", ja: "はじめる", zh: "开始", ko: "시작하기",
+    es: "Empezar", fr: "Commencer", de: "Los geht's", pt: "Começar",
+  },
+  "onboarding.next": {
+    en: "Next", ja: "次へ", zh: "下一步", ko: "다음",
+    es: "Siguiente", fr: "Suivant", de: "Weiter", pt: "Próximo",
+  },
+
+  // --- Step 1: profile (name / emblem / language) -------------------------
+  "onboarding.profileTitle": {
+    en: "Make it yours",
+    ja: "あなたらしくカスタマイズ",
+    zh: "打造属于你的形象",
+    ko: "나만의 모습으로 꾸미기",
+    es: "Hazlo tuyo",
+    fr: "Personnalisez-le",
+    de: "Mach es zu deinem",
+    pt: "Deixe do seu jeito",
+  },
+  "onboarding.profileBody": {
+    en: "This is the name and emblem your party will see. You can always change it later from your Guild Card.",
+    ja: "これはパーティーのみんなに見える名前と紋章です。あとからギルドカードでいつでも変更できます。",
+    zh: "这是队友们会看到的名字和徽记，之后也可以随时在公会卡中修改。",
+    ko: "이건 파티원들에게 보여질 이름과 문장이에요. 나중에 길드 카드에서 언제든 바꿀 수 있어요.",
+    es: "Este es el nombre y el emblema que verá tu grupo. Siempre puedes cambiarlo después desde tu Carné de Gremio.",
+    fr: "Voici le nom et l'emblème que votre groupe verra. Vous pourrez toujours les modifier plus tard depuis votre Carte de Guilde.",
+    de: "Das sind Name und Emblem, die deine Gruppe sieht. Du kannst sie später jederzeit über deine Gildenkarte ändern.",
+    pt: "Este é o nome e o emblema que seu grupo verá. Você pode sempre alterá-los depois no seu Cartão de Guilda.",
+  },
+
+  // --- Step 2: feature tour -------------------------------------------------
+  "onboarding.tourTitle": {
+    en: "What you'll find here",
+    ja: "できること",
+    zh: "你可以做什么",
+    ko: "무엇을 할 수 있나요",
+    es: "Qué encontrarás aquí",
+    fr: "Ce que vous trouverez ici",
+    de: "Was dich erwartet",
+    pt: "O que você vai encontrar",
+  },
+  "onboarding.tourMapBody": {
+    en: "Every pin you drop lights up the world atlas — a living map of everywhere you've been.",
+    ja: "記録した場所がピンとして世界地図に灯り、あなたが訪れた場所が地図になっていきます。",
+    zh: "记录的每个地点都会在世界地图上点亮一个图钉——变成你走过之处的活地图。",
+    ko: "기록한 장소마다 세계 지도에 핀이 켜져요. 당신이 다녀간 곳들이 살아있는 지도가 돼요.",
+    es: "Cada lugar que marques se ilumina en el atlas mundial: un mapa vivo de todos los sitios por los que has pasado.",
+    fr: "Chaque lieu que vous épinglez s'illumine sur l'atlas mondial — une carte vivante de tous vos passages.",
+    de: "Jeder gesetzte Pin leuchtet auf der Weltkarte auf — eine lebendige Karte all deiner bisherigen Orte.",
+    pt: "Cada lugar marcado acende um pino no atlas mundial — um mapa vivo de tudo por onde você já passou.",
+  },
+  "onboarding.tourDiaryBody": {
+    en: "Write down what happened — a page for every day worth remembering.",
+    ja: "その日にあったことを書き残そう。忘れたくない一日を、一ページに。",
+    zh: "写下发生的事情——值得纪念的每一天都有专属的一页。",
+    ko: "그날 있었던 일을 적어보세요. 기억하고 싶은 하루마다 한 페이지씩.",
+    es: "Anota lo que sucedió: una página por cada día que merezca ser recordado.",
+    fr: "Notez ce qui s'est passé — une page pour chaque journée qui mérite d'être retenue.",
+    de: "Halte fest, was passiert ist — eine Seite für jeden Tag, der es wert ist, erinnert zu werden.",
+    pt: "Anote o que aconteceu — uma página para cada dia que vale a pena lembrar.",
+  },
+  "onboarding.tourAlbumBody": {
+    en: "Every photo you take is kept safe here, sorted by the trip that made it.",
+    ja: "撮った写真はここに大切に保管され、旅ごとに整理されます。",
+    zh: "拍下的每张照片都会安全保存在这里，并按旅程分类整理。",
+    ko: "찍은 사진은 모두 이곳에 안전하게 보관되고, 여행별로 정리돼요.",
+    es: "Cada foto que tomes se guarda a salvo aquí, organizada según el viaje que la originó.",
+    fr: "Chaque photo prise est conservée précieusement ici, classée par voyage.",
+    de: "Jedes aufgenommene Foto wird hier sicher aufbewahrt, sortiert nach der jeweiligen Reise.",
+    pt: "Cada foto tirada fica guardada aqui com segurança, organizada pela viagem que a originou.",
+  },
+  "onboarding.tourAvatarBody": {
+    en: "Grow a 3D companion who greets you at home and can join you in AR.",
+    ja: "あなただけの3Dコンパニオンを育てよう。ホームで出迎え、ARにもいっしょに登場します。",
+    zh: "培养一个专属的3D同伴，它会在主页迎接你，也能一起出现在AR中。",
+    ko: "나만의 3D 컴패니언을 키워보세요. 홈에서 맞이하고 AR에도 함께해요.",
+    es: "Haz crecer a un compañero 3D que te reciba en casa y pueda acompañarte en RA.",
+    fr: "Faites grandir un compagnon 3D qui vous accueille chez vous et peut vous rejoindre en RA.",
+    de: "Lass einen 3D-Begleiter wachsen, der dich zu Hause begrüßt und dich in AR begleiten kann.",
+    pt: "Faça crescer um companheiro 3D que te recebe em casa e pode te acompanhar no AR.",
+  },
+  "onboarding.tourPostBody": {
+    en: "Trade guild cards with people you meet — a keepsake of everyone you've traveled alongside.",
+    ja: "出会った人とギルドカードを交換しよう。いっしょに旅した仲間の証が、手元に残ります。",
+    zh: "与遇到的人交换公会卡——留下与你同行过的每一位旅伴的纪念。",
+    ko: "만난 사람들과 길드 카드를 교환해요. 함께 여행한 모든 이의 기념이 손안에 남아요.",
+    es: "Intercambia carnés de gremio con la gente que conozcas: un recuerdo de cada compañero de viaje.",
+    fr: "Échangez des cartes de guilde avec les personnes que vous rencontrez — un souvenir de chaque compagnon de voyage.",
+    de: "Tausche Gildenkarten mit Leuten, die du triffst — ein Andenken an jeden, mit dem du gereist bist.",
+    pt: "Troque cartões de guilda com as pessoas que encontrar — uma lembrança de cada companheiro de viagem.",
+  },
+  "onboarding.tourGuildBody": {
+    en: "Track your rank, streak and achievements, and manage your settings — all in one card.",
+    ja: "ランクや連続記録、実績はここでチェック。設定もこの一枚にまとまっています。",
+    zh: "在这里查看你的等级、连续记录和成就，设置也都汇总在这张卡片里。",
+    ko: "랭크와 연속 기록, 업적을 확인하고 설정도 관리할 수 있는 카드예요.",
+    es: "Consulta tu rango, racha y logros, y gestiona tus ajustes, todo en una sola tarjeta.",
+    fr: "Suivez votre rang, votre série et vos hauts faits, et gérez vos réglages — tout sur une seule carte.",
+    de: "Verfolge deinen Rang, deine Serie und deine Erfolge und verwalte deine Einstellungen — alles auf einer Karte.",
+    pt: "Acompanhe seu ranque, sequência e conquistas, e gerencie suas configurações — tudo em um só cartão.",
+  },
+
+  // --- Step 3: done -----------------------------------------------------
+  "onboarding.doneTitle": {
+    en: "You're ready!",
+    ja: "準備完了です！",
+    zh: "准备就绪！",
+    ko: "준비 완료!",
+    es: "¡Estás listo!",
+    fr: "Vous êtes prêt !",
+    de: "Du bist bereit!",
+    pt: "Você está pronto!",
+  },
+  "onboarding.doneBody": {
+    en: (p) => `Welcome aboard, ${p.name}. Record your first place whenever you're ready — solo or with a party.`,
+    ja: (p) => `ようこそ、${p.name}さん。準備ができたら、最初の場所を記録してみましょう。ひとりでも、パーティーでも。`,
+    zh: (p) => `欢迎加入，${p.name}。准备好后，记录下你的第一个地点吧——独自一人，或与队伍一起。`,
+    ko: (p) => `${p.name}님, 환영해요. 준비되면 첫 장소를 기록해보세요. 혼자서도, 파티와 함께여도 좋아요.`,
+    es: (p) => `Bienvenido a bordo, ${p.name}. Registra tu primer lugar cuando estés listo, en solitario o con un grupo.`,
+    fr: (p) => `Bienvenue à bord, ${p.name}. Enregistrez votre premier lieu quand vous serez prêt — seul ou en groupe.`,
+    de: (p) => `Willkommen an Bord, ${p.name}. Halte deinen ersten Ort fest, sobald du bereit bist — allein oder mit einer Gruppe.`,
+    pt: (p) => `Bem-vindo a bordo, ${p.name}. Registre seu primeiro lugar quando estiver pronto — sozinho ou em grupo.`,
+  },
+  "onboarding.doneHint": {
+    en: "Look for the party invite on the Home screen anytime you want to travel together.",
+    ja: "いっしょに旅したくなったら、ホーム画面のパーティー招待をチェックしてね。",
+    zh: "想要结伴旅行时，随时可以在主页查看队伍邀请。",
+    ko: "함께 여행하고 싶을 땐 언제든 홈 화면의 파티 초대를 확인하세요.",
+    es: "Busca la invitación a un grupo en la pantalla de Inicio cuando quieras viajar acompañado.",
+    fr: "Retrouvez l'invitation de groupe sur l'écran d'accueil dès que vous voudrez voyager ensemble.",
+    de: "Schau jederzeit auf dem Startbildschirm nach der Gruppeneinladung, wenn du gemeinsam reisen möchtest.",
+    pt: "Procure o convite de grupo na tela inicial sempre que quiser viajar acompanhado.",
+  },
+} satisfies Record<string, TranslationEntry>;
+
+registerTranslations(onboardingTranslations);
