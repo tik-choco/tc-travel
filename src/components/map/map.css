@@ -391,23 +391,33 @@
   }
 }
 
-/* Empty-state overlay — shown centered over the map when there are no pins */
+/* Empty-state hint — anchored low, clear of the FAB, so the whole map/globe
+   stays free to tap or drag. A dead-center card would sit right on top of the
+   spot users most want to select first. */
 
 .map-empty-overlay {
   position: absolute;
   inset: 0;
   z-index: 4;
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: center;
   pointer-events: none;
   padding: 16px;
+  padding-bottom: 88px;
 }
 
 .map-empty-card {
   pointer-events: auto;
   max-width: 300px;
+  padding: 1rem 1.25rem;
   box-shadow: var(--shadow-2);
+}
+
+.map-empty-card .empty-state-icon {
+  width: 40px;
+  height: 40px;
+  margin-bottom: 0;
 }
 
 /* Encounter bottom sheet */
