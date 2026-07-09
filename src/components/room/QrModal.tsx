@@ -1,9 +1,10 @@
 import "./room.i18n";
 import { useEffect, useRef, useState } from "preact/hooks";
-import { X, Copy, Check, Share } from "lucide-preact";
+import { X, Copy, Check, Share, MessageCircle } from "lucide-preact";
 import { useT } from "../../lib/i18n";
 import { renderQr, buildJoinUrl, parseJoinInput, startQrScan } from "../../lib/qr";
-import { joinRoom } from "../../lib/store";
+import { joinRoom, useSession } from "../../lib/store";
+import { guildChatUrl } from "../../lib/family/guildChatLink";
 
 interface Props {
   roomId: string;
@@ -22,6 +23,15 @@ export function QrModal({ roomId, onClose, initialTab = "show" }: Props) {
   const [scanError, setScanError] = useState(false);
 
   const joinUrl = canShow ? buildJoinUrl(roomId) : "";
+
+  // Only meaningful when this modal represents the currently-joined room (not
+  // the solo/Home "scan a friend's invite" invocation, which passes roomId="").
+  // Gives the invite text a party name to reference, and lets the group-chat
+  // hand-off below reuse the exact room id/name pair the party already agreed on.
+  const session = useSession();
+  const inRoomSession = canShow && session && session.roomId === roomId ? session : null;
+  const roomName = inRoomSession?.meta.name ?? "";
+  const inviteText = roomName ? t("qr.inviteTextNamed", { name: roomName }) : t("qr.inviteText");
 
   useEffect(() => {
     if (tab !== "show" || !canvasRef.current) return;
@@ -75,7 +85,10 @@ export function QrModal({ roomId, onClose, initialTab = "show" }: Props) {
 
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(joinUrl);
+      // Carries the invitation's context (what this is, whose party) along
+      // with the bare link — a URL alone means nothing dropped into a LINE/X
+      // thread without the surrounding chat for context.
+      await navigator.clipboard.writeText(`${inviteText}\n${joinUrl}`);
       setCopied(true);
       window.setTimeout(() => setCopied(false), 1500);
     } catch (err) {
@@ -85,10 +98,16 @@ export function QrModal({ roomId, onClose, initialTab = "show" }: Props) {
 
   const handleShare = async () => {
     try {
-      await navigator.share({ url: joinUrl });
+      await navigator.share({ title: t("qr.title"), text: inviteText, url: joinUrl });
     } catch (err) {
       console.error("tc-travel: native share failed", err);
     }
+  };
+
+  const handleOpenGroupChat = () => {
+    // New tab: this tab owns the live P2P session, and navigating away here
+    // would tear it down (see GuildChatLink.tsx, which hands off the same way).
+    window.open(guildChatUrl(roomId, roomName), "_blank", "noopener,noreferrer");
   };
 
   return (
@@ -138,6 +157,14 @@ export function QrModal({ roomId, onClose, initialTab = "show" }: Props) {
                 </button>
               )}
             </div>
+            {inRoomSession && (
+              <div class="qr-actions">
+                <button type="button" class="btn btn-outlined" onClick={handleOpenGroupChat}>
+                  <MessageCircle aria-hidden="true" />
+                  {t("qr.groupChat")}
+                </button>
+              </div>
+            )}
           </div>
         ) : (
           <>

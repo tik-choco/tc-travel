@@ -1,0 +1,144 @@
+/*
+ * Home's information-priority rework (docs/MARKETING.md P0-3): a brand-new
+ * traveller's first move (AR photo / diary / join a party) and the
+ * always-available AR shortcut for everyone else. Built entirely on
+ * theme.css tokens so light/dark just work, and shares the same visual
+ * language as .home-action-card so the priority slot never looks bolted on.
+ */
+
+/* ---------------------------------------------------------------------- */
+/* First-steps quick actions (brand-new traveller only)                    */
+/* ---------------------------------------------------------------------- */
+
+.home-first-steps {
+  margin-bottom: 1.25rem;
+  padding: 1rem 1rem 1.1rem;
+  background:
+    radial-gradient(
+      130% 90% at 50% 0%,
+      color-mix(in srgb, var(--primary-container) 35%, transparent),
+      transparent 70%
+    ),
+    var(--surface-container);
+  border: 1px solid var(--outline-variant);
+  border-radius: var(--radius-lg);
+}
+.home-first-steps-title {
+  margin: 0 0 0.75rem;
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--on-surface);
+}
+.home-first-steps-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.6rem;
+}
+.home-first-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.85rem 0.4rem;
+  background: var(--surface-container-high);
+  border: 1px solid var(--outline-variant);
+  border-radius: var(--radius-md);
+  color: var(--on-surface);
+  text-align: center;
+  font: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    background-color var(--dur-fast) var(--ease-standard),
+    transform var(--dur-medium) var(--ease-spring);
+}
+.home-first-step:hover {
+  background: color-mix(in srgb, var(--on-surface) var(--state-hover), var(--surface-container-high));
+}
+.home-first-step:active {
+  transform: scale(0.97);
+  background: color-mix(in srgb, var(--on-surface) var(--state-press), var(--surface-container-high));
+}
+@media (prefers-reduced-motion: reduce) {
+  .home-first-step:active {
+    transform: none;
+  }
+}
+.home-first-step-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-full);
+  background: var(--primary-container);
+  color: var(--on-primary-container);
+}
+.home-first-step-icon svg {
+  width: 18px;
+  height: 18px;
+}
+.home-first-step-label {
+  font-size: 0.76rem;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Always-on AR shortcut (everyone else)                                   */
+/* ---------------------------------------------------------------------- */
+
+/* The flagship AR photo feature otherwise sits two taps deep (avatar tab,
+   then its own CTA) — this puts it one tap from Home for travellers who
+   already have a journey underway and so skip the first-steps card above. */
+.home-ar-shortcut {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  margin-bottom: 1.25rem;
+  padding: 0.7rem 0.9rem;
+  background: var(--surface-container);
+  border: 1px solid var(--outline-variant);
+  border-radius: var(--radius-lg);
+  color: var(--on-surface);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color var(--dur-fast) var(--ease-standard);
+}
+.home-ar-shortcut:hover {
+  background: color-mix(in srgb, var(--on-surface) var(--state-hover), var(--surface-container));
+}
+.home-ar-shortcut:active {
+  background: color-mix(in srgb, var(--on-surface) var(--state-press), var(--surface-container));
+}
+.home-ar-shortcut-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex: none;
+  border-radius: var(--radius-full);
+  background: var(--primary-container);
+  color: var(--on-primary-container);
+}
+.home-ar-shortcut-label {
+  flex: 1;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+.home-ar-shortcut svg:last-child {
+  flex: none;
+  color: var(--on-surface-variant);
+}
+
+/* ---------------------------------------------------------------------- */
+/* Compact progress strip (brand-new traveller — no numbers to show yet)   */
+/* ---------------------------------------------------------------------- */
+
+.home-progress-compact {
+  padding: 0.7rem 1rem;
+}

@@ -246,6 +246,32 @@ export const avatarTranslations = {
     de: "Mit Avatar",
     pt: "Com avatar",
   },
+  // Shown in place of the tc-town list when no characters are published yet
+  // (P0-4 cross-sell: this app's character-index receiving end is otherwise
+  // silent about the feature entirely). Keeps the "TC Town" app name, matching
+  // chooserFromTown's existing convention above rather than docs/INTEGRATION.md's
+  // no-app-name rule (that rule defers to prior art when the two conflict).
+  "avatar.townEmptyHint": {
+    en: "Grow a character in TC Town's character workshop, and they'll show up here to join your travels.",
+    ja: "TC Townのキャラクター工房で育てたキャラクターが、ここに現れて旅に同行できます。",
+    zh: "在 TC Town 的角色工坊培养一个角色，它就会出现在这里陪你旅行。",
+    ko: "TC Town의 캐릭터 공방에서 키운 캐릭터가 여기에 나타나 여행에 동행할 수 있어요.",
+    es: "Cría un personaje en el taller de personajes de TC Town y aparecerá aquí para acompañarte en tus viajes.",
+    fr: "Faites grandir un personnage dans l'atelier de personnages de TC Town, et il apparaîtra ici pour vous accompagner en voyage.",
+    de: "Erschaffe einen Charakter in TC Towns Charakterwerkstatt — er erscheint dann hier und begleitet dich auf Reisen.",
+    pt: "Crie um personagem na oficina de personagens do TC Town, e ele aparecerá aqui para te acompanhar nas viagens.",
+  },
+  // Opens tc-town (same-origin sibling app, new tab) from the empty-state card.
+  "avatar.townEmptyOpen": {
+    en: "Open TC Town",
+    ja: "TC Townを開く",
+    zh: "打开 TC Town",
+    ko: "TC Town 열기",
+    es: "Abrir TC Town",
+    fr: "Ouvrir TC Town",
+    de: "TC Town öffnen",
+    pt: "Abrir TC Town",
+  },
   // Toast after picking a tc-town character: confirms the persona (and, if
   // present, the VRM) were applied. {name} is the character's display name.
   "avatar.townCharacterApplied": {

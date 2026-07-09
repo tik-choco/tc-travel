@@ -288,6 +288,27 @@
   letter-spacing: normal;
 }
 
+/* P0-4 cross-sell card, shown in the tc-town chooser section instead of the
+   character list when tc-town hasn't published any characters yet. */
+.avatar-town-empty {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 0.75rem 0.9rem;
+  border-radius: var(--radius-lg);
+  background: var(--surface-container);
+}
+
+.avatar-town-empty-hint {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--on-surface-variant);
+}
+
+.avatar-town-empty-link {
+  justify-content: center;
+}
+
 /* Loading spinner (shared visual with ar.css's .spin; redeclared so the hub
    doesn't depend on ar.css being loaded). */
 .avatar-spin {

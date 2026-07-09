@@ -1,6 +1,18 @@
 import "./room.i18n";
+import "./homeFirstSteps.css";
 import { useEffect, useRef, useState } from "preact/hooks";
-import { ScanLine, Plus, Users, ChevronRight, ArrowRight, Camera, Sparkles, Flame, Target } from "lucide-preact";
+import {
+  ScanLine,
+  Plus,
+  Users,
+  ChevronRight,
+  ArrowRight,
+  Camera,
+  Sparkles,
+  Flame,
+  Target,
+  BookOpen,
+} from "lucide-preact";
 import { getLanguage, useT } from "../../lib/i18n";
 import { useJoinedRooms, useProfile } from "../../lib/personal";
 import { useJourneyStats } from "../../lib/journeyStats";
@@ -29,7 +41,20 @@ function greetingKey(hour: number): string {
   return "home.greetEvening";
 }
 
-export function Home({ onStartJourney }: { onStartJourney?: () => void }) {
+export function Home({
+  onStartJourney,
+  onOpenAvatar,
+  onOpenDiary,
+}: {
+  onStartJourney?: () => void;
+  /** Switches the app to the `avatar` tab — the AR photo shortcut's target
+   *  (there is no direct "launch the camera" API to jump deeper than that,
+   *  and the avatar/AR internals are out of scope here; see AvatarScreen's
+   *  own "AR撮影" CTA for the actual capture launch). */
+  onOpenAvatar?: () => void;
+  /** Switches the app to the `diary` tab — the "write a diary entry" first-step target. */
+  onOpenDiary?: () => void;
+}) {
   const t = useT();
   const [profile] = useProfile();
   const joinedRooms = useJoinedRooms();
@@ -53,6 +78,17 @@ export function Home({ onStartJourney }: { onStartJourney?: () => void }) {
     (anticipate.def.id === "companionWake" || goal === null || anticipate.remaining <= goal.remaining);
   const xpPct =
     rank.xpForNextLevel > 0 ? Math.min(100, Math.round((rank.xpIntoLevel / rank.xpForNextLevel) * 100)) : 100;
+
+  // A brand-new user (no local memories, no parties, no XP yet) hasn't done
+  // anything the rank/streak strip could show off — leading with it just
+  // buries "what do I do now?" under empty numbers. For this window only, the
+  // "first steps" quick-start replaces it near the top and the progress strip
+  // collapses to its single nudge line (still worth keeping: for a fresh
+  // traveller that line IS the companionWake whisper — "someone might stir
+  // awake" — which is exactly the forward-looking hook onboarding wants).
+  // Anyone with any of the three signals already has a journey underway, so
+  // they keep the existing layout untouched.
+  const isNewUser = joinedRooms.length === 0 && !hasLocalMemories() && rank.xp === 0;
 
   const [createOpen, setCreateOpen] = useState(false);
   const [createName, setCreateName] = useState("");
@@ -200,26 +236,72 @@ export function Home({ onStartJourney }: { onStartJourney?: () => void }) {
         {vrmFailed && <p class="home-vrm-error">{t("home.vrmLoadError")}</p>}
       </div>
 
-      <section class="home-progress" aria-label={t("home.journeyLabel")}>
-        <div class="home-progress-top">
-          <span class="home-progress-rank">
-            <span class="chip home-progress-level">{t("home.levelShort", { level: rank.level })}</span>
-            <span class="home-progress-title">{t(rank.titleKey)}</span>
+      {/* Priority slot: a brand-new traveller gets the three first-move
+          actions (the "what do I do now?" answer); everyone else gets a
+          quieter, always-available 1-tap shortcut to the flagship AR photo
+          feature, which otherwise sits two taps deep (avatar tab, then its
+          own CTA). */}
+      {isNewUser ? (
+        <section class="home-first-steps" aria-label={t("home.firstStepsLabel")}>
+          <p class="home-first-steps-title">{t("home.firstStepsTitle")}</p>
+          <div class="home-first-steps-grid">
+            <button type="button" class="home-first-step" onClick={() => onOpenAvatar?.()}>
+              <span class="home-first-step-icon" aria-hidden="true">
+                <Camera />
+              </span>
+              <span class="home-first-step-label">{t("home.firstStepAr")}</span>
+            </button>
+            <button type="button" class="home-first-step" onClick={() => onOpenDiary?.()}>
+              <span class="home-first-step-icon" aria-hidden="true">
+                <BookOpen />
+              </span>
+              <span class="home-first-step-label">{t("home.firstStepDiary")}</span>
+            </button>
+            <button type="button" class="home-first-step" onClick={() => setScanOpen(true)}>
+              <span class="home-first-step-icon" aria-hidden="true">
+                <Users />
+              </span>
+              <span class="home-first-step-label">{t("home.firstStepJoin")}</span>
+            </button>
+          </div>
+        </section>
+      ) : (
+        <button type="button" class="home-ar-shortcut" onClick={() => onOpenAvatar?.()}>
+          <span class="home-ar-shortcut-icon" aria-hidden="true">
+            <Camera size={18} />
           </span>
-          <span class={`home-progress-streak${stats.streakDays > 0 ? " is-active" : ""}`}>
-            <Flame size={14} aria-hidden="true" />
-            {stats.streakDays > 0 ? t("home.streakDays", { days: stats.streakDays }) : t("home.streakStart")}
-          </span>
-        </div>
-        <div
-          class="home-progress-xp"
-          role="progressbar"
-          aria-valuenow={xpPct}
-          aria-valuemin={0}
-          aria-valuemax={100}
-        >
-          <div class="home-progress-xp-fill" style={{ width: `${xpPct}%` }} />
-        </div>
+          <span class="home-ar-shortcut-label">{t("home.arShortcut")}</span>
+          <ChevronRight size={16} aria-hidden="true" />
+        </button>
+      )}
+
+      <section
+        class={`home-progress${isNewUser ? " home-progress-compact" : ""}`}
+        aria-label={t("home.journeyLabel")}
+      >
+        {!isNewUser && (
+          <>
+            <div class="home-progress-top">
+              <span class="home-progress-rank">
+                <span class="chip home-progress-level">{t("home.levelShort", { level: rank.level })}</span>
+                <span class="home-progress-title">{t(rank.titleKey)}</span>
+              </span>
+              <span class={`home-progress-streak${stats.streakDays > 0 ? " is-active" : ""}`}>
+                <Flame size={14} aria-hidden="true" />
+                {stats.streakDays > 0 ? t("home.streakDays", { days: stats.streakDays }) : t("home.streakStart")}
+              </span>
+            </div>
+            <div
+              class="home-progress-xp"
+              role="progressbar"
+              aria-valuenow={xpPct}
+              aria-valuemin={0}
+              aria-valuemax={100}
+            >
+              <div class="home-progress-xp-fill" style={{ width: `${xpPct}%` }} />
+            </div>
+          </>
+        )}
         {showUnlockNudge && anticipate ? (
           <p class="home-progress-whisper">
             <Sparkles size={13} aria-hidden="true" />
@@ -279,9 +361,11 @@ export function Home({ onStartJourney }: { onStartJourney?: () => void }) {
       </form>
       {joinError && <p class="home-join-error">{t("home.joinError")}</p>}
 
-      {/* Brand-new solo traveller (no memories yet, no parties): a warm nudge to
-          begin alone — the journey doesn't need a crowd to start. */}
-      {joinedRooms.length === 0 && !hasLocalMemories() && <SoloWelcome onStart={onStartJourney} />}
+      {/* A warm nudge to begin (or keep going) alone — shown for as long as no
+          party has been joined, not just in the first instant, since going
+          solo is a whole valid mode, not a one-time hiccup. It carries its
+          own dismiss (✕), persisted, for anyone who'd rather not see it again. */}
+      {joinedRooms.length === 0 && <SoloWelcome onStart={onStartJourney} />}
 
       <p class="section-title">{t("home.yourParties")}</p>
       {joinedRooms.length === 0 ? (
