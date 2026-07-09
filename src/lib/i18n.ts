@@ -17,7 +17,7 @@
 import { useEffect, useState } from "preact/hooks";
 import { LANGUAGES, type Language } from "./types";
 
-type Params = Record<string, string | number>;
+export type Params = Record<string, string | number>;
 type Entry = string | ((params: Params) => string);
 /** en is mandatory (fallback); other languages should be provided but degrade gracefully. */
 export type TranslationEntry = { en: Entry } & Partial<Record<Exclude<Language, "en">, Entry>>;

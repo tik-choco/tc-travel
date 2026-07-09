@@ -17,7 +17,7 @@
 // plus small metadata, and fans out a same-origin notification when a topic
 // is published. Resolving the CID to actual bytes is the caller's job.
 
-export type SharedAppName = "tc-note" | "tc-storage" | "tc-pdf-viewer" | "tc-travel";
+export type SharedAppName = "tc-note" | "tc-storage" | "tc-pdf-viewer" | "tc-travel" | "tc-town";
 
 /** This vendored copy's app name, used as `SharedRecord.from`/`SharedBusMessage.from`. */
 const APP_NAME: SharedAppName = "tc-travel";

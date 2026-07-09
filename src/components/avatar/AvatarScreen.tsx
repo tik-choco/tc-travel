@@ -11,6 +11,7 @@ import "./avatar.i18n";
 import "./avatar.css";
 import { useCallback, useEffect, useRef, useState } from "preact/hooks";
 import {
+  Box,
   Camera as CameraIcon,
   HardDrive,
   ImagePlus,
@@ -22,6 +23,7 @@ import {
   Sparkles,
   Trash2,
   Upload,
+  Users,
   X,
   ZoomIn,
   ZoomOut,
@@ -30,6 +32,9 @@ import { useT } from "../../lib/i18n";
 import { setMemberVrmBytes } from "../../lib/store";
 import { setProfileAvatar } from "../../lib/avatar";
 import { listDriveFiles, loadDriveFileBytes, type DriveFileEntry } from "../../lib/drive/reader";
+import { loadTownCharacters, subscribeTownCharacters, type CharacterIndexEntry } from "../../lib/town/characterIndex";
+import { resolveTownVrmBytes } from "../../lib/town/vrmResolve";
+import { loadAiSettings, saveAiSettings } from "../../lib/ai/aiSettings";
 import type { Companion } from "../ar/companion";
 import { createArScene, type ArScene } from "../ar/arScene";
 import { createPlaceholderCompanion } from "../ar/placeholderCompanion";
@@ -69,6 +74,11 @@ export function AvatarScreen() {
   /** Populated right before the sheet opens (handleLoadClick), from
    *  listDriveFiles — see the drive source picker below. */
   const [driveEntries, setDriveEntries] = useState<DriveFileEntry[]>([]);
+  /** tc-town's published character roster (shared-bus "character-index"
+   *  topic) — kept live via subscribeTownCharacters rather than only read at
+   *  sheet-open time, so the chooser option appears/disappears as tc-town
+   *  publishes without requiring a reload. */
+  const [townEntries, setTownEntries] = useState<CharacterIndexEntry[]>([]);
   const [showVrmChooser, setShowVrmChooser] = useState(false);
   const [settingPortrait, setSettingPortrait] = useState(false);
   const [showHint, setShowHint] = useState(true);
@@ -114,6 +124,14 @@ export function AvatarScreen() {
   useEffect(() => {
     arSceneRef.current?.setPaused(showCamera);
   }, [showCamera]);
+
+  // tc-town's character roster: read once on mount, then stay live for as
+  // long as this screen is mounted (tc-town may publish after we've already
+  // loaded — e.g. the user just switched apps and set up a character there).
+  useEffect(() => {
+    setTownEntries(loadTownCharacters());
+    return subscribeTownCharacters(setTownEntries);
+  }, []);
 
   // Check for a previously-stored VRM once on mount. No bytes → land on the
   // empty-state hero instead of eagerly mounting the 3D stage.
@@ -207,12 +225,13 @@ export function AvatarScreen() {
   );
 
   // Both the empty-state hero button and the stage upload button land here. A
-  // drive with at least one .vrm file gets a chooser sheet (device vs. drive);
+  // drive with at least one .vrm file, or at least one published tc-town
+  // character, gets a chooser sheet (device vs. drive vs. tc-town);
   // otherwise behavior is unchanged — straight to the native file picker.
   function handleLoadClick(): void {
     const entries = listDriveFiles({ extensions: [".vrm"] });
-    if (entries.length > 0) {
-      setDriveEntries(entries);
+    setDriveEntries(entries);
+    if (entries.length > 0 || townEntries.length > 0) {
       setShowVrmChooser(true);
       return;
     }
@@ -233,6 +252,46 @@ export function AvatarScreen() {
     } catch (err) {
       console.error(err);
       showToast(t("avatar.summonError"));
+    } finally {
+      setVrmLoading(false);
+    }
+  }
+
+  // Picking a tc-town character always applies its persona (and voice, if
+  // published) to the AI companion settings immediately — no save button, per
+  // this app family's auto-apply convention. If the character also has a
+  // resolvable VRM, that's swapped in too; persona-only characters (or ones
+  // whose VRM bytes couldn't be resolved from either the shared library DB or
+  // mist storage) just get the persona, with a toast clarifying which
+  // happened.
+  async function handleChooseTownEntry(entry: CharacterIndexEntry): Promise<void> {
+    setShowVrmChooser(false);
+
+    const current = loadAiSettings();
+    saveAiSettings({
+      ...current,
+      persona: entry.personaPrompt,
+      voice: entry.voiceName ?? entry.voiceModel ?? current.voice,
+    });
+
+    const hasVrmRef = Boolean(entry.vrmChecksum || entry.vrmCid);
+    if (!hasVrmRef) {
+      showToast(t("avatar.townCharacterApplied", { name: entry.name }));
+      return;
+    }
+
+    setVrmLoading(true);
+    try {
+      const bytes = await resolveTownVrmBytes(entry);
+      if (bytes) {
+        await applyVrmBytes(bytes);
+        showToast(t("avatar.townCharacterApplied", { name: entry.name }));
+      } else {
+        showToast(t("avatar.townVrmUnresolved"));
+      }
+    } catch (err) {
+      console.error(err);
+      showToast(t("avatar.townVrmUnresolved"));
     } finally {
       setVrmLoading(false);
     }
@@ -367,6 +426,33 @@ export function AvatarScreen() {
               </button>
             );
           })}
+
+          {townEntries.length > 0 && (
+            <>
+              <p class="avatar-chooser-section-label">
+                <Users size={14} aria-hidden="true" />
+                {t("avatar.chooserFromTown")}
+              </p>
+              {townEntries.map((entry) => (
+                <button
+                  key={entry.id}
+                  type="button"
+                  class="list-item"
+                  onClick={() => handleChooseTownEntry(entry)}
+                >
+                  <span class="list-item-body">
+                    <span class="list-item-title">{entry.name}</span>
+                    <span class="list-item-sub">{entry.summary}</span>
+                  </span>
+                  {(entry.vrmChecksum || entry.vrmCid) && (
+                    <span class="list-item-trailing" aria-label={t("avatar.chooserHasVrm")}>
+                      <Box size={16} aria-hidden="true" />
+                    </span>
+                  )}
+                </button>
+              ))}
+            </>
+          )}
         </div>
       </div>
     </div>

@@ -3,7 +3,7 @@
 // and the AR撮影 capture CTA). Capture-overlay strings stay in ../ar/ar.i18n.
 // Registered as a side effect on import — see src/lib/i18n.ts for the pattern.
 
-import { registerTranslations } from "../../lib/i18n";
+import { registerTranslations, type Params } from "../../lib/i18n";
 
 // Exported as a value too so tests can verify every key covers all 8 languages
 // (worldwide audience — a missing locale silently falls back to English).
@@ -221,6 +221,55 @@ export const avatarTranslations = {
     fr: "Racine du Drive",
     de: "Drive-Stammordner",
     pt: "Raiz do Drive",
+  },
+  // Third chooser source: characters published by the tc-town app on this
+  // origin (shared-bus "character-index" topic). Only shown when at least
+  // one character is published.
+  "avatar.chooserFromTown": {
+    en: "From TC Town",
+    ja: "TC Townから",
+    zh: "从 TC Town",
+    ko: "TC Town에서",
+    es: "Desde TC Town",
+    fr: "Depuis TC Town",
+    de: "Von TC Town",
+    pt: "Do TC Town",
+  },
+  // Trailing badge on a tc-town chooser entry that also has a resolvable VRM.
+  "avatar.chooserHasVrm": {
+    en: "Has avatar",
+    ja: "アバターあり",
+    zh: "含形象",
+    ko: "아바타 있음",
+    es: "Con avatar",
+    fr: "Avec avatar",
+    de: "Mit Avatar",
+    pt: "Com avatar",
+  },
+  // Toast after picking a tc-town character: confirms the persona (and, if
+  // present, the VRM) were applied. {name} is the character's display name.
+  "avatar.townCharacterApplied": {
+    en: (p: Params) => `${p.name}'s persona is now yours`,
+    ja: (p: Params) => `${p.name}の設定を反映しました`,
+    zh: (p: Params) => `已应用「${p.name}」的人设`,
+    ko: (p: Params) => `${p.name}의 페르소나를 적용했습니다`,
+    es: (p: Params) => `La personalidad de ${p.name} ahora es tuya`,
+    fr: (p: Params) => `La personnalité de ${p.name} est maintenant la vôtre`,
+    de: (p: Params) => `Die Persona von ${p.name} ist jetzt deine`,
+    pt: (p: Params) => `A persona de ${p.name} agora é sua`,
+  },
+  // Shown when a tc-town character had VRM info but the bytes couldn't be
+  // resolved (neither the shared library DB nor mist storage had it) — the
+  // persona was still applied, so this clarifies the avatar step failed.
+  "avatar.townVrmUnresolved": {
+    en: "Couldn't load that avatar — persona applied anyway",
+    ja: "アバターを読み込めませんでした(設定は反映済みです)",
+    zh: "无法加载该形象——但人设已应用",
+    ko: "아바타를 불러오지 못했습니다(페르소나는 적용됨)",
+    es: "No se pudo cargar el avatar — la personalidad sí se aplicó",
+    fr: "Impossible de charger cet avatar — la personnalité a quand même été appliquée",
+    de: "Avatar konnte nicht geladen werden — Persona wurde trotzdem übernommen",
+    pt: "Não foi possível carregar o avatar — a persona foi aplicada mesmo assim",
   },
   "avatar.talkOpen": {
     en: "Talk to Companion",
