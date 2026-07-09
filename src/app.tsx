@@ -6,9 +6,11 @@ import { TabBar, ROOM_TABS, SOLO_TABS, type RoomTab } from "./components/shell/T
 import { ProfileSetup } from "./components/room/ProfileSetup";
 import { Home } from "./components/room/Home";
 import { SoloShareSheet } from "./components/room/SoloShareSheet";
+import { Onboarding } from "./components/room/Onboarding";
 import { useProfile } from "./lib/personal";
 import { useSession, usePhotos, joinRoom } from "./lib/store";
 import { hasLocalMemories } from "./lib/local/localMemories";
+import { markOnboardingDone, shouldShowOnboarding, subscribeOnboardingRequests } from "./lib/onboarding";
 import { autoExportPhotos } from "./lib/drive/autoExport";
 import { parseJoinInput } from "./lib/qr";
 import { MapScreen } from "./components/map/MapScreen";
@@ -27,6 +29,15 @@ export function App() {
   const [hashHandled, setHashHandled] = useState(false);
 
   const hasProfile = profile.name.trim().length > 0;
+
+  // First-run wizard: shown once on a genuinely fresh install, and re-openable
+  // from the Guild settings screen. Closing it (any path) marks onboarding done.
+  const [showOnboarding, setShowOnboarding] = useState(() => shouldShowOnboarding());
+  useEffect(() => subscribeOnboardingRequests(() => setShowOnboarding(true)), []);
+  function closeOnboarding() {
+    markOnboardingDone();
+    setShowOnboarding(false);
+  }
 
   // Keep the drive copy of the album in sync automatically — every photo
   // (own and received) is exported without the manual PhotoViewer button.
@@ -71,6 +82,10 @@ export function App() {
   const tabs = session ? ROOM_TABS : SOLO_TABS;
   const activeTab = tabs.includes(tab) ? tab : tabs[0];
 
+  // Shared "start your journey" CTA — used by both the empty-state welcome on
+  // Home and the onboarding wizard's closing step.
+  const goToMap = () => setTab("map");
+
   let content;
   if (!hasProfile) {
     content = <ProfileSetup />;
@@ -79,7 +94,7 @@ export function App() {
       <>
         <Header />
         <div class="app-content">
-          {activeTab === "home" && <Home onStartJourney={() => setTab("map")} />}
+          {activeTab === "home" && <Home onStartJourney={goToMap} />}
           {activeTab === "map" && <MapScreen />}
           {activeTab === "album" && <AlbumScreen />}
           {activeTab === "diary" && <DiaryScreen />}
@@ -98,6 +113,7 @@ export function App() {
       {/* App-wide reward layer: fires wherever progress is made, and surfaces
           any threshold crossed while away on the next launch. */}
       {hasProfile && <CelebrationHost />}
+      {hasProfile && showOnboarding && <Onboarding onClose={closeOnboarding} onStartJourney={goToMap} />}
       {shareOpen && <SoloShareSheet onClose={() => setShareOpen(false)} />}
     </ErrorBoundary>
   );

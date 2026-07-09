@@ -1,0 +1,139 @@
+/*
+ * First-run onboarding wizard (Onboarding.tsx) — a bottom sheet/modal built
+ * entirely on the shared .modal-backdrop/.modal-card primitives (theme.css),
+ * so it tracks light/dark and the M3 sheet-rise entrance automatically.
+ */
+
+.onboarding-card {
+  position: relative;
+}
+
+.onboarding-close {
+  position: absolute;
+  top: 0.6rem;
+  right: 0.6rem;
+  z-index: 1;
+}
+
+.onboarding-body {
+  padding: 0.5rem 1.5rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  min-height: 260px;
+}
+
+.onboarding-hero {
+  display: flex;
+  justify-content: center;
+  margin: 0.5rem 0 0.25rem;
+}
+
+.onboarding-step-head {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.onboarding-step-head .empty-state-icon {
+  width: 44px;
+  height: 44px;
+  margin-bottom: 0;
+  flex: none;
+}
+
+.onboarding-step-head .title-ornate {
+  margin: 0;
+  text-align: start;
+}
+
+.onboarding-title {
+  margin: 0;
+  text-align: center;
+  font-size: var(--text-headline);
+  font-weight: 700;
+  color: var(--on-surface);
+}
+
+.onboarding-text {
+  margin: 0;
+  color: var(--on-surface-variant);
+  line-height: 1.6;
+}
+
+.onboarding-tour-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.onboarding-tour-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.onboarding-tour-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-full);
+  background: var(--primary-container);
+  color: var(--on-primary-container);
+}
+
+.onboarding-tour-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  padding-top: 0.15rem;
+}
+
+.onboarding-tour-title {
+  margin: 0;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--on-surface);
+}
+
+.onboarding-tour-desc {
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: var(--on-surface-variant);
+}
+
+.onboarding-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 1.5rem 0.25rem;
+  border-top: 1px solid var(--outline-variant);
+}
+
+.onboarding-dots {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.onboarding-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: var(--radius-full);
+  background: var(--outline-variant);
+  transition: background-color var(--dur-fast) var(--ease-standard), width var(--dur-medium) var(--ease-spring);
+}
+
+.onboarding-dot.is-active {
+  width: 20px;
+  background: var(--primary);
+}
+
+.onboarding-footer-actions {
+  display: flex;
+  gap: 0.5rem;
+}

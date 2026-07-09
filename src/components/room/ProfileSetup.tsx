@@ -7,7 +7,7 @@ import { useProfile } from "../../lib/personal";
 import { setProfileAvatar } from "../../lib/avatar";
 import { Avatar } from "../common/Avatar";
 
-const EMOJI_CHOICES = [
+export const EMOJI_CHOICES = [
   "🧙", "🧝", "🗡️", "🛡️", "🏹", "🐉", "🦄", "🔮",
   "🏰", "⚔️", "🌟", "🧭", "🦉", "🐺", "🔥", "🌙",
 ];
