@@ -1,25 +1,46 @@
-// Shared cross-app pointer/notification bus for the tik-choco app family
-// (tc-note, tc-storage, tc-pdf-viewer, tc-travel), which are deployed to the
-// same origin in production (https://tik-choco.github.io/<app>/) and already
-// share localStorage and the mistlib OPFS block store (`mistlib-blocks`).
+// Shared cross-app pointer/notification bus for the tik-choco app family,
+// deployed to the same origin in production (https://tik-choco.github.io/<app>/)
+// and already sharing localStorage (and, for apps that vendor mistlib, the
+// mistlib OPFS block store).
 //
 // IMPORTANT: this file is vendored identically (modulo TS/JS syntax) into
-// all four apps. Keep the contract in sync when editing:
-//   - tc-note:       src/lib/sharedBus.ts
-//   - tc-storage:    src/storage/sharedBus.ts
-//   - tc-pdf-viewer: src/services/sharedBus.js
-//   - tc-travel:     src/lib/drive/sharedBus.ts
-// See also protocol/docs/data-contracts/docs/SHARED_BUS.md for the full spec.
+// every family app. Keep the contract in sync when editing. See also
+// protocol/docs/data-contracts/docs/SHARED_BUS.md for the full spec.
 // Contract version: v1
 //
 // Design: this module does NOT depend on mistlib. It only stores/reads a
-// "pointer" (a CID string produced by the caller via storage_add/storage_get)
-// plus small metadata, and fans out a same-origin notification when a topic
-// is published. Resolving the CID to actual bytes is the caller's job.
+// "pointer" (a CID string produced by the caller via storage_add/storage_get,
+// or "" when the payload is inlined in `meta`) plus small metadata, and fans
+// out a same-origin notification when a topic is published. Resolving the
+// CID to actual bytes is the caller's job.
+//
+// This is the canonical reference copy
+// (protocol/docs/data-contracts/reference/sharedBus.ts). Don't hand-edit the
+// vendored per-app copies directly — regenerate them with
+// protocol/scripts/sync-vendored.mjs instead, so drift doesn't creep back in.
 
-export type SharedAppName = "tc-note" | "tc-storage" | "tc-pdf-viewer" | "tc-travel" | "tc-town";
+/**
+ * Diagnostic-only version tag for this vendored module (e.g. for logging
+ * "which vendored copy is this app running"). It is NOT the compatibility
+ * contract — the wire format (`SharedBusMessage`) and the localStorage record
+ * shape (`SharedRecord`) are. A breaking change to either of those bumps the
+ * `-v1` key/channel name suffixes below, independently of this constant.
+ */
+export const BUS_VERSION = 1;
 
-/** This vendored copy's app name, used as `SharedRecord.from`/`SharedBusMessage.from`. */
+export type SharedAppName =
+  | "tc-note"
+  | "tc-storage"
+  | "tc-pdf-viewer"
+  | "tc-translate"
+  | "tc-chat"
+  | "tc-news"
+  | "tc-town"
+  | "tc-travel"
+  | "tc-vrm-viewer";
+
+/** This vendored copy's app name, used as `SharedRecord.from`/`SharedBusMessage.from`.
+ * Substituted per app by protocol/scripts/sync-vendored.mjs — do not edit by hand. */
 const APP_NAME: SharedAppName = "tc-travel";
 
 /** localStorage record stored at `tc-shared-<topic>-v1`. */
@@ -88,10 +109,8 @@ function openChannel(): BroadcastChannel | null {
 }
 
 /**
- * Publishes a pointer update for `topic`. `cid` should be a CID already
- * written to the mistlib OPFS block store by the caller (or "" if this
- * topic doesn't content-address its payload). Writes the localStorage
- * contract key, then notifies same-origin listeners: other tabs/apps via
+ * Publishes a pointer update for `topic`. Writes the localStorage contract
+ * key, then notifies same-origin listeners: other tabs/apps via
  * BroadcastChannel, and same-tab subscribers via a local CustomEvent
  * (BroadcastChannel does not deliver to the sender's own tab).
  */
@@ -106,7 +125,7 @@ export function publishShared(topic: string, cid: string, meta: Record<string, u
   try {
     localStorage.setItem(sharedKey(topic), JSON.stringify(record));
   } catch (error) {
-    console.warn(`tc-travel: shared-bus failed to persist topic "${topic}"`, error);
+    console.warn(`tc-shared-bus: failed to persist topic "${topic}"`, error);
   }
 
   const message: SharedBusMessage = {
@@ -121,14 +140,14 @@ export function publishShared(topic: string, cid: string, meta: Record<string, u
   try {
     window.dispatchEvent(new CustomEvent<SharedBusMessage>(LOCAL_EVENT_NAME, { detail: message }));
   } catch (error) {
-    console.warn(`tc-travel: shared-bus failed to dispatch local event for topic "${topic}"`, error);
+    console.warn(`tc-shared-bus: failed to dispatch local event for topic "${topic}"`, error);
   }
 
   const channel = openChannel();
   try {
     channel?.postMessage(message);
   } catch (error) {
-    console.warn(`tc-travel: shared-bus failed to broadcast topic "${topic}"`, error);
+    console.warn(`tc-shared-bus: failed to broadcast topic "${topic}"`, error);
   } finally {
     channel?.close();
   }
