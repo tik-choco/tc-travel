@@ -3,6 +3,17 @@
 // personal.ts's localStorage-backed settings: never touch storage at module
 // load (vitest's default node test environment has none), swallow write
 // failures (quota, private browsing) rather than surfacing them to the caller.
+//
+// `roomId` is a local override of the AI Network room; when empty, the
+// effective room falls back to the family-wide shared config's
+// `network.roomId` (tc-shared-llm-config-v1, see ../drive/llmConfig.ts) so a
+// room set once in another app (e.g. tc-mistllm as provider) can be reused
+// here without re-entering it. Whenever a non-empty local roomId is
+// known (on load or save) and the shared room is still unset, it is
+// merge-written to the shared config (never overwrites an existing shared
+// room — merge-never-delete per the llm-config contract).
+
+import { emptyLlmConfig, loadLlmConfig, saveLlmConfig } from "../drive/llmConfig";
 
 export interface AiCompanionSettings {
   /** provider が announce している mist ルーム id。空文字 = 機能未設定 */
@@ -21,6 +32,19 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
 
+/** Merge-never-delete seed: if `roomId` is non-empty and the shared config's
+ *  `network.roomId` is still unset, publishes it there so other apps in the
+ *  family can discover the same AI Network room. No-op otherwise. Never
+ *  throws (loadLlmConfig/saveLlmConfig already swallow storage errors). */
+function seedSharedRoomId(roomId: string): void {
+  const trimmed = roomId.trim();
+  if (!trimmed) return;
+  const shared = loadLlmConfig() ?? emptyLlmConfig();
+  if (shared.network.roomId.trim() !== "") return;
+  shared.network = { roomId: trimmed };
+  saveLlmConfig(shared);
+}
+
 /** Loads settings from localStorage, falling back to defaults for a missing
  *  key, corrupt JSON, or a value with the wrong shape. */
 export function loadAiSettings(): AiCompanionSettings {
@@ -29,13 +53,15 @@ export function loadAiSettings(): AiCompanionSettings {
     if (raw) {
       const parsed: unknown = JSON.parse(raw);
       if (isRecord(parsed)) {
-        return {
+        const result: AiCompanionSettings = {
           roomId: typeof parsed.roomId === "string" ? parsed.roomId : DEFAULT_SETTINGS.roomId,
           ...(typeof parsed.model === "string" ? { model: parsed.model } : {}),
           ...(typeof parsed.voice === "string" ? { voice: parsed.voice } : {}),
           ...(typeof parsed.persona === "string" ? { persona: parsed.persona } : {}),
           ttsEnabled: typeof parsed.ttsEnabled === "boolean" ? parsed.ttsEnabled : DEFAULT_SETTINGS.ttsEnabled,
         };
+        seedSharedRoomId(result.roomId);
+        return result;
       }
     }
   } catch {
@@ -50,10 +76,21 @@ export function saveAiSettings(settings: AiCompanionSettings): void {
   } catch (error) {
     console.warn("tc-travel: failed to persist aiCompanion settings", error);
   }
+  seedSharedRoomId(settings.roomId);
 }
 
-/** Whether the feature has enough configuration to attempt a connection. */
-export function isAiConfigured(settings?: AiCompanionSettings): boolean {
+/** Effective AI Network room: the local override (`settings.roomId`) if set,
+ *  else the family-wide shared config's `network.roomId`. Empty string if
+ *  neither is set. */
+export function resolveAiRoomId(settings?: AiCompanionSettings): string {
   const s = settings ?? loadAiSettings();
-  return s.roomId.trim() !== "";
+  const local = s.roomId.trim();
+  if (local) return local;
+  return loadLlmConfig()?.network.roomId.trim() ?? "";
+}
+
+/** Whether the feature has enough configuration to attempt a connection
+ *  (local roomId or a shared-config fallback room). */
+export function isAiConfigured(settings?: AiCompanionSettings): boolean {
+  return resolveAiRoomId(settings) !== "";
 }

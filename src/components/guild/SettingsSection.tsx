@@ -9,6 +9,7 @@ import { setMemberVrmBytes } from "../../lib/store";
 import { clearVrmBytes, loadVrmBytes, saveVrmBytes } from "../ar/vrmStorage";
 import { Avatar } from "../common/Avatar";
 import { loadAiSettings, saveAiSettings, type AiCompanionSettings } from "../../lib/ai/aiSettings";
+import { loadLlmConfig } from "../../lib/drive/llmConfig";
 import { requestOnboarding } from "../../lib/onboarding";
 
 interface SettingsSectionProps {
@@ -38,6 +39,9 @@ export function SettingsSection({ profile, onProfileChange }: SettingsSectionPro
   const [avatarBusy, setAvatarBusy] = useState(false);
   const [themePref, setThemePref] = useThemeSetting();
   const [aiSettings, setAiSettings] = useState<AiCompanionSettings>(() => loadAiSettings());
+  // Fallback room from the shared LLM config (set once here, per-mount — the
+  // shared key is low-frequency and not worth subscribing to for this hint).
+  const [sharedRoomId] = useState<string>(() => loadLlmConfig()?.network.roomId.trim() ?? "");
 
   const updateAiSettings = (patch: Partial<AiCompanionSettings>) => {
     setAiSettings((prev) => {
@@ -269,9 +273,14 @@ export function SettingsSection({ profile, onProfileChange }: SettingsSectionPro
           class="input"
           type="text"
           value={aiSettings.roomId}
+          placeholder={aiSettings.roomId === "" && sharedRoomId !== "" ? sharedRoomId : undefined}
           onInput={(e) => updateAiSettings({ roomId: (e.target as HTMLInputElement).value })}
         />
-        <span class="settings-label">{t("settings.ai.roomIdHint")}</span>
+        <span class="settings-label">
+          {aiSettings.roomId === "" && sharedRoomId !== ""
+            ? t("settings.ai.roomIdSharedHint")
+            : t("settings.ai.roomIdHint")}
+        </span>
       </div>
 
       <div class="field">

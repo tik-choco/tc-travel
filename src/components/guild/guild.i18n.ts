@@ -11,14 +11,14 @@ import { registerTranslations } from "../../lib/i18n";
 registerTranslations({
   // --- Guild card ---
   "guild.title": {
-    en: "Guild Card",
-    ja: "ギルドカード",
-    zh: "公会卡",
-    ko: "길드 카드",
-    es: "Carta de Gremio",
-    fr: "Carte de Guilde",
-    de: "Gildenkarte",
-    pt: "Cartão da Guilda",
+    en: "Adventurer Card",
+    ja: "冒険者カード",
+    zh: "冒险者卡",
+    ko: "모험가 카드",
+    es: "Carné de Aventurero",
+    fr: "Carte d'Aventurier",
+    de: "Abenteurerkarte",
+    pt: "Cartão de Aventureiro",
   },
   "guild.editName": {
     en: "Edit name",
@@ -95,8 +95,8 @@ registerTranslations({
 
   // --- Guild chat (family chat-app hand-off) ---
   "guildChat.title": {
-    en: "Guild Chat", ja: "ギルドチャット", zh: "公会聊天", ko: "길드 채팅",
-    es: "Chat del Gremio", fr: "Chat de Guilde", de: "Gildenchat", pt: "Chat da Guilda",
+    en: "Party Chat", ja: "パーティーチャット", zh: "队伍聊天", ko: "파티 채팅",
+    es: "Chat del grupo", fr: "Chat de groupe", de: "Gruppenchat", pt: "Chat do grupo",
   },
   "guildChat.description": {
     en: "Chat with your party between adventures. Opens your party's dedicated chat room in a new tab.",
@@ -528,8 +528,8 @@ registerTranslations({
     pt: "Manteve uma sequência de 30 dias de jornada.",
   },
   "ach.guildVeteran5.title": {
-    en: "Guild Veteran", ja: "ギルドの古参", zh: "公会元老", ko: "길드의 베테랑",
-    es: "Veterano del Gremio", fr: "Vétéran de la Guilde", de: "Gildenveteran", pt: "Veterano da Guilda",
+    en: "Party Veteran", ja: "パーティーの古参", zh: "队伍元老", ko: "파티의 베테랑",
+    es: "Veterano del grupo", fr: "Vétéran du groupe", de: "Gruppenveteran", pt: "Veterano do grupo",
   },
   "ach.guildVeteran5.desc": {
     en: "Joined 5 different parties.",
@@ -794,14 +794,14 @@ registerTranslations({
 
   // --- Settings ---
   "settings.title": {
-    en: "Guild Configuration",
-    ja: "ギルド設定",
-    zh: "公会设置",
-    ko: "길드 설정",
-    es: "Configuración del Gremio",
-    fr: "Configuration de la Guilde",
-    de: "Gildeneinstellungen",
-    pt: "Configurações da Guilda",
+    en: "Adventurer Settings",
+    ja: "冒険者設定",
+    zh: "冒险者设置",
+    ko: "모험가 설정",
+    es: "Configuración de Aventurero",
+    fr: "Configuration d'Aventurier",
+    de: "Abenteurereinstellungen",
+    pt: "Configurações de Aventureiro",
   },
   "settings.language": {
     en: "Language", ja: "言語", zh: "语言", ko: "언어",
@@ -900,6 +900,16 @@ registerTranslations({
     fr: "La salle mist où votre fournisseur d'IA est annoncé.",
     de: "Der Mist-Raum, in dem dein KI-Anbieter angekündigt wird.",
     pt: "A sala mist onde seu provedor de IA é anunciado.",
+  },
+  "settings.ai.roomIdSharedHint": {
+    en: "Using the shared network room from another app.",
+    ja: "共有設定のルームを使用中です。",
+    zh: "正在使用其他应用共享的房间。",
+    ko: "다른 앱과 공유된 방을 사용 중입니다.",
+    es: "Usando la sala compartida de otra app.",
+    fr: "Utilisation de la salle partagée d'une autre appli.",
+    de: "Verwendet den gemeinsamen Raum einer anderen App.",
+    pt: "Usando a sala compartilhada de outro app.",
   },
   "settings.ai.model": {
     en: "Model (optional)", ja: "モデル（任意）", zh: "模型（可选）", ko: "모델 (선택 사항)",
