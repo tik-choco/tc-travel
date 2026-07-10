@@ -30,21 +30,21 @@
   --outline: #7c7263;
   --outline-variant: #dbcfbc;
 
-  /* --- accent roles (violet / teal / pink, retuned for light) ------------ */
-  --primary: #5746a8;
+  /* --- accent roles (ocean / teal / sunset, retuned for light) ------------ */
+  --primary: #00658f;
   --on-primary: #ffffff;
-  --primary-container: #e5deff;
-  --on-primary-container: #2b2175;
+  --primary-container: #c8e6ff;
+  --on-primary-container: #001e30;
 
   --secondary: #206059;
   --on-secondary: #ffffff;
   --secondary-container: #c8ece7;
   --on-secondary-container: #06403a;
 
-  --tertiary: #96376b;
+  --tertiary: #8f4c38;
   --on-tertiary: #ffffff;
-  --tertiary-container: #ffd9e8;
-  --on-tertiary-container: #5c1d40;
+  --tertiary-container: #ffdbd1;
+  --on-tertiary-container: #3a0b01;
 
   --error: #ba1a1a;
   --on-error: #ffffff;
@@ -78,6 +78,7 @@
 
   /* --- layout ---------------------------------------------------------------- */
   --tabbar-h: calc(64px + env(safe-area-inset-bottom, 0px));
+  --rail-w: 0px;
   --fab-bottom: calc(var(--tabbar-h) + 16px);
 
   /* Soft warm-tinted shadows — light surfaces want a gentler lift than dark.
@@ -146,20 +147,20 @@
   --outline: #55525f;
   --outline-variant: #34323e;
 
-  --primary: #c8bfff;
-  --on-primary: #2b2175;
-  --primary-container: #46379a;
-  --on-primary-container: #e5dfff;
+  --primary: #8dcdff;
+  --on-primary: #00344e;
+  --primary-container: #004b6f;
+  --on-primary-container: #c8e6ff;
 
   --secondary: #86d6d0;
   --on-secondary: #003732;
   --secondary-container: #10504a;
   --on-secondary-container: #a3f2eb;
 
-  --tertiary: #f2b3d1;
-  --on-tertiary: #4b1136;
-  --tertiary-container: #653152;
-  --on-tertiary-container: #ffd8e9;
+  --tertiary: #ffb5a0;
+  --on-tertiary: #561f0f;
+  --tertiary-container: #723523;
+  --on-tertiary-container: #ffdbd1;
 
   --error: #ffb4ab;
   --on-error: #690005;
@@ -191,20 +192,20 @@
     --outline: #55525f;
     --outline-variant: #34323e;
 
-    --primary: #c8bfff;
-    --on-primary: #2b2175;
-    --primary-container: #46379a;
-    --on-primary-container: #e5dfff;
+    --primary: #8dcdff;
+    --on-primary: #00344e;
+    --primary-container: #004b6f;
+    --on-primary-container: #c8e6ff;
 
     --secondary: #86d6d0;
     --on-secondary: #003732;
     --secondary-container: #10504a;
     --on-secondary-container: #a3f2eb;
 
-    --tertiary: #f2b3d1;
-    --on-tertiary: #4b1136;
-    --tertiary-container: #653152;
-    --on-tertiary-container: #ffd8e9;
+    --tertiary: #ffb5a0;
+    --on-tertiary: #561f0f;
+    --tertiary-container: #723523;
+    --on-tertiary-container: #ffdbd1;
 
     --error: #ffb4ab;
     --on-error: #690005;
@@ -218,6 +219,37 @@
     --shadow-3: 0 6px 16px 4px rgba(0, 0, 0, 0.3), 0 2px 4px rgba(0, 0, 0, 0.35);
     --shadow-4: 0 10px 24px 6px rgba(0, 0, 0, 0.34), 0 4px 8px rgba(0, 0, 0, 0.32);
     --shadow-5: 0 18px 40px 8px rgba(0, 0, 0, 0.42), 0 6px 12px rgba(0, 0, 0, 0.36);
+  }
+}
+
+@media (min-width: 840px) {
+  :root {
+    --tabbar-h: 0px;
+    --rail-w: 88px;
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--outline) transparent;
+  }
+  *::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  *::-webkit-scrollbar-thumb {
+    background-color: var(--outline);
+    border-radius: var(--radius-full);
+    border: 2px solid transparent;
+    background-clip: padding-box;
+  }
+  *::-webkit-scrollbar-thumb:hover {
+    background-color: var(--on-surface-variant);
+    background-clip: padding-box;
   }
 }
 

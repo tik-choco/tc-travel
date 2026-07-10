@@ -21,7 +21,7 @@ registerTranslations({
   "tab.short.diary": { en: "Journal", ja: "日記", zh: "日记", ko: "일기", es: "Diario", fr: "Journal", de: "Tagebuch", pt: "Diário" },
   "tab.short.avatar": { en: "Avatar", ja: "アバター", zh: "化身", ko: "아바타", es: "Avatar", fr: "Avatar", de: "Avatar", pt: "Avatar" },
   "tab.short.post": { en: "Cards", ja: "名刺", zh: "名片", ko: "명함", es: "Tarjetas", fr: "Cartes", de: "Karten", pt: "Cartões" },
-  "tab.short.guild": { en: "Guild", ja: "ギルド", zh: "公会", ko: "길드", es: "Gremio", fr: "Guilde", de: "Gilde", pt: "Guilda" },
+  "tab.short.guild": { en: "Profile", ja: "冒険者", zh: "冒险者", ko: "모험가", es: "Perfil", fr: "Profil", de: "Profil", pt: "Perfil" },
 
   // Solo-mode top-bar wordmark (no room to name). Warm and personal, never
   // "you're alone" — this is your own travelogue.

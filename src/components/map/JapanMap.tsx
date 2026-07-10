@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "preact/hooks";
-import { ArrowLeft, Award, ChevronRight, Share2, X } from "lucide-preact";
-import { getLanguage, useT } from "../../lib/i18n";
+import { ArrowLeft, Award, ChevronRight, MapPin, Share2, X } from "lucide-preact";
+import { getLanguage, translate, useT } from "../../lib/i18n";
+import { countryName } from "../../lib/geo";
 import { useJapanCollection, buildJapanLayout } from "./japanGeo";
+import { geometryCentroid } from "./geoMath";
+import { geometryAnchor } from "./globe/geoSphere";
 import { badgeLabel, completionStats, earnedBadges, rarityOf, regionStats } from "./collection";
 import { hasMunicipalData, municipalCompletion, prefMunicipalStats } from "./municipal/municipalGeo";
 import { MunicipalMap, useMunicipalCollection } from "./municipal/MunicipalMap";
@@ -13,13 +16,17 @@ const REVEAL_ANIM_MS = 1400;
 interface JapanMapProps {
   onClose: () => void;
   onBrag: () => void;
+  /** Opens the encounter sheet at a prefecture's real-world anchor point —
+   *  the drill-down's own "record an encounter here", so a visit doesn't
+   *  require hunting for the exact pixel back on the world map/globe. */
+  onRecordAt: (lat: number, lng: number, label: string) => void;
 }
 
 /** Prefecture drill-down for Japan — the world map's fog-of-war retention
  *  loop at 47-prefecture granularity, plus the collection layer (completion,
  *  regions, rarity, badges). Rendered as an overlay inside .map-viewport so
  *  the world map stays mounted underneath. */
-export function JapanMap({ onClose, onBrag }: JapanMapProps) {
+export function JapanMap({ onClose, onBrag, onRecordAt }: JapanMapProps) {
   const t = useT();
   const lang = getLanguage();
   const { prefs, visited } = useJapanCollection(true);
@@ -111,6 +118,16 @@ export function JapanMap({ onClose, onBrag }: JapanMapProps) {
     if (!p) return code;
     return lang === "ja" ? p.name_ja : p.name;
   };
+
+  /** Real-world (lat/lng) anchor for a prefecture — NOT layout.paths' anchor,
+   *  which is projected into this view's local SVG pixel space. */
+  function handleRecordHere(): void {
+    if (!selectedPref) return;
+    const anchor = geometryAnchor(selectedPref.geometry) ?? geometryCentroid(selectedPref.geometry);
+    const japan = countryName("jp", lang);
+    const label = japan ? translate("map.picker.place", { region: prefName(selectedPref.code), country: japan }) : prefName(selectedPref.code);
+    onRecordAt(anchor.lat, anchor.lng, label);
+  }
 
   return (
     <div class="jp-overlay">
@@ -253,6 +270,10 @@ export function JapanMap({ onClose, onBrag }: JapanMapProps) {
                 <ChevronRight size={16} />
               </button>
             )}
+            <button type="button" class="btn btn-primary jp-selected__record-btn" onClick={handleRecordHere}>
+              <MapPin size={16} />
+              {t("map.drill.recordHere")}
+            </button>
           </div>
         )}
       </div>

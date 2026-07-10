@@ -26,6 +26,25 @@
   gap: 0.6rem;
 }
 
+@media (min-width: 840px) {
+  .post-list {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    align-items: start;
+    gap: 0.75rem;
+  }
+}
+
+@media (min-width: 1200px) {
+  .post-screen {
+    max-width: 960px;
+  }
+
+  .post-list {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
 .post-card {
   align-items: center;
 }
@@ -101,7 +120,7 @@
   border-top-color: color-mix(in srgb, #d4af37 55%, var(--outline-variant));
 }
 
-.card-face-avatar {
+.card-face .avatar {
   border-color: var(--card-color);
   background: color-mix(in srgb, var(--card-color) 18%, var(--surface));
 }

@@ -141,6 +141,52 @@ registerTranslations({
     de: "Tritt zuerst einer Gemeinschaft bei oder gründe eine — Begegnungen werden in der gemeinsamen Chronik der Gruppe festgehalten.",
     pt: "Entre ou funde uma companhia primeiro — os encontros são registrados na crônica compartilhada do grupo.",
   },
+  "map.sheet.oceanHint": {
+    en: "Your mark fell upon open water. Chart the place by name instead.",
+    ja: "その一点は大海原のようです。名前で場所を探してみましょう。",
+    zh: "你点到了茫茫大海。试试按名称查找地点吧。",
+    ko: "망망대해를 짚으셨네요. 이름으로 장소를 찾아보세요.",
+    es: "Tu marca cayó en mar abierto. Busca el lugar por su nombre.",
+    fr: "Votre marque est tombée en pleine mer. Recherchez le lieu par son nom.",
+    de: "Dein Tipp landete auf offener See. Suche den Ort stattdessen nach Namen.",
+    pt: "Seu toque caiu em mar aberto. Busque o lugar pelo nome.",
+  },
+  "map.sheet.pickByName": {
+    en: "Find by Name", ja: "名前で探す", zh: "按名称查找", ko: "이름으로 찾기",
+    es: "Buscar por Nombre", fr: "Rechercher par Nom", de: "Nach Namen Suchen", pt: "Buscar por Nome",
+  },
+  "map.picker.title": {
+    en: "Chart a Location", ja: "場所を探す", zh: "查找地点", ko: "장소 찾기",
+    es: "Buscar un Lugar", fr: "Rechercher un Lieu", de: "Ort Suchen", pt: "Buscar um Lugar",
+  },
+  "map.picker.placeholder": {
+    en: "Search countries or prefectures...", ja: "国や都道府県を検索……", zh: "搜索国家或都道府县……", ko: "국가나 도도부현 검색...",
+    es: "Busca países o prefecturas...", fr: "Rechercher un pays ou une préfecture...",
+    de: "Land oder Präfektur suchen...", pt: "Busque países ou prefeituras...",
+  },
+  "map.picker.noResults": {
+    en: "No lands match that name.", ja: "その名前に一致する土地はありません。", zh: "未找到匹配的地点。", ko: "일치하는 장소가 없습니다.",
+    es: "No se encontraron lugares con ese nombre.", fr: "Aucun lieu ne correspond à ce nom.",
+    de: "Kein Ort mit diesem Namen gefunden.", pt: "Nenhum lugar encontrado com esse nome.",
+  },
+  "map.picker.searchAria": {
+    en: "Search for a place", ja: "場所を検索", zh: "搜索地点", ko: "장소 검색",
+    es: "Buscar un lugar", fr: "Rechercher un lieu", de: "Ort suchen", pt: "Buscar um lugar",
+  },
+  "map.drill.recordHere": {
+    en: "Record an Encounter Here", ja: "ここで出会いを記録", zh: "在此记录相遇", ko: "여기서 만남 기록하기",
+    es: "Registrar un Encuentro Aquí", fr: "Enregistrer une Rencontre Ici", de: "Hier eine Begegnung Festhalten", pt: "Registrar um Encontro Aqui",
+  },
+  "map.picker.place": {
+    en: (p) => `${p.region} · ${p.country}`,
+    ja: (p) => `${p.region}・${p.country}`,
+    zh: (p) => `${p.region}・${p.country}`,
+    ko: (p) => `${p.region} · ${p.country}`,
+    es: (p) => `${p.region} · ${p.country}`,
+    fr: (p) => `${p.region} · ${p.country}`,
+    de: (p) => `${p.region} · ${p.country}`,
+    pt: (p) => `${p.region} · ${p.country}`,
+  },
 });
 
 // Japan prefecture drill-down + collection + brag card. Prefecture display

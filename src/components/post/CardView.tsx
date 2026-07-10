@@ -37,7 +37,7 @@ export function CardView({ card, onClose, onRemove }: Props) {
         </div>
 
         <div class={`card-face card-face-full card-motif-${cardTier}`} style={`--card-color: ${card.color}`}>
-          <span class="avatar avatar-xl card-face-avatar" aria-hidden="true">
+          <span class="avatar avatar-xl" aria-hidden="true">
             {card.avatarEmoji}
           </span>
           <span class="card-face-name">{card.name}</span>

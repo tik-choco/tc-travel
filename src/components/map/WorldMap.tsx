@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "preact/hooks";
-import { ChevronRight, Compass, MapPin, Sparkles } from "lucide-preact";
+import { ChevronRight, Compass, MapPin, Search, Sparkles } from "lucide-preact";
 import { getLanguage, useT } from "../../lib/i18n";
 import type { EncounterPin } from "../../lib/types";
 import { useMembers, usePins, removePin } from "../../lib/store";
@@ -12,6 +12,7 @@ import { MAP_W, MAP_H, project, unproject, geometryToPath, geometryCentroid, cla
 import type { SimpleGeometry } from "./geoMath";
 import { continentOf, CONTINENT_ORDER, type ContinentId } from "./continents";
 import { EncounterSheet, type SheetTarget } from "./EncounterSheet";
+import { LocationPicker, type PickedLocation } from "./LocationPicker";
 import { useJapanCollection } from "./japanGeo";
 import { JapanMap } from "./JapanMap";
 import { BragCard } from "./BragCard";
@@ -78,6 +79,7 @@ export function WorldMap() {
   const [statsWorld, setStatsWorld] = useState<CountryFeature[] | null>(null);
   const [worldError, setWorldError] = useState(false);
   const [sheet, setSheet] = useState<SheetTarget | null>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
   const [jpOpen, setJpOpen] = useState(false);
   const [bragOpen, setBragOpen] = useState(false);
   const [worldBragOpen, setWorldBragOpen] = useState(false);
@@ -296,6 +298,17 @@ export function WorldMap() {
     void lookupCountry(lat, lng).then((code) => {
       setSheet((s) => (s && s.mode === "new" && s.lat === lat && s.lng === lng ? { ...s, countryCode: code, resolving: false } : s));
     });
+  }
+
+  /** LocationPicker result: the search index already resolved lat/lng/country
+   *  for this entry, so the sheet opens straight away — no "locating…" phase,
+   *  same reward as a tap that landed cleanly on the first try. Works both as
+   *  a fresh open (FAB) and as a correction of an already-open sheet (ocean
+   *  escape hatch) — EncounterSheet stays mounted either way, so any title/
+   *  note the traveller already typed survives the location swap. */
+  function handlePickLocation(loc: PickedLocation) {
+    setPickerOpen(false);
+    setSheet({ mode: "new", lat: loc.lat, lng: loc.lng, countryCode: loc.countryCode, resolving: false, pickerLabel: loc.label });
   }
 
   function handleTap(clientX: number, clientY: number) {
@@ -539,14 +552,33 @@ export function WorldMap() {
           </div>
         )}
 
-        {jpOpen && <JapanMap onClose={() => setJpOpen(false)} onBrag={() => setBragOpen(true)} />}
+        {jpOpen && (
+          <JapanMap
+            onClose={() => setJpOpen(false)}
+            onBrag={() => setBragOpen(true)}
+            onRecordAt={(lat, lng, label) => {
+              setJpOpen(false);
+              handlePickLocation({ lat, lng, label, countryCode: "jp" });
+            }}
+          />
+        )}
       </div>
 
-      {/* FAB hides while the Japan overlay is open — it targets the world map. */}
+      {/* FABs hide while the Japan overlay is open — they target the world map. */}
       {world && !worldError && !jpOpen && (
         <button type="button" class="fab" onClick={handleAddAtCenter}>
           <MapPin size={22} />
           <span class="fab-label">{t("map.fab.add")}</span>
+        </button>
+      )}
+      {world && !worldError && !jpOpen && (
+        <button
+          type="button"
+          class="map-search-fab"
+          onClick={() => setPickerOpen(true)}
+          aria-label={t("map.picker.searchAria")}
+        >
+          <Search size={20} />
         </button>
       )}
 
@@ -556,7 +588,11 @@ export function WorldMap() {
       {sheet && (
         <EncounterSheet
           target={sheet}
-          locationLabel={sheet.mode === "view" ? labelFor(sheet.pin.countryCode) : labelFor(sheet.countryCode, sheet.resolving)}
+          locationLabel={
+            sheet.mode === "view"
+              ? labelFor(sheet.pin.countryCode)
+              : (sheet.pickerLabel ?? labelFor(sheet.countryCode, sheet.resolving))
+          }
           canSave={sheet.mode === "new"}
           canDelete={
             sheet.mode === "view" &&
@@ -564,6 +600,7 @@ export function WorldMap() {
             (roomPins.some((p) => p.id === sheet.pin.id) || localPins.some((p) => p.id === sheet.pin.id))
           }
           onClose={() => setSheet(null)}
+          onPickLocation={() => setPickerOpen(true)}
           onSave={(data) => {
             if (sheet.mode !== "new") return;
             // Routes to the room Y.Doc in a party, else the local solo store.
@@ -579,6 +616,8 @@ export function WorldMap() {
           }}
         />
       )}
+
+      {pickerOpen && <LocationPicker onSelect={handlePickLocation} onClose={() => setPickerOpen(false)} />}
     </div>
   );
 }

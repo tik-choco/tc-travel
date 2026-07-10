@@ -3,10 +3,11 @@ import { Avatar } from "../common/Avatar";
 import { countryName } from "../../lib/geo";
 import { getLanguage, useT } from "../../lib/i18n";
 import { MoodChip } from "./moodMeta";
-import type { DiaryEntry, Member } from "../../lib/types";
+import type { SourcedDiaryEntry } from "../../lib/memories";
+import type { Member } from "../../lib/types";
 
 interface DiaryReaderProps {
-  entry: DiaryEntry;
+  entry: SourcedDiaryEntry;
   author: Member | null;
   isOwn: boolean;
   onClose: () => void;
@@ -30,7 +31,12 @@ export function DiaryReader({ entry, author, isOwn, onClose, onEdit, onDelete }:
         <div class="sheet-handle" />
 
         <div class="diary-reader-header">
-          <MoodChip mood={entry.mood} />
+          <span class="diary-header-titling">
+            <MoodChip mood={entry.mood} />
+            <span class="diary-scope-badge">
+              {entry.source === "room" ? t("diary.scopeParty") : t("diary.scopePrivate")}
+            </span>
+          </span>
           <button type="button" class="btn btn-icon" onClick={onClose} aria-label={t("diary.close")}>
             <X size={18} />
           </button>

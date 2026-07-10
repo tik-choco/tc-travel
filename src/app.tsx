@@ -8,10 +8,12 @@ import { Home } from "./components/room/Home";
 import { SoloShareSheet } from "./components/room/SoloShareSheet";
 import { Onboarding } from "./components/room/Onboarding";
 import { useProfile } from "./lib/personal";
-import { useSession, usePhotos, joinRoom } from "./lib/store";
+import { useSession, joinRoom } from "./lib/store";
+import { useAlbumPhotos } from "./lib/memories";
+import { useCards } from "./lib/cards";
 import { hasLocalMemories } from "./lib/local/localMemories";
 import { markOnboardingDone, shouldShowOnboarding, subscribeOnboardingRequests } from "./lib/onboarding";
-import { autoExportPhotos } from "./lib/drive/autoExport";
+import { scheduleDriveAutoExport } from "./lib/drive/autoExport";
 import { parseJoinInput } from "./lib/qr";
 import { MapScreen } from "./components/map/MapScreen";
 import { AlbumScreen } from "./components/album/AlbumScreen";
@@ -24,7 +26,8 @@ import { CelebrationHost } from "./components/common/CelebrationHost";
 export function App() {
   const [profile] = useProfile();
   const session = useSession();
-  const photos = usePhotos();
+  const albumPhotos = useAlbumPhotos();
+  const cards = useCards();
   const [tab, setTab] = useState<RoomTab>("home");
   const [hashHandled, setHashHandled] = useState(false);
 
@@ -39,11 +42,17 @@ export function App() {
     setShowOnboarding(false);
   }
 
-  // Keep the drive copy of the album in sync automatically — every photo
-  // (own and received) is exported without the manual PhotoViewer button.
+  // Keep the drive copy of the album and card collection in sync
+  // automatically — no manual save buttons anywhere: every photo (room +
+  // local, own and received) and every card (received + your own) is
+  // exported/re-exported whenever its content changes. Debounced inside
+  // scheduleDriveAutoExport so a burst of adds coalesces into one sync pass.
+  // Runs once on mount too (backlog sync), after mist init since
+  // syncDriveExports awaits ensureMistNode itself.
   useEffect(() => {
-    if (photos.length > 0) autoExportPhotos(photos);
-  }, [photos]);
+    if (!hasProfile) return;
+    scheduleDriveAutoExport();
+  }, [hasProfile, albumPhotos, cards, profile]);
 
   // On entering a room, offer (once per room, this session) to bring solo
   // memories into the party — but only when there's something to share. The
@@ -74,11 +83,12 @@ export function App() {
     }
   }, [hasProfile, hashHandled]);
 
-  // Solo vs. room picks the tab lineup (see TabBar): `home` is the solo landing,
-  // and `post` (card exchange) only belongs inside a party. The *active* tab is
-  // derived rather than reset via an effect, so switching modes can never strand
-  // you on a tab the current set lacks — it falls back to that set's first entry
-  // (home when solo, map in a room), matching the pre-solo default landing.
+  // Solo vs. room picks the tab lineup (see TabBar): `home` is the solo
+  // landing and is hidden inside a room, where `map` takes over as the
+  // landing instead. The *active* tab is derived rather than reset via an
+  // effect, so switching modes can never strand you on a tab the current set
+  // lacks — it falls back to that set's first entry (home when solo, map in
+  // a room), matching the pre-solo default landing.
   const tabs = session ? ROOM_TABS : SOLO_TABS;
   const activeTab = tabs.includes(tab) ? tab : tabs[0];
 

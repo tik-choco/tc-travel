@@ -393,6 +393,16 @@
   color: var(--primary);
 }
 
+.sub-selected__record-btn {
+  margin-top: 8px;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+}
+
 /* --- data-source credit (dynamically-resolved countries only) ------------ */
 
 .sub-credit {
@@ -427,5 +437,30 @@
 
   .sub-reveal-burst {
     display: none;
+  }
+}
+
+/* Desktop (>=840px): the drill-down overlay fills the full-bleed map pane, so
+   its own floating panels get capped widths instead of stretching edge to
+   edge. */
+@media (min-width: 840px) {
+  .sub-header {
+    max-width: 480px;
+  }
+
+  .sub-selected {
+    left: auto;
+    width: 420px;
+  }
+}
+
+/* Hover feedback for the per-subdivision tap target. */
+@media (hover: hover) and (pointer: fine) {
+  .sub-region--fog:hover {
+    fill: color-mix(in srgb, var(--on-surface) var(--state-hover), var(--surface-container-low));
+  }
+
+  .sub-region--visited:hover {
+    filter: brightness(1.08);
   }
 }

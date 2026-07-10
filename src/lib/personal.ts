@@ -15,7 +15,7 @@ const JOURNEY_KEY = "tc-travel:journey";
 // --- profile -----------------------------------------------------------
 
 const AVATAR_EMOJIS = ["\u{1F9ED}", "\u{1F5FA}️", "⚔️", "\u{1F6E1}️", "\u{1F3F9}", "\u{1F52E}", "\u{1F409}", "\u{1F989}"];
-const PROFILE_COLORS = ["#c9a227", "#8c2f28", "#4a6fa5", "#5a8f5a", "#a5527a", "#e8925c"];
+const PROFILE_COLORS = ["#d99a2b", "#c34f45", "#2b6f9e", "#4a8c58", "#d9694f", "#2fa094"];
 
 /** The name every fresh profile starts with — exported so onboarding.ts can
  *  tell a genuinely new install apart from one that already personalized it. */

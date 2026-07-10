@@ -1,9 +1,10 @@
 // Adapted from tc-vrm-viewer's src/viewer/vrmLoader.ts: same GLTFLoader +
-// VRMLoaderPlugin + VRMUtils cleanup pipeline, plus idle breathing/blink
+// VRMLoaderPlugin + VRMUtils cleanup pipeline, plus standing idle motion/blink
 // animation and adaptation to the shared Companion contract.
 
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { VRMLoaderPlugin, VRMUtils, type VRM } from "@pixiv/three-vrm";
+import { createIdleMotion } from "./idleMotion";
 import type { Companion } from "./companion";
 
 const loader = new GLTFLoader();
@@ -27,12 +28,9 @@ function randomBlinkInterval(): number {
   return 2 + Math.random() * 3;
 }
 
-/** Subtle breathing (spine/chest sway) + auto-blink, safe on models missing either. */
+/** Standing idle motion (arms down + spine/chest/head sway) + auto-blink, safe on models missing either. */
 function createIdleAnimator(vrm: VRM): (deltaSeconds: number, elapsedSeconds: number) => void {
-  const spine = vrm.humanoid?.getNormalizedBoneNode("spine") ?? null;
-  const chest = vrm.humanoid?.getNormalizedBoneNode("chest") ?? null;
-  const restSpineX = spine?.rotation.x ?? 0;
-  const restChestX = chest?.rotation.x ?? 0;
+  const stepMotion = createIdleMotion(vrm);
 
   const hasBlink = Boolean(vrm.expressionManager?.expressionMap["blink"]);
   let blinkTimer = randomBlinkInterval();
@@ -43,8 +41,7 @@ function createIdleAnimator(vrm: VRM): (deltaSeconds: number, elapsedSeconds: nu
   const openDuration = 0.12;
 
   return (deltaSeconds, elapsedSeconds) => {
-    if (spine) spine.rotation.x = restSpineX + Math.sin(elapsedSeconds * 1.1) * 0.015;
-    if (chest) chest.rotation.x = restChestX + Math.sin(elapsedSeconds * 1.1 + 0.3) * 0.02;
+    stepMotion(elapsedSeconds);
 
     if (!hasBlink) return;
     if (phase === "idle") {

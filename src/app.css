@@ -229,6 +229,49 @@
   white-space: nowrap;
 }
 
+@media (min-width: 840px) {
+  .app-shell {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    grid-template-rows: auto 1fr;
+  }
+  .app-shell > .screen {
+    grid-column: 1 / -1;
+    grid-row: 1 / -1;
+  }
+  .app-header {
+    grid-column: 2;
+    grid-row: 1;
+    padding-left: max(1.25rem, env(safe-area-inset-left));
+    padding-right: max(1.25rem, env(safe-area-inset-right));
+  }
+  .app-content {
+    grid-column: 2;
+    grid-row: 2;
+    min-width: 0;
+  }
+  .tab-bar {
+    grid-column: 1;
+    grid-row: 1 / -1;
+    flex-direction: column;
+    justify-content: flex-start;
+    gap: 0.5rem;
+    width: var(--rail-w);
+    height: auto;
+    padding: 0.75rem 0;
+    border-top: none;
+    border-right: 1px solid var(--outline-variant);
+  }
+  .tab-bar-btn {
+    flex: none;
+    min-height: 60px;
+    width: 100%;
+  }
+  .tab-bar-label {
+    font-size: 0.72rem;
+  }
+}
+
 /* ---------------------------------------------------------------------- */
 /* Error boundary                                                          */
 /* ---------------------------------------------------------------------- */
@@ -387,17 +430,17 @@
   border-radius: var(--radius-full);
   background: radial-gradient(
     circle,
-    color-mix(in srgb, var(--primary) 26%, transparent) 0%,
-    color-mix(in srgb, var(--primary) 10%, transparent) 45%,
+    color-mix(in srgb, var(--tertiary) 26%, transparent) 0%,
+    color-mix(in srgb, var(--tertiary) 10%, transparent) 45%,
     transparent 72%
   );
   pointer-events: none;
 }
 .home-hero-avatar .avatar {
-  border-color: color-mix(in srgb, var(--primary) 45%, var(--outline-variant));
+  border-color: color-mix(in srgb, var(--tertiary) 45%, var(--outline-variant));
   box-shadow:
-    0 0 0 5px color-mix(in srgb, var(--primary) 12%, transparent),
-    0 10px 30px -8px color-mix(in srgb, var(--primary) 35%, transparent);
+    0 0 0 5px color-mix(in srgb, var(--tertiary) 12%, transparent),
+    0 10px 30px -8px color-mix(in srgb, var(--tertiary) 35%, transparent);
 }
 .home-hero-greeting {
   margin: 0;
@@ -437,19 +480,19 @@
   margin-bottom: 0.9rem;
   padding: 0;
   overflow: hidden;
-  border: 1px solid color-mix(in srgb, var(--primary) 35%, var(--outline-variant));
+  border: 1px solid color-mix(in srgb, var(--tertiary) 35%, var(--outline-variant));
   border-radius: var(--radius-xl);
   background:
     radial-gradient(
       ellipse 75% 55% at 50% 40%,
-      color-mix(in srgb, var(--primary) 20%, transparent) 0%,
-      color-mix(in srgb, var(--primary) 8%, transparent) 55%,
+      color-mix(in srgb, var(--tertiary) 20%, transparent) 0%,
+      color-mix(in srgb, var(--tertiary) 8%, transparent) 55%,
       transparent 78%
     ),
-    linear-gradient(180deg, color-mix(in srgb, var(--primary) 8%, var(--surface-container)) 0%, var(--surface-container) 100%);
+    linear-gradient(180deg, color-mix(in srgb, var(--tertiary) 8%, var(--surface-container)) 0%, var(--surface-container) 100%);
   box-shadow:
-    0 0 0 5px color-mix(in srgb, var(--primary) 12%, transparent),
-    0 10px 30px -8px color-mix(in srgb, var(--primary) 35%, transparent);
+    0 0 0 5px color-mix(in srgb, var(--tertiary) 12%, transparent),
+    0 10px 30px -8px color-mix(in srgb, var(--tertiary) 35%, transparent);
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
 }
@@ -464,7 +507,7 @@
   position: absolute;
   inset: 30% 35%;
   border-radius: var(--radius-full);
-  background: radial-gradient(circle, color-mix(in srgb, var(--primary) 30%, transparent) 0%, transparent 70%);
+  background: radial-gradient(circle, color-mix(in srgb, var(--tertiary) 30%, transparent) 0%, transparent 70%);
   animation: home-vrm-pulse 1.6s ease-in-out infinite;
 }
 @keyframes home-vrm-pulse {
@@ -705,6 +748,15 @@
 .home-action-sub {
   font-size: 0.78rem;
   color: var(--on-surface-variant);
+}
+
+@media (min-width: 840px) {
+  .home-actions {
+    gap: 1rem;
+  }
+  .home-action-card {
+    min-height: 148px;
+  }
 }
 
 .home-join-row {

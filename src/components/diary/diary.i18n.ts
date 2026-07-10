@@ -1,5 +1,8 @@
-// Diary ("Traveler's Journal") translations. Registered as a side effect —
-// import this file once from DiaryScreen.tsx before rendering.
+// Diary translations. Registered as a side effect — import this file once
+// from DiaryScreen.tsx before rendering.
+//
+// Terminology (kept consistent across every string in this file): the
+// feature is "journal"/"日記"/... , a single record is "entry"/"記録"/... .
 //
 // Mood labels (`mood.*`) come from src/lib/common.i18n.ts (imported in
 // main.tsx) — do not re-register them here, or the two copies drift.
@@ -8,7 +11,7 @@ import { registerTranslations } from "../../lib/i18n";
 registerTranslations({
   "diary.title": {
     en: "Traveler's Journal",
-    ja: "旅人の日誌",
+    ja: "旅の日記",
     zh: "旅人日记",
     ko: "여행자의 일지",
     es: "Diario del Viajero",
@@ -18,7 +21,7 @@ registerTranslations({
   },
   "diary.needSession": {
     en: "Join or create a party first to begin your Traveler's Journal.",
-    ja: "日誌を書き始めるには、まずパーティーに参加または作成してください。",
+    ja: "日記を書き始めるには、まずパーティーに参加または作成してください。",
     zh: "请先加入或创建一个队伍，才能开始写旅人日记。",
     ko: "일지를 쓰려면 먼저 파티에 참가하거나 만드세요.",
     es: "Únete o crea una partida primero para comenzar tu Diario del Viajero.",
@@ -38,7 +41,7 @@ registerTranslations({
   },
   "diary.emptyTitle": {
     en: "Your journal awaits",
-    ja: "日誌はまだ白紙",
+    ja: "日記はまだ白紙",
     zh: "日记本还是空的",
     ko: "일지가 비어 있어요",
     es: "Tu diario te espera",
@@ -47,14 +50,14 @@ registerTranslations({
     pt: "Seu diário está esperando",
   },
   "diary.emptyState": {
-    en: "No tales have been written yet... Pen your first entry!",
-    ja: "まだ何も記されていない……最初の物語を綴ろう！",
-    zh: "还没有写下任何故事……写下第一篇日记吧！",
-    ko: "아직 아무 이야기도 쓰이지 않았습니다... 첫 이야기를 적어보세요!",
-    es: "Aún no se ha escrito ninguna historia... ¡Escribe tu primera entrada!",
-    fr: "Aucune histoire n'a encore été écrite... Rédigez votre première entrée !",
-    de: "Noch wurde keine Geschichte geschrieben ... Schreibe deinen ersten Eintrag!",
-    pt: "Nenhuma história foi escrita ainda... Escreva sua primeira entrada!",
+    en: "A page for your travel memories. Add a location to clear the fog on the map and earn XP — and if you're in a party, everyone can read it.",
+    ja: "旅の思い出を書き残すページ。位置を添えると地図の霧が晴れてXPも貯まり、パーティー中は仲間にも見えるよ。",
+    zh: "记录旅途回忆的一页。添加位置能驱散地图上的迷雾并获得经验值——组队时同伴也能看到。",
+    ko: "여행의 추억을 남기는 페이지예요. 위치를 추가하면 지도의 안개가 걷히고 XP도 쌓이며, 파티 중이면 동료들도 볼 수 있어요.",
+    es: "Una página para tus recuerdos de viaje. Añade una ubicación para despejar la niebla del mapa y ganar XP — y si estás en una partida, todo tu grupo podrá leerla.",
+    fr: "Une page pour vos souvenirs de voyage. Ajoutez une position pour dissiper le brouillard sur la carte et gagner de l'XP — et si vous êtes en groupe, tout le monde pourra la lire.",
+    de: "Eine Seite für deine Reiseerinnerungen. Füge einen Standort hinzu, um den Nebel auf der Karte zu lichten und XP zu verdienen — und ist deine Gruppe zusammen, kann sie es auch lesen.",
+    pt: "Uma página para suas memórias de viagem. Adicione uma localização para dissipar a névoa do mapa e ganhar XP — e se estiver em um grupo, todos poderão ler.",
   },
   "diary.newEntry": {
     en: "New Entry",
@@ -68,7 +71,7 @@ registerTranslations({
   },
   "diary.editorTitleNew": {
     en: "New Journal Entry",
-    ja: "新しい日誌の記録",
+    ja: "新しい記録",
     zh: "新的日记条目",
     ko: "새 일지 항목",
     es: "Nueva Entrada del Diario",
@@ -87,24 +90,24 @@ registerTranslations({
     pt: "Editar Entrada",
   },
   "diary.titlePlaceholder": {
-    en: "Give your tale a title...",
-    ja: "物語に題名をつけよう...",
-    zh: "为你的故事起个标题...",
-    ko: "이야기에 제목을 붙여보세요...",
-    es: "Dale un título a tu relato...",
-    fr: "Donnez un titre à votre récit...",
-    de: "Gib deiner Geschichte einen Titel...",
-    pt: "Dê um título à sua história...",
+    en: "Give this entry a title...",
+    ja: "この記録にタイトルをつけよう...",
+    zh: "为这篇日记起个标题...",
+    ko: "이 항목에 제목을 붙여보세요...",
+    es: "Dale un título a esta entrada...",
+    fr: "Donnez un titre à cette entrée...",
+    de: "Gib diesem Eintrag einen Titel...",
+    pt: "Dê um título a esta entrada...",
   },
   "diary.textPlaceholder": {
-    en: "Write of your adventures...",
-    ja: "冒険の記録を書こう...",
-    zh: "记录你的冒险...",
-    ko: "모험 이야기를 적어보세요...",
-    es: "Escribe sobre tus aventuras...",
-    fr: "Racontez vos aventures...",
-    de: "Schreibe über deine Abenteuer...",
-    pt: "Escreva sobre suas aventuras...",
+    en: "What happened today?",
+    ja: "今日あったことを書こう...",
+    zh: "写下今天发生的事……",
+    ko: "오늘 있었던 일을 적어보세요...",
+    es: "¿Qué pasó hoy?",
+    fr: "Qu'est-il arrivé aujourd'hui ?",
+    de: "Was ist heute passiert?",
+    pt: "O que aconteceu hoje?",
   },
   "diary.moodLabel": {
     en: "How do you feel?",
@@ -126,6 +129,26 @@ registerTranslations({
     de: "Aktuellen Standort anhängen",
     pt: "Anexar localização atual",
   },
+  "diary.attachLocationHint": {
+    en: "Clears the fog on the map and marks where this happened.",
+    ja: "地図の霧が晴れ、記録した場所が残ります。",
+    zh: "会驱散地图上的迷雾，并留下这段记录发生的地点。",
+    ko: "지도의 안개가 걷히고, 기록한 장소가 남아요.",
+    es: "Despeja la niebla del mapa y guarda el lugar donde ocurrió.",
+    fr: "Dissipe le brouillard sur la carte et conserve le lieu de cet événement.",
+    de: "Lichtet den Nebel auf der Karte und speichert, wo das passiert ist.",
+    pt: "Dissipa a névoa do mapa e guarda onde isso aconteceu.",
+  },
+  "diary.locationFailed": {
+    en: "Couldn't get your location — the entry will save without it.",
+    ja: "位置情報を取得できませんでした。位置なしで保存します。",
+    zh: "无法获取你的位置——将不带位置保存这条记录。",
+    ko: "위치 정보를 가져오지 못했어요. 위치 없이 저장할게요.",
+    es: "No se pudo obtener tu ubicación — la entrada se guardará sin ella.",
+    fr: "Impossible d'obtenir votre position — l'entrée sera enregistrée sans elle.",
+    de: "Standort konnte nicht ermittelt werden — der Eintrag wird ohne gespeichert.",
+    pt: "Não foi possível obter sua localização — a entrada será salva sem ela.",
+  },
   "diary.locationLockedNote": {
     en: "Location can only be set when an entry is first written.",
     ja: "位置情報は記録を初めて書いたときのみ設定できます。",
@@ -145,6 +168,26 @@ registerTranslations({
     fr: (p) => `Position jointe : ${p.place}`,
     de: (p) => `Standort angehängt: ${p.place}`,
     pt: (p) => `Localização anexada: ${p.place}`,
+  },
+  "diary.scopeParty": {
+    en: "Visible to your party",
+    ja: "パーティーに公開",
+    zh: "对队伍公开",
+    ko: "파티에 공개",
+    es: "Visible para tu grupo",
+    fr: "Visible par votre groupe",
+    de: "Für deine Gruppe sichtbar",
+    pt: "Visível para o seu grupo",
+  },
+  "diary.scopePrivate": {
+    en: "Only visible to you",
+    ja: "自分だけに表示",
+    zh: "仅自己可见",
+    ko: "나만 볼 수 있음",
+    es: "Solo visible para ti",
+    fr: "Visible uniquement par vous",
+    de: "Nur für dich sichtbar",
+    pt: "Visível apenas para você",
   },
   "diary.save": {
     en: "Save",
@@ -198,7 +241,7 @@ registerTranslations({
   },
   "diary.confirmDelete": {
     en: "Tear this page from the journal? This cannot be undone.",
-    ja: "この日誌のページを破り捨てますか？元に戻せません。",
+    ja: "この日記のページを破り捨てますか？元に戻せません。",
     zh: "要撕掉日记的这一页吗？此操作无法撤销。",
     ko: "일지에서 이 페이지를 찢어버리시겠습니까? 되돌릴 수 없습니다.",
     es: "¿Arrancar esta página del diario? Esto no se puede deshacer.",

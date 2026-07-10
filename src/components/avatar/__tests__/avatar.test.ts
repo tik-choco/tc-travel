@@ -28,7 +28,7 @@ describe("avatar.i18n", () => {
 
 describe("shell tab sets", () => {
   it("ships the avatar-priority solo order", () => {
-    expect(SOLO_TABS).toEqual(["home", "avatar", "map", "album", "diary", "guild"]);
+    expect(SOLO_TABS).toEqual(["home", "avatar", "map", "album", "diary", "post", "guild"]);
   });
 
   it("ships the map-landing room order with avatar second", () => {
@@ -42,10 +42,10 @@ describe("shell tab sets", () => {
     expect(ROOM_TABS).not.toContain("camera");
   });
 
-  it("keeps home solo-only and post room-only", () => {
+  it("keeps home solo-only and post available in both", () => {
     expect(SOLO_TABS).toContain("home");
     expect(ROOM_TABS).not.toContain("home");
     expect(ROOM_TABS).toContain("post");
-    expect(SOLO_TABS).not.toContain("post");
+    expect(SOLO_TABS).toContain("post");
   });
 });

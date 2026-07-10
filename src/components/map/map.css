@@ -442,8 +442,44 @@
 }
 
 .map-sheet__location {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--on-surface);
+}
+
+.map-sheet__location svg {
+  flex-shrink: 0;
+  color: var(--primary);
+}
+
+.map-sheet__location--ocean {
+  color: var(--on-surface-variant);
+  font-weight: 500;
   font-style: italic;
+}
+
+.map-sheet__location--ocean svg {
+  color: var(--on-surface-variant);
+}
+
+.map-sheet__ocean-hint {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: var(--radius-lg);
+  background: var(--surface-container-high);
+  border: 1px dashed var(--outline-variant);
+}
+
+.map-sheet__ocean-hint p {
+  margin: 0;
+  font-size: 0.85rem;
   color: var(--on-surface-variant);
 }
 
@@ -548,6 +584,77 @@
 
 .map-chipinput__add {
   flex-shrink: 0;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Location search (LocationPicker + its FAB trigger)                       */
+/* ---------------------------------------------------------------------- */
+
+/* Secondary FAB, stacked to the left of the primary "New Encounter" FAB —
+   same row, same bottom offset, echoing .fab's (theme.css) look without
+   touching that shared class (map-world-brag-fab does the same thing). */
+.map-search-fab {
+  position: fixed;
+  right: calc(max(1rem, env(safe-area-inset-right)) + 60px);
+  bottom: var(--fab-bottom);
+  z-index: 40;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-full);
+  background: var(--surface-container-high);
+  color: var(--on-surface);
+  border: 1px solid var(--outline-variant);
+  box-shadow: var(--shadow-2);
+  cursor: pointer;
+}
+
+.map-search-fab:hover {
+  background: color-mix(in srgb, var(--primary) 10%, var(--surface-container-high));
+  box-shadow: var(--shadow-3);
+}
+
+.map-search-fab:active {
+  transform: scale(0.94);
+}
+
+.map-picker__search {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.map-picker__search-icon {
+  position: absolute;
+  left: 12px;
+  color: var(--on-surface-variant);
+  pointer-events: none;
+}
+
+.map-picker__search .input {
+  padding-left: 36px;
+}
+
+.map-picker__list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-height: 50vh;
+  overflow-y: auto;
+}
+
+.map-picker__item {
+  gap: 10px;
+}
+
+.map-picker__item svg {
+  flex-shrink: 0;
+  color: var(--primary);
 }
 
 /* ---------------------------------------------------------------------- */
@@ -800,6 +907,16 @@
   color: var(--primary);
 }
 
+.jp-selected__record-btn {
+  margin-top: 8px;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+}
+
 /* Rarity tiers — one chip per tier, legendary gets a slow gold shimmer. */
 .jp-rarity {
   flex-shrink: 0;
@@ -963,5 +1080,48 @@
 
   .map-japan-chip:active {
     transform: none;
+  }
+}
+
+/* ---------------------------------------------------------------------- */
+/* Desktop (>=840px): the map fills the pane instead of the .screen's       */
+/* 720px reading-column cap, and floating panels read as docked info cards  */
+/* rather than mobile-width strips.                                        */
+/* ---------------------------------------------------------------------- */
+
+@media (min-width: 840px) {
+  .map-screen {
+    max-width: none;
+  }
+
+  .map-world-brag-fab {
+    left: calc(var(--rail-w) + max(1rem, env(safe-area-inset-left)));
+  }
+
+  .map-stat-card {
+    right: auto;
+    max-width: 420px;
+  }
+
+  .jp-header {
+    max-width: 480px;
+  }
+
+  .jp-selected {
+    left: auto;
+    width: 420px;
+  }
+}
+
+/* Hover feedback for the Japan drill-down's per-prefecture tap targets —
+   the world map itself has no per-country click target (the whole canvas is
+   one tap surface), but a tapped prefecture here IS its own hit target. */
+@media (hover: hover) and (pointer: fine) {
+  .jp-pref--fog:hover {
+    fill: color-mix(in srgb, var(--on-surface) var(--state-hover), var(--surface-container-low));
+  }
+
+  .jp-pref--visited:hover {
+    filter: brightness(1.08);
   }
 }

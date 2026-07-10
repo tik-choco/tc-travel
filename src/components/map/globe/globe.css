@@ -128,3 +128,12 @@
     animation: none;
   }
 }
+
+/* Desktop: GlobeMap itself renders .map-screen (map.css owns that override);
+   this only covers the lazy placeholder/failure shell so there's no flash of
+   a 720px-capped column before the real chunk mounts. */
+@media (min-width: 840px) {
+  .globe-shell {
+    max-width: none;
+  }
+}

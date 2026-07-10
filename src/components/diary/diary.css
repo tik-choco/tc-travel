@@ -73,6 +73,14 @@
   gap: 0.5rem;
 }
 
+.diary-header-titling {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
 .diary-editor-title {
   margin: 0;
   font-size: 1.1rem;
@@ -81,10 +89,33 @@
   color: var(--on-surface);
 }
 
+.diary-scope-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.55rem;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--outline-variant);
+  background: color-mix(in srgb, var(--on-surface) 6%, transparent);
+  color: var(--on-surface-variant);
+  font-size: 0.7rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
 .diary-text-input {
   min-height: 160px;
   resize: vertical;
   line-height: 1.5;
+}
+
+@media (min-width: 840px) {
+  .diary-sheet {
+    max-width: 640px;
+  }
+
+  .diary-text-input {
+    min-height: 260px;
+  }
 }
 
 .diary-mood-picker {
@@ -98,11 +129,27 @@
   color: var(--on-surface-variant);
 }
 
+.diary-location-toggle {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
 .diary-location-label {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   min-height: 44px;
+}
+
+.diary-location-hint {
+  margin: 0 0 0 2.1rem;
+  font-size: 0.75rem;
+  color: var(--on-surface-variant);
+}
+
+.diary-location-failed {
+  color: var(--error);
 }
 
 .diary-validation {
@@ -154,4 +201,10 @@
   white-space: pre-wrap;
   line-height: 1.6;
   color: var(--on-surface);
+}
+
+@media (min-width: 840px) {
+  .diary-reader-text {
+    max-width: 60ch;
+  }
 }

@@ -4,10 +4,10 @@ import { useT } from "../../lib/i18n";
 
 // The `avatar` tab is the companion's hub (../avatar/AvatarScreen); the AR
 // capture experience is launched from inside it, not tabbed to directly.
-// `home` is the solo landing (Quest Board); `post` (card exchange) only makes
-// sense inside a party — the two exported sets below pick the right lineup per
-// mode, and app.tsx renders whichever the current session state calls for.
-// Tab state is useState-only (not persisted), so this rename is safe.
+// `home` is the solo landing (Quest Board); `post` (card exchange) is
+// face-to-face QR only and works with no room at all, so it's on both
+// lineups below — app.tsx renders whichever the current session state calls
+// for. Tab state is useState-only (not persisted), so this rename is safe.
 export type RoomTab = "home" | "map" | "album" | "diary" | "avatar" | "post" | "guild";
 
 // Short labels (tab.short.*): the long fantasy screen names (tab.*) overflow
@@ -22,15 +22,16 @@ const TAB_META: Record<RoomTab, { icon: typeof Map; labelKey: string }> = {
   guild: { icon: Shield, labelKey: "tab.short.guild" },
 };
 
-/** Tab set inside a P2P room — encounters and cards are shared with the party,
- *  so `post` shows and the solo `home` landing is hidden. Room landing stays
- *  `map`; `avatar` is promoted to second, next to it. */
+/** Tab set inside a P2P room — the solo `home` landing is hidden since the
+ *  room itself is the landing. Room landing stays `map`; `avatar` is
+ *  promoted to second, next to it. */
 export const ROOM_TABS: readonly RoomTab[] = ["map", "avatar", "album", "diary", "post", "guild"];
 
-/** Tab set while travelling solo — `home` takes `post`'s place, and the
- *  high-priority `avatar`/`map`/`album` trio leads. Every screen works against
+/** Tab set while travelling solo — `home` leads, and the high-priority
+ *  `avatar`/`map`/`album` trio follows. `post` (card exchange) is local-only
+ *  and room-independent, so it shows here too. Every screen works against
  *  the local-first store via the unified memories layer. */
-export const SOLO_TABS: readonly RoomTab[] = ["home", "avatar", "map", "album", "diary", "guild"];
+export const SOLO_TABS: readonly RoomTab[] = ["home", "avatar", "map", "album", "diary", "post", "guild"];
 
 interface Props {
   active: RoomTab;
