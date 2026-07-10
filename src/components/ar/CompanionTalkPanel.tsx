@@ -10,7 +10,7 @@ import "./ar.css";
 import { useEffect, useRef, useState } from "preact/hooks";
 import { CircleStop, Send, X } from "lucide-preact";
 import { getLanguage, useT } from "../../lib/i18n";
-import { loadAiSettings, isAiConfigured } from "../../lib/ai/aiSettings";
+import { loadAiSettings, isAiConfigured, resolveAiRoomId } from "../../lib/ai/aiSettings";
 import { getCompanionClient, type CompanionStatus } from "../../lib/ai/companionClient";
 import { splitSpeechLines, speakLines } from "../../lib/ai/speech";
 import { attachLipSync, type LipSyncHandle } from "../../lib/ai/lipSync";
@@ -77,7 +77,7 @@ export function CompanionTalkPanel({ open, onClose, companionRef }: CompanionTal
   useEffect(() => {
     if (!open || connectedOnceRef.current) return;
     connectedOnceRef.current = true;
-    client.connect(loadAiSettings().roomId);
+    client.connect(resolveAiRoomId());
   }, [open, client]);
 
   // Auto-scroll to the newest message.
