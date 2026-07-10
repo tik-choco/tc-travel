@@ -13,13 +13,13 @@ export const EMOJI_CHOICES = [
 ];
 
 const COLOR_CHOICES = [
-  "#c9a227", // gold
-  "#8c2f28", // wax seal red
-  "#3f6b3a", // forest green
-  "#2c4a7c", // royal blue
-  "#5b3a8c", // purple
-  "#8a5a2b", // bronze
-  "#2c7c74", // teal
+  "#d99a2b", // amber
+  "#c34f45", // red
+  "#4a8c58", // forest green
+  "#2b6f9e", // ocean blue
+  "#d9694f", // coral
+  "#c07a3a", // orange
+  "#2fa094", // teal
   "#6b7280", // steel
 ];
 

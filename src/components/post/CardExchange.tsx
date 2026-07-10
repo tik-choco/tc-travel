@@ -1,11 +1,12 @@
 import "./post.i18n";
 import { useEffect, useMemo, useRef, useState } from "preact/hooks";
-import { Sparkles, X } from "lucide-preact";
+import { Check, Download, Share, Sparkles, X } from "lucide-preact";
 import { useT } from "../../lib/i18n";
 import { getProfile, useProfile } from "../../lib/personal";
 import { renderQr, startQrScan } from "../../lib/qr";
 import { encodeCard, parseCard } from "../../lib/cardQr";
 import { addReceivedCard } from "../../lib/cards";
+import { Avatar } from "../common/Avatar";
 import type { Card } from "../../lib/types";
 
 interface Props {
@@ -24,6 +25,7 @@ export function CardExchange({ onClose }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const [scanError, setScanError] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const message = profile.cardMessage ?? "";
 
@@ -48,6 +50,42 @@ export function CardExchange({ onClose }: Props) {
       console.error("tc-travel: renderQr failed", err);
     });
   }, [tab, encoded]);
+
+  // Native share sheet when available; a browser that advertises share but
+  // fails on plain text (or lacks it entirely) falls back to the clipboard,
+  // same degrade path as bragCardCanvas's image share.
+  const handleShareCard = async () => {
+    if (typeof navigator.share === "function") {
+      try {
+        await navigator.share({ title: t("post.exchangeTitle"), text: encoded });
+        return;
+      } catch (err) {
+        if ((err as DOMException | null)?.name === "AbortError") return;
+        console.error("tc-travel: card share failed", err);
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(encoded);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1500);
+    } catch (err) {
+      console.error("tc-travel: clipboard write failed", err);
+    }
+  };
+
+  const handleSaveQr = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    canvas.toBlob((blob) => {
+      if (!blob) return;
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "tc-travel-card-qr.png";
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }, "image/png");
+  };
 
   // Camera runs only while actually scanning — receiving a card swaps the
   // video out for the confirmation, and this effect's cleanup releases the
@@ -98,13 +136,24 @@ export function CardExchange({ onClose }: Props) {
     };
   }, [scanning]);
 
+  // Scanned/received cards only ever carry an emoji (the QR payload can't
+  // carry an image) — this stays emoji-based. The own-card face below is the
+  // one place that can show a real photo, via the shared <Avatar>.
   const cardFace = (card: Omit<Card, "receivedAt">, extraClass = "") => (
     <div class={`card-face${extraClass ? ` ${extraClass}` : ""}`} style={`--card-color: ${card.color}`}>
-      <span class="avatar avatar-lg card-face-avatar" aria-hidden="true">
+      <span class="avatar avatar-lg" aria-hidden="true">
         {card.avatarEmoji}
       </span>
       <span class="card-face-name">{card.name}</span>
       {card.message !== "" && <p class="card-face-message">{card.message}</p>}
+    </div>
+  );
+
+  const ownCardFace = (
+    <div class="card-face" style={`--card-color: ${profile.color}`}>
+      <Avatar self size="lg" />
+      <span class="card-face-name">{profile.name}</span>
+      {message !== "" && <p class="card-face-message">{message}</p>}
     </div>
   );
 
@@ -141,14 +190,7 @@ export function CardExchange({ onClose }: Props) {
             <div class="qr-tile">
               <canvas ref={canvasRef} />
             </div>
-            {cardFace({
-              id: profile.id,
-              name: profile.name,
-              avatarEmoji: profile.avatarEmoji,
-              color: profile.color,
-              message,
-              at: 0,
-            })}
+            {ownCardFace}
             <div class="field card-message-field">
               <span class="settings-label">{t("post.myMessage")}</span>
               <textarea
@@ -159,6 +201,16 @@ export function CardExchange({ onClose }: Props) {
                 value={message}
                 onInput={(e) => updateProfile({ cardMessage: (e.target as HTMLTextAreaElement).value })}
               />
+            </div>
+            <div class="qr-actions">
+              <button type="button" class="btn btn-outlined" onClick={handleShareCard}>
+                {copied ? <Check aria-hidden="true" /> : <Share aria-hidden="true" />}
+                {copied ? t("post.copied") : t("post.share")}
+              </button>
+              <button type="button" class="btn btn-outlined" onClick={handleSaveQr}>
+                <Download aria-hidden="true" />
+                {t("post.saveQr")}
+              </button>
             </div>
             <p class="qr-scan-hint">{t("post.showHint")}</p>
           </div>

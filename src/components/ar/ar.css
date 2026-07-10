@@ -45,6 +45,12 @@
   background: #000;
 }
 
+@media (min-width: 840px) {
+  .ar-video {
+    object-fit: contain;
+  }
+}
+
 .ar-overlay {
   position: absolute;
   inset: 0;
@@ -378,6 +384,18 @@
   }
   .ar-hint {
     transition: none;
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .ar-icon-btn:not(:disabled):hover {
+    background: color-mix(in srgb, var(--surface-dim) 70%, transparent);
+  }
+  .ar-shutter:not(:disabled):hover {
+    background: color-mix(in srgb, var(--on-primary) var(--state-hover), var(--primary));
+  }
+  .ar-filter-chip:hover {
+    background: rgba(0, 0, 0, 0.55);
   }
 }
 

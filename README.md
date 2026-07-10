@@ -11,7 +11,7 @@ a travel journal, and gradually lift the fog from a fantasy world map with every
 - **Traveler's Journal** — a quest-log style diary with moods and optional geotags
 - **Summoning Circle** — overlay a VRM avatar on the live camera and take composite group
   photos (no WebXR required — works on iOS Safari too)
-- **Guild Card** — adventurer rank, XP, achievement badges, and a chronicle timeline, all
+- **Adventurer Card** — adventurer rank, XP, achievement badges, and a chronicle timeline, all
   derived purely from your synced journey data
 - Share rooms via QR code or `#/join/<roomId>` links; 8 languages (en/ja/zh/ko/es/fr/de/pt)
 

@@ -1,12 +1,22 @@
 import { useState } from "preact/hooks";
-import { X, Trash2 } from "lucide-preact";
+import { X, Trash2, Search, Waves, MapPin } from "lucide-preact";
 import type { EncounterPin } from "../../lib/types";
 import { getLanguage, useT } from "../../lib/i18n";
 import { ChipInput } from "./ChipInput";
 import "./map.i18n";
 
 export type SheetTarget =
-  | { mode: "new"; lat: number; lng: number; countryCode: string; resolving: boolean }
+  | {
+      mode: "new";
+      lat: number;
+      lng: number;
+      countryCode: string;
+      resolving: boolean;
+      /** Set when this target came from LocationPicker — overrides the
+       *  country/ocean label derived from countryCode so the sheet shows
+       *  exactly what the traveller picked. */
+      pickerLabel?: string;
+    }
   | { mode: "view"; pin: EncounterPin };
 
 interface EncounterSheetProps {
@@ -18,6 +28,9 @@ interface EncounterSheetProps {
   onClose: () => void;
   onSave: (data: { title: string; companions: string[]; note: string }) => void;
   onDelete: () => void;
+  /** "new" mode only: opens LocationPicker so a mis-tap on open water (or any
+   *  imprecise tap) can be corrected by searching for a place by name. */
+  onPickLocation?: () => void;
 }
 
 /** Bottom sheet for recording a new encounter or viewing/deleting an existing pin. */
@@ -29,9 +42,13 @@ export function EncounterSheet({
   onClose,
   onSave,
   onDelete,
+  onPickLocation,
 }: EncounterSheetProps) {
   const t = useT();
   const isView = target.mode === "view";
+  // Ocean = lookupCountry's point-in-polygon found nothing: a near-miss tap
+  // resolves to "" silently, so this is the only signal a mis-tap happened.
+  const isOceanMiss = target.mode === "new" && !target.resolving && !target.countryCode && !target.pickerLabel;
   const [title, setTitle] = useState(isView ? target.pin.title : "");
   const [companions, setCompanions] = useState<string[]>(isView ? target.pin.companions : []);
   const [note, setNote] = useState(isView ? target.pin.note : "");
@@ -50,7 +67,19 @@ export function EncounterSheet({
               <X size={20} />
             </button>
           </div>
-          <p class="map-sheet__location">{locationLabel}</p>
+          <p class={["map-sheet__location", isOceanMiss ? "map-sheet__location--ocean" : ""].filter(Boolean).join(" ")}>
+            {isOceanMiss ? <Waves size={14} aria-hidden="true" /> : <MapPin size={14} aria-hidden="true" />}
+            <span>{locationLabel}</span>
+          </p>
+          {isOceanMiss && onPickLocation && (
+            <div class="map-sheet__ocean-hint">
+              <p>{t("map.sheet.oceanHint")}</p>
+              <button type="button" class="btn btn-tonal" onClick={onPickLocation}>
+                <Search size={16} />
+                {t("map.sheet.pickByName")}
+              </button>
+            </div>
+          )}
 
           {isView ? (
             <div class="map-sheet__body">

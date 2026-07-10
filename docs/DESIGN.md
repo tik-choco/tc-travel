@@ -16,7 +16,7 @@ The world map is the heart of the app. It works like an RPG world map:
    revealed in warm parchment colors with a satisfying animation.
 3. An **exploration percentage** ("World Explored: 12%") and per-continent progress push the
    collection urge.
-4. **Adventurer rank** (Guild Card): level computed from XP. XP sources: new country revealed
+4. **Adventurer rank** (Adventurer Card): level computed from XP. XP sources: new country revealed
    (large), new companion met (large), photo taken (small), diary entry written (small),
    consecutive-day usage streak (small).
 5. **Achievements** (badges with fantasy names): e.g. "First Steps" (first encounter),
@@ -64,13 +64,13 @@ src/
     i18n.ts         — i18n runtime (tc-note pattern)
   locales/          — en.ts ja.ts zh.ts ko.ts es.ts fr.ts de.ts pt.ts
   components/
-    shell/          — App shell: bottom tab bar (Map / Album / Diary / Camera / Guild), room switcher
+    shell/          — App shell: bottom tab bar (Map / Album / Diary / Camera / Profile), room switcher
     room/           — Join/Create screens, QR share & scan modal
     map/            — WorldMap (fog-of-war SVG), pin placement, country reveal animation
     album/          — photo grid, photo viewer, capture/import
     diary/          — entry list, editor
     ar/             — ARCamera: getUserMedia + three.js VRM overlay + composite capture
-    guild/          — Guild Card (rank, XP, achievements), Chronicle timeline
+    guild/          — Adventurer Card (rank, XP, achievements), Chronicle timeline
   styles/           — theme.css (fantasy design tokens), per-feature css
 ```
 
@@ -82,7 +82,7 @@ src/
   fonts), system sans for body. Ornamental borders via CSS (double borders, corner flourishes
   with pseudo-elements), subtle paper texture via CSS gradients/noise (no external images).
 - Components framed as: map = "World Atlas", album = "Memory Grimoire", diary = "Traveler's
-  Journal", camera = "Summoning Circle" (AR), profile = "Guild Card".
+  Journal", camera = "Summoning Circle" (AR), profile = "Adventurer Card".
 - Buttons look like embossed leather/brass. Tab bar icons: lucide-preact.
 - Dark theme by default (fits fantasy + AR camera); must look good on OLED mobile.
 - Safe-area insets (viewport-fit=cover) respected; all tap targets ≥ 44px.

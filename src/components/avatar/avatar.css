@@ -42,7 +42,7 @@
   background:
     radial-gradient(
       130% 90% at 50% 12%,
-      color-mix(in srgb, var(--primary-container) 45%, var(--surface-container-high)) 0%,
+      color-mix(in srgb, var(--tertiary-container) 45%, var(--surface-container-high)) 0%,
       var(--surface-container) 58%,
       var(--surface-dim) 100%
     );
@@ -330,5 +330,14 @@
   }
   .avatar-cta {
     transition: none;
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .avatar-icon-btn:not(:disabled):hover {
+    background: var(--surface-container-highest);
+  }
+  .avatar-cta:not(:disabled):hover {
+    background: color-mix(in srgb, var(--on-primary) var(--state-hover), var(--primary));
   }
 }

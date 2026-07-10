@@ -10,7 +10,7 @@
 // imports the viewer or the drill-down (they're built concurrently).
 
 import { useEffect, useMemo, useRef, useState } from "preact/hooks";
-import { Compass, MapPin } from "lucide-preact";
+import { Compass, MapPin, Search } from "lucide-preact";
 import { getLanguage, useT } from "../../../lib/i18n";
 import type { AlbumPhoto, EncounterPin } from "../../../lib/types";
 import { useMembers, usePins, removePin } from "../../../lib/store";
@@ -28,6 +28,7 @@ import { useExplorationStats } from "../../../lib/explorationStats";
 import { geometryCentroid } from "../geoMath";
 import { continentOf, CONTINENT_ORDER, type ContinentId } from "../continents";
 import { EncounterSheet, type SheetTarget } from "../EncounterSheet";
+import { LocationPicker, type PickedLocation } from "../LocationPicker";
 import { GlobeScene, type GlobeTapHit } from "./globeScene";
 import "../map.i18n";
 import "./globe.i18n";
@@ -41,13 +42,20 @@ export interface GlobeMapProps {
   onOpenCountry?: (countryCode: string) => void;
   /** Visited countries onOpenCountry can handle. Defaults to Japan only. */
   drillDownCodes?: string[];
+  /** Reverse channel for the orchestrator's own drill-downs (JapanMap /
+   *  SubnationalMap, both owned by MapScreen, not this file — see its
+   *  header comment): GlobeMap writes its "open the encounter sheet at a
+   *  known location" handler here every render, so a "record an encounter
+   *  here" button in a drill-down can reach back into this sheet without
+   *  either module importing the other. */
+  recordAtRef?: { current: ((loc: PickedLocation) => void) | null };
 }
 
 const REVEAL_ANIM_MS = 1400;
 const DEFAULT_DRILLDOWN = ["jp"];
 
 /** The fog-of-war world, now a globe — the app's core retention loop. */
-export function GlobeMap({ onOpenPhoto, onOpenCountry, drillDownCodes }: GlobeMapProps) {
+export function GlobeMap({ onOpenPhoto, onOpenCountry, drillDownCodes, recordAtRef }: GlobeMapProps) {
   const t = useT();
   const lang = getLanguage();
   const [profile] = useProfile();
@@ -66,6 +74,7 @@ export function GlobeMap({ onOpenPhoto, onOpenCountry, drillDownCodes }: GlobeMa
   const [worldError, setWorldError] = useState(false);
   const [glError, setGlError] = useState(false);
   const [sheet, setSheet] = useState<SheetTarget | null>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
   // The open sheet's municipality, resolved at pin time (never blocks saving:
   // the label just upgrades from "Japan" to "Shinjuku · Japan" when it lands).
   const [sheetMuni, setSheetMuni] = useState<ResolvedMunicipality | null>(null);
@@ -259,6 +268,22 @@ export function GlobeMap({ onOpenPhoto, onOpenCountry, drillDownCodes }: GlobeMa
     setSheet({ mode: "new", lat, lng, countryCode: code, resolving: false });
   }
 
+  /** LocationPicker result: already resolved lat/lng/country, so the sheet
+   *  opens immediately — no "locating…" phase, and the picked label wins over
+   *  the usual country/municipality label (see sheetLocationLabel). Doubles as
+   *  the ocean-miss escape hatch: EncounterSheet stays mounted while the
+   *  picker is open on top of it, so any title/note already typed survives. */
+  function handlePickLocation(loc: PickedLocation): void {
+    setPickerOpen(false);
+    muniSeqRef.current++; // invalidate any in-flight resolution for the old point
+    setSheetMuni(null);
+    setSheet({ mode: "new", lat: loc.lat, lng: loc.lng, countryCode: loc.countryCode, resolving: false, pickerLabel: loc.label });
+  }
+  // Latest-callback idiom (same as onTapRef): the orchestrator's drill-downs
+  // call this to open the sheet from outside, so it must always see the
+  // current handlePickLocation, not a stale one from an earlier render.
+  if (recordAtRef) recordAtRef.current = handlePickLocation;
+
   /** FAB / empty-state CTA: record an encounter at whatever faces the camera. */
   function handleAddAtCenter(): void {
     const scene = sceneRef.current;
@@ -331,9 +356,11 @@ export function GlobeMap({ onOpenPhoto, onOpenCountry, drillDownCodes }: GlobeMa
     return countryName(code, lang);
   }
 
-  /** Sheet location line: "Shinjuku · Japan" once the municipality resolves,
-   *  plain country (or ocean / locating…) until then. */
+  /** Sheet location line: a LocationPicker pick wins outright (it's already
+   *  the exact place the traveller chose); otherwise "Shinjuku · Japan" once
+   *  the municipality resolves, plain country (or ocean / locating…) until then. */
   function sheetLocationLabel(target: SheetTarget): string {
+    if (target.mode === "new" && target.pickerLabel) return target.pickerLabel;
     const base =
       target.mode === "view" ? labelFor(target.pin.countryCode) : labelFor(target.countryCode, target.resolving);
     const stillLocating = target.mode === "new" && target.resolving;
@@ -400,6 +427,16 @@ export function GlobeMap({ onOpenPhoto, onOpenCountry, drillDownCodes }: GlobeMa
           <span class="fab-label">{t("map.fab.add")}</span>
         </button>
       )}
+      {ready && (
+        <button
+          type="button"
+          class="map-search-fab"
+          onClick={() => setPickerOpen(true)}
+          aria-label={t("map.picker.searchAria")}
+        >
+          <Search size={20} />
+        </button>
+      )}
 
       {sheet && (
         <EncounterSheet
@@ -414,6 +451,7 @@ export function GlobeMap({ onOpenPhoto, onOpenCountry, drillDownCodes }: GlobeMa
             (roomPins.some((p) => p.id === sheet.pin.id) || localPins.some((p) => p.id === sheet.pin.id))
           }
           onClose={closeSheet}
+          onPickLocation={() => setPickerOpen(true)}
           onSave={(data) => {
             if (sheet.mode !== "new") return;
             addPinAuto({ lat: sheet.lat, lng: sheet.lng, countryCode: sheet.countryCode, ...data });
@@ -428,6 +466,8 @@ export function GlobeMap({ onOpenPhoto, onOpenCountry, drillDownCodes }: GlobeMa
           }}
         />
       )}
+
+      {pickerOpen && <LocationPicker onSelect={handlePickLocation} onClose={() => setPickerOpen(false)} />}
     </div>
   );
 }

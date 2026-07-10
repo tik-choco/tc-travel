@@ -238,3 +238,11 @@
     transition: none;
   }
 }
+
+/* Desktop (>=840px): cap the header to match the other drill-downs' overlay
+   panels instead of stretching across the full-bleed map pane. */
+@media (min-width: 840px) {
+  .muni-header {
+    max-width: 480px;
+  }
+}

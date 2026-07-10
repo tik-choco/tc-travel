@@ -4,14 +4,14 @@ import { registerTranslations } from "../../lib/i18n";
 registerTranslations({
   // --- Profile setup -----------------------------------------------------
   "profile.title": {
-    en: "Create Your Guild Card",
-    ja: "ギルドカードを作成",
-    zh: "创建你的公会卡",
-    ko: "길드 카드 만들기",
-    es: "Crea tu Carné de Gremio",
-    fr: "Créez votre Carte de Guilde",
-    de: "Erstelle deine Gildenkarte",
-    pt: "Crie seu Cartão de Guilda",
+    en: "Create Your Adventurer Card",
+    ja: "冒険者カードを作成",
+    zh: "创建你的冒险者卡",
+    ko: "모험가 카드 만들기",
+    es: "Crea tu Carné de Aventurero",
+    fr: "Créez votre Carte d'Aventurier",
+    de: "Erstelle deine Abenteurerkarte",
+    pt: "Crie seu Cartão de Aventureiro",
   },
   "profile.nameLabel": {
     en: "Adventurer Name",
@@ -331,6 +331,16 @@ registerTranslations({
     fr: "Écrire une page de journal",
     de: "Eine Tagebuchseite schreiben",
     pt: "Escrever uma página de diário",
+  },
+  "home.firstStepDiaryHint": {
+    en: "Clears the map's fog and earns XP.",
+    ja: "地図の霧が晴れ、XPも貯まるよ。",
+    zh: "驱散地图迷雾，还能获得经验值。",
+    ko: "지도의 안개가 걷히고 XP도 쌓여요.",
+    es: "Despeja la niebla del mapa y gana XP.",
+    fr: "Dissipe le brouillard de la carte et rapporte de l'XP.",
+    de: "Lichtet den Nebel der Karte und bringt XP.",
+    pt: "Dissipa a névoa do mapa e ganha XP.",
   },
   "home.firstStepJoin": {
     en: "Join a party",

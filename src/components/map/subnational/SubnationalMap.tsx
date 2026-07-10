@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "preact/hooks";
-import { ArrowLeft, Sparkles, X } from "lucide-preact";
-import { getLanguage, useT } from "../../../lib/i18n";
+import { ArrowLeft, MapPin, Sparkles, X } from "lucide-preact";
+import { getLanguage, translate, useT } from "../../../lib/i18n";
 import { countryName } from "../../../lib/geo";
 import { useUnifiedJourney } from "../../../lib/memories";
 import { ensureCountryAdmin1, hasVendoredAdmin1 } from "../../../lib/geo/admin1Resolver";
+import { geometryCentroid } from "../geoMath";
+import { geometryAnchor } from "../globe/geoSphere";
 import {
   buildLayout,
   insetsFor,
@@ -14,6 +16,7 @@ import {
 import { subnationalEntry } from "./registry";
 import "./subnational.i18n";
 import "./subnational.css";
+import "../map.i18n";
 
 const REVEAL_ANIM_MS = 1400;
 
@@ -85,6 +88,9 @@ interface SubnationalMapProps {
   /** ISO 3166-1 alpha-2 (case-insensitive), e.g. "us", "kr" */
   countryCode: string;
   onClose: () => void;
+  /** Opens the encounter sheet at a subdivision's real-world anchor point —
+   *  the drill-down's own "record an encounter here". */
+  onRecordAt: (lat: number, lng: number, label: string) => void;
 }
 
 /** Generic sub-national drill-down — the world map's fog-of-war retention loop
@@ -94,7 +100,7 @@ interface SubnationalMapProps {
  *  dynamic geoBoundaries fetch for everywhere else). Rendered as an overlay
  *  inside .map-viewport so the world map stays mounted underneath. (Japan
  *  itself keeps its own JapanMap — see registry.ts.) */
-export function SubnationalMap({ countryCode, onClose }: SubnationalMapProps) {
+export function SubnationalMap({ countryCode, onClose, onRecordAt }: SubnationalMapProps) {
   const t = useT();
   const lang = getLanguage();
   const entry = subnationalEntry(countryCode);
@@ -189,6 +195,15 @@ export function SubnationalMap({ countryCode, onClose }: SubnationalMapProps) {
 
   const insetCodes = useMemo(() => new Set(layout?.insets.map((i) => i.code) ?? []), [layout]);
   const selectedSub = selected ? subByCode.get(selected) : undefined;
+
+  /** Real-world (lat/lng) anchor for a subdivision — NOT layout.paths' anchor,
+   *  which is projected into this view's local SVG pixel space. */
+  function handleRecordHere(): void {
+    if (!selectedSub) return;
+    const anchor = geometryAnchor(selectedSub.geometry) ?? geometryCentroid(selectedSub.geometry);
+    const label = translate("map.picker.place", { region: selectedSub.name, country });
+    onRecordAt(anchor.lat, anchor.lng, label);
+  }
 
   const subClasses = (code: string): string =>
     [
@@ -352,6 +367,10 @@ export function SubnationalMap({ countryCode, onClose }: SubnationalMapProps) {
             >
               {visited.has(selectedSub.code) ? t("map.sub.visitedState") : t("map.sub.unvisitedState")}
             </p>
+            <button type="button" class="btn btn-primary sub-selected__record-btn" onClick={handleRecordHere}>
+              <MapPin size={16} />
+              {t("map.drill.recordHere")}
+            </button>
           </div>
         )}
       </div>

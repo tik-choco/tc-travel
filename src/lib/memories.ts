@@ -21,6 +21,7 @@ import {
   addPhoto,
   addPin,
   inRoom,
+  photosSnapshot,
   removeDiaryEntry,
   removePhoto,
   updateDiaryEntry,
@@ -127,6 +128,48 @@ export function useAlbumPhotos(): AlbumPhoto[] {
   return [...room, ...local].sort((a, b) => b.at - a.at);
 }
 
+/** Non-hook union of every photo the traveller can currently see (room +
+ *  local) — same shape as useAlbumPhotos, for callers that can't use hooks
+ *  (e.g. the drive auto-export engine). */
+export function albumPhotosSnapshot(): AlbumPhoto[] {
+  const selfId = getProfile().id;
+  const room: AlbumPhoto[] = photosSnapshot().map((p) => ({
+    id: p.id,
+    source: "room",
+    by: p.by,
+    at: p.at,
+    caption: p.caption,
+    geo: p.geo,
+    width: p.width,
+    height: p.height,
+    arShot: p.arShot,
+    cid: p.cid,
+  }));
+  const local: AlbumPhoto[] = localSnapshot().photos.map((p) => ({
+    id: p.id,
+    source: "local",
+    by: selfId,
+    at: p.at,
+    caption: p.caption,
+    geo: p.geo,
+    width: p.width,
+    height: p.height,
+    arShot: p.arShot,
+  }));
+  return [...room, ...local].sort((a, b) => b.at - a.at);
+}
+
+/** Resolves an AlbumPhoto's raw bytes regardless of source — room via mist
+ *  storage, local via IndexedDB. Returns null if unreachable right now (e.g.
+ *  a room peer's bytes aren't synced yet). Shared by resolveAlbumPhotoUrl and
+ *  the drive auto-export engine. */
+export async function getAlbumPhotoBytes(photo: AlbumPhoto): Promise<Uint8Array | null> {
+  if (photo.source === "local") return getLocalPhotoBytes(photo.id);
+  if (!photo.cid) return null;
+  await ensureMistNode();
+  return new Uint8Array(await storage_get(photo.cid));
+}
+
 const localUrlCache = new Map<string, string>();
 
 /** Resolves a solo photo's IndexedDB bytes to a cached ObjectURL. */
@@ -189,13 +232,7 @@ export async function resolveAlbumPhotoUrl(photo: AlbumPhoto): Promise<string | 
   const cached = albumUrlCache.get(key);
   if (cached) return cached;
   try {
-    let bytes: Uint8Array | null = null;
-    if (photo.source === "local") {
-      bytes = await getLocalPhotoBytes(photo.id);
-    } else if (photo.cid) {
-      await ensureMistNode();
-      bytes = new Uint8Array(await storage_get(photo.cid));
-    }
+    const bytes = await getAlbumPhotoBytes(photo);
     if (!bytes) return null;
     // Re-wrap for BlobPart (mistlib's Uint8Array isn't pinned to a plain
     // ArrayBuffer) — same shim as store.ts usePhotoUrl.

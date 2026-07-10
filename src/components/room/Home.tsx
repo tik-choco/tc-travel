@@ -256,6 +256,7 @@ export function Home({
                 <BookOpen />
               </span>
               <span class="home-first-step-label">{t("home.firstStepDiary")}</span>
+              <span class="home-first-step-hint">{t("home.firstStepDiaryHint")}</span>
             </button>
             <button type="button" class="home-first-step" onClick={() => setScanOpen(true)}>
               <span class="home-first-step-icon" aria-hidden="true">

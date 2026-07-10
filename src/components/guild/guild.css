@@ -20,6 +20,21 @@
   padding: 1rem;
 }
 
+@media (min-width: 840px) {
+  .guild-screen {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    align-items: start;
+    gap: 1rem;
+  }
+  .guild-screen-title,
+  .guild-japan-line,
+  .guild-chronicle,
+  .guild-settings {
+    grid-column: 1 / -1;
+  }
+}
+
 .guild-screen-title {
   text-align: center;
   margin: 0.25rem 0 0;
@@ -481,4 +496,26 @@
 .settings-swatch-active {
   border-color: var(--primary);
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 45%, transparent);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .guild-name-button:hover .guild-name {
+    color: var(--primary);
+  }
+  .ach-tile-unlocked:hover {
+    background: color-mix(in srgb, var(--on-primary-container) var(--state-hover), var(--primary-container));
+  }
+  .ach-tile-locked:hover {
+    border-color: var(--outline);
+    opacity: 0.85;
+  }
+  .ach-next-goal:hover {
+    background: color-mix(in srgb, var(--primary-container) 60%, transparent);
+  }
+  .settings-avatar-btn:hover {
+    background: color-mix(in srgb, var(--on-surface) var(--state-hover), var(--surface-container));
+  }
+  .settings-swatch:hover {
+    border-color: var(--on-surface-variant);
+  }
 }

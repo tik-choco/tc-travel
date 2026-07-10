@@ -30,6 +30,23 @@
   gap: 5px;
 }
 
+@media (min-width: 840px) {
+  .album-grid {
+    grid-template-columns: repeat(5, 1fr);
+    gap: 10px;
+  }
+}
+
+@media (min-width: 1200px) {
+  .album-screen {
+    max-width: 960px;
+  }
+
+  .album-grid {
+    grid-template-columns: repeat(6, 1fr);
+  }
+}
+
 .photo-thumb {
   position: relative;
   aspect-ratio: 1 / 1;
@@ -41,6 +58,24 @@
   display: block;
   min-height: 44px;
   -webkit-tap-highlight-color: transparent;
+  transition: transform var(--dur-medium) var(--ease-spring), box-shadow var(--dur-fast) var(--ease-standard);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .photo-thumb:hover {
+    transform: scale(1.03);
+    box-shadow: var(--shadow-2);
+    z-index: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .photo-thumb {
+    transition: none;
+  }
+  .photo-thumb:hover {
+    transform: none;
+  }
 }
 
 .photo-thumb img {
@@ -228,13 +263,21 @@
   align-items: center;
   justify-content: center;
   min-width: 0;
+  overflow: hidden;
   touch-action: pan-y;
+}
+
+.viewer-image-wrap.zoomable {
+  touch-action: none;
 }
 
 .viewer-image-wrap img {
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
+  transform-origin: center center;
+  transition: transform 120ms ease;
+  will-change: transform;
 }
 
 .viewer-nav-btn {
@@ -255,6 +298,24 @@
 
 .viewer-nav-btn:disabled {
   opacity: 0.25;
+}
+
+@media (min-width: 840px) {
+  .viewer-stage {
+    gap: 16px;
+    padding: 0 16px;
+  }
+
+  .viewer-nav-btn {
+    min-width: 52px;
+    min-height: 52px;
+  }
+
+  .viewer-info {
+    max-width: 720px;
+    margin-inline: auto;
+    width: 100%;
+  }
 }
 
 .viewer-info {
@@ -302,23 +363,4 @@
   display: flex;
   gap: 10px;
   margin-top: 6px;
-}
-
-.viewer-toast {
-  position: absolute;
-  bottom: calc(max(env(safe-area-inset-bottom), 16px) + 96px);
-  left: 50%;
-  transform: translateX(-50%);
-  background: var(--surface-container-highest);
-  color: var(--on-surface);
-  border: 1px solid var(--outline-variant);
-  border-radius: var(--radius-full);
-  padding: 8px 16px;
-  font-size: 0.85rem;
-  box-shadow: var(--shadow-1);
-  z-index: 4;
-  white-space: nowrap;
-  max-width: 90vw;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }

@@ -2,6 +2,7 @@ import { useState } from "preact/hooks";
 import { Check, LoaderCircle, X } from "lucide-preact";
 import { addDiaryAuto, updateDiaryAuto, type SourcedDiaryEntry } from "../../lib/memories";
 import { lookupCountry, countryName } from "../../lib/geo";
+import { useSession } from "../../lib/store";
 import { getLanguage, useT } from "../../lib/i18n";
 import { MOODS, MOOD_EMOJI } from "./moodMeta";
 import type { GeoPoint } from "../../lib/types";
@@ -32,12 +33,14 @@ function getGeoOnce(): Promise<GeolocationPosition | null> {
  * shows the already-attached location read-only instead of a toggle. */
 export function DiaryEditor({ entry, onClose }: DiaryEditorProps) {
   const t = useT();
+  const session = useSession();
   const [title, setTitle] = useState(entry?.title ?? "");
   const [text, setText] = useState(entry?.text ?? "");
   const [mood, setMood] = useState<string>(entry?.mood ?? MOODS[0]);
   const [attachLocation, setAttachLocation] = useState(false);
   const [saving, setSaving] = useState(false);
   const [showValidation, setShowValidation] = useState(false);
+  const [locationFailed, setLocationFailed] = useState(false);
 
   const handleSave = async () => {
     if (!title.trim() || !text.trim()) {
@@ -54,6 +57,8 @@ export function DiaryEditor({ entry, onClose }: DiaryEditorProps) {
         if (pos) {
           const countryCode = await lookupCountry(pos.coords.latitude, pos.coords.longitude);
           geo = { lat: pos.coords.latitude, lng: pos.coords.longitude, countryCode };
+        } else {
+          setLocationFailed(true);
         }
       }
       addDiaryAuto({ title: title.trim(), text: text.trim(), mood, geo });
@@ -68,7 +73,10 @@ export function DiaryEditor({ entry, onClose }: DiaryEditorProps) {
         <div class="sheet-handle" />
 
         <div class="diary-editor-header">
-          <h2 class="diary-editor-title">{entry ? t("diary.editorTitleEdit") : t("diary.editorTitleNew")}</h2>
+          <span class="diary-header-titling">
+            <h2 class="diary-editor-title">{entry ? t("diary.editorTitleEdit") : t("diary.editorTitleNew")}</h2>
+            <span class="diary-scope-badge">{session ? t("diary.scopeParty") : t("diary.scopePrivate")}</span>
+          </span>
           <button type="button" class="btn btn-icon" onClick={onClose} disabled={saving} aria-label={t("diary.cancel")}>
             <X size={18} />
           </button>
@@ -116,14 +124,18 @@ export function DiaryEditor({ entry, onClose }: DiaryEditorProps) {
               <span>{t("diary.locationLockedNote")}</span>
             )
           ) : (
-            <label class="diary-location-label">
-              <input
-                type="checkbox"
-                checked={attachLocation}
-                onChange={(e) => setAttachLocation((e.target as HTMLInputElement).checked)}
-              />
-              {t("diary.attachLocation")}
-            </label>
+            <div class="diary-location-toggle">
+              <label class="diary-location-label">
+                <input
+                  type="checkbox"
+                  checked={attachLocation}
+                  onChange={(e) => setAttachLocation((e.target as HTMLInputElement).checked)}
+                />
+                {t("diary.attachLocation")}
+              </label>
+              <p class="diary-location-hint">{t("diary.attachLocationHint")}</p>
+              {locationFailed && <p class="diary-location-hint diary-location-failed">{t("diary.locationFailed")}</p>}
+            </div>
           )}
         </div>
 

@@ -22,7 +22,7 @@ const AVATAR_OPTIONS = [
 ];
 
 const COLOR_OPTIONS = [
-  "#c9a227", "#8c2f28", "#2f5d8c", "#3f7d4a", "#6a3f8c", "#2f8c85", "#c9682f", "#7a7a7a",
+  "#d99a2b", "#c34f45", "#2b6f9e", "#4a8c58", "#d9694f", "#2fa094", "#c07a3a", "#6b7280",
 ];
 
 const THEME_OPTIONS: { value: ThemePref; Icon: typeof Sun }[] = [

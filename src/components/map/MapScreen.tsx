@@ -8,7 +8,7 @@
 //     stat card, and Japan drill-down), so low-end / no-GL devices still work.
 // The globe deliberately imports neither the viewer nor the drill-down (they
 // were built concurrently), so this thin layer is the single place they meet.
-import { useMemo, useState } from "preact/hooks";
+import { useMemo, useRef, useState } from "preact/hooks";
 import { Sparkles } from "lucide-preact";
 import { useT } from "../../lib/i18n";
 import type { AlbumPhoto, Member } from "../../lib/types";
@@ -25,6 +25,7 @@ import { supportsWebGL } from "./globe/supportsWebgl";
 import { GlobeMapLazy } from "./globe/GlobeMapLazy";
 import { SubnationalMap } from "./subnational/SubnationalMap";
 import { subnationalEntry, SUBNATIONAL_COUNTRY_CODES } from "./subnational/registry";
+import type { PickedLocation } from "./LocationPicker";
 import "./map.i18n";
 import "./map.css";
 
@@ -43,6 +44,11 @@ export function MapScreen() {
   // gating (hidden until a country is actually visited) as WorldMap's chip.
   const visited = useVisitedCountries();
   const [worldBragOpen, setWorldBragOpen] = useState(false);
+  // GlobeMap owns the encounter sheet privately; it writes its "open sheet at
+  // this location" handler here every render (see GlobeMapProps.recordAtRef),
+  // so the drill-downs we own here can reach it without either module
+  // importing the other.
+  const recordAtRef = useRef<((loc: PickedLocation) => void) | null>(null);
 
   // Fold the local profile in as a synthetic member so a SOLO photo (whose `by`
   // is the local profile id, absent from the room's member map) still reads as
@@ -79,12 +85,20 @@ export function MapScreen() {
 
   const drillEntry = drillCountry ? subnationalEntry(drillCountry) : undefined;
 
+  /** "Record an encounter here" from inside a drill-down: close the overlay
+   *  and hand off to GlobeMap's own sheet, same as tapping the globe itself. */
+  const handleRecordAt = (lat: number, lng: number, label: string, code: string) => {
+    setDrillCountry(null);
+    recordAtRef.current?.({ lat, lng, label, countryCode: code });
+  };
+
   return (
     <>
       <GlobeMapLazy
         onOpenPhoto={handleOpenPhoto}
         onOpenCountry={handleOpenCountry}
         drillDownCodes={SUBNATIONAL_COUNTRY_CODES as string[]}
+        recordAtRef={recordAtRef}
       />
 
       {/* World brag card trigger — opposite corner from GlobeMap's own "New
@@ -119,10 +133,18 @@ export function MapScreen() {
           brag card); every other country uses the generic SubnationalMap,
           worldwide, via admin1Resolver.ts. */}
       {drillEntry?.kind === "japan" && (
-        <JapanMap onClose={() => setDrillCountry(null)} onBrag={() => setBragOpen(true)} />
+        <JapanMap
+          onClose={() => setDrillCountry(null)}
+          onBrag={() => setBragOpen(true)}
+          onRecordAt={(lat, lng, label) => handleRecordAt(lat, lng, label, "jp")}
+        />
       )}
       {drillEntry?.kind === "generic" && drillCountry && (
-        <SubnationalMap countryCode={drillCountry} onClose={() => setDrillCountry(null)} />
+        <SubnationalMap
+          countryCode={drillCountry}
+          onClose={() => setDrillCountry(null)}
+          onRecordAt={(lat, lng, label) => handleRecordAt(lat, lng, label, drillCountry)}
+        />
       )}
       {bragOpen && <BragCard onClose={() => setBragOpen(false)} />}
       {worldBragOpen && <WorldBragCard onClose={() => setWorldBragOpen(false)} />}

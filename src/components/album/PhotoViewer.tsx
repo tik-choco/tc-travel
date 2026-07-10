@@ -1,15 +1,24 @@
 import { useEffect, useRef, useState } from "preact/hooks";
-import { Check, ChevronLeft, ChevronRight, Download, HardDriveDownload, LoaderCircle, MapPin, Sparkles, Trash2, X } from "lucide-preact";
+import { ChevronLeft, ChevronRight, Download, LoaderCircle, MapPin, Sparkles, Trash2, X } from "lucide-preact";
 import { useAlbumPhotoUrl } from "../../lib/memories";
 import { countryName } from "../../lib/geo";
 import { getLanguage, useT } from "../../lib/i18n";
-import { ensureMistNode } from "../../lib/mistNode";
-import { exportPhotoToDrive, isPhotoExported } from "../../lib/drive/export";
-import { storage_get } from "../../vendor/mistlib/wrappers/web/index.js";
 import type { AlbumPhoto, Member } from "../../lib/types";
 import { Avatar } from "../common/Avatar";
-
-const TOAST_MS = 3200;
+import {
+  clamp,
+  clampZoom,
+  DOUBLE_TAP_SCALE,
+  MAX_SCALE,
+  MIN_SCALE,
+  PAN_ACTIVE_SCALE,
+  pinchMetrics,
+  WHEEL_ZOOM_IN,
+  WHEEL_ZOOM_OUT,
+  ZOOM_IDENTITY,
+  zoomTowardPoint,
+  type ZoomState,
+} from "./photoZoom";
 
 interface PhotoViewerProps {
   photos: AlbumPhoto[];
@@ -22,6 +31,8 @@ interface PhotoViewerProps {
 }
 
 const SWIPE_THRESHOLD = 40;
+const DOUBLE_TAP_MS = 300;
+const TAP_MOVEMENT_PX = 12;
 
 /** Full-screen photo viewer with swipe/arrow navigation. Read-only caption —
  * the lib contract has no updatePhoto, so caption editing only happens at
@@ -38,76 +49,48 @@ export function PhotoViewer({
   const t = useT();
   const photo = photos[index];
   const url = useAlbumPhotoUrl(photo);
-  // Drive export re-reads the JPEG from mist storage by cid, which only exists
-  // for room photos; solo photos live in IndexedDB with no cid, so the button
-  // is hidden for them (the auto-export loop in app.tsx is likewise room-only).
-  const canExport = photo?.source === "room";
+  const canZoom = Boolean(url);
   const touchStartX = useRef<number | null>(null);
-  const toastTimerRef = useRef<number | null>(null);
-  // Which photo the viewer is showing right now / whether we're still mounted —
-  // consulted after the async export so a slow export can't stamp its result
-  // onto a different photo the user has swiped to (or an unmounted viewer).
-  const shownPhotoIdRef = useRef<string | null>(null);
-  const mountedRef = useRef(true);
+  const touchStartY = useRef<number | null>(null);
 
-  const [exporting, setExporting] = useState(false);
-  const [exported, setExported] = useState(() => (photo ? isPhotoExported(photo.id) : false));
-  const [toast, setToast] = useState<string | null>(null);
+  const imageWrapRef = useRef<HTMLDivElement | null>(null);
+  const [zoom, setZoom] = useState<ZoomState>(ZOOM_IDENTITY);
+  const zoomRef = useRef(zoom);
+  const pinchRef = useRef<{ distance: number; center: { x: number; y: number }; zoom: ZoomState } | null>(null);
+  const panRef = useRef<{ x: number; y: number; zoom: ZoomState } | null>(null);
+  const mousePanRef = useRef<{ x: number; y: number; zoom: ZoomState } | null>(null);
+  const lastTapRef = useRef<{ time: number; x: number; y: number } | null>(null);
 
-  shownPhotoIdRef.current = photo?.id ?? null;
+  zoomRef.current = zoom;
 
-  // Re-sync the "saved" state and clear any leftover toast when navigating
-  // to a different photo (this component instance is reused across index changes).
+  // Reset zoom/pan when navigating to a different photo (this component
+  // instance is reused across index changes).
   useEffect(() => {
-    setExported(photo ? isPhotoExported(photo.id) : false);
-    setExporting(false);
-    setToast(null);
+    setZoom(ZOOM_IDENTITY);
+    pinchRef.current = null;
+    panRef.current = null;
+    mousePanRef.current = null;
+    lastTapRef.current = null;
   }, [photo?.id]);
 
   useEffect(() => {
-    mountedRef.current = true;
-    return () => {
-      mountedRef.current = false;
-      if (toastTimerRef.current !== null) window.clearTimeout(toastTimerRef.current);
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose();
+        return;
+      }
+      if (zoomRef.current.scale > PAN_ACTIVE_SCALE) return;
+      if (e.key === "ArrowLeft") {
+        if (index > 0) onIndexChange(index - 1);
+      } else if (e.key === "ArrowRight") {
+        if (index < photos.length - 1) onIndexChange(index + 1);
+      }
     };
-  }, []);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [index, photos.length, onClose, onIndexChange]);
 
   if (!photo) return null;
-
-  const showToast = (message: string) => {
-    setToast(message);
-    if (toastTimerRef.current !== null) window.clearTimeout(toastTimerRef.current);
-    toastTimerRef.current = window.setTimeout(() => setToast(null), TOAST_MS);
-  };
-
-  const handleExportToDrive = async () => {
-    if (!photo.cid) return; // room-only: solo photos have no mist cid to fetch
-    const exportingId = photo.id;
-    setExporting(true);
-    try {
-      await ensureMistNode();
-      const raw = await storage_get(photo.cid);
-      await exportPhotoToDrive({
-        photoId: exportingId,
-        bytes: new Uint8Array(raw),
-        caption: photo.caption ?? "",
-        at: photo.at,
-      });
-      // Only surface the result if this photo is still the one on screen —
-      // navigating back later re-syncs "saved" from isPhotoExported anyway.
-      if (mountedRef.current && shownPhotoIdRef.current === exportingId) {
-        setExported(true);
-        showToast(t("album.drive.saved"));
-      }
-    } catch (err) {
-      console.warn("tc-travel: failed to export photo to drive", err);
-      if (mountedRef.current && shownPhotoIdRef.current === exportingId) {
-        showToast(t("album.drive.error"));
-      }
-    } finally {
-      if (mountedRef.current && shownPhotoIdRef.current === exportingId) setExporting(false);
-    }
-  };
 
   const author = memberById.get(photo.by);
   const authorName = author?.name ?? t("album.fellowTraveler");
@@ -124,14 +107,149 @@ export function PhotoViewer({
     if (index < photos.length - 1) onIndexChange(index + 1);
   };
 
+  const containerRect = () => {
+    const el = imageWrapRef.current;
+    return el ? el.getBoundingClientRect() : { left: 0, top: 0, width: window.innerWidth, height: window.innerHeight };
+  };
+
+  const zoomToward = (nextScale: number, point: { x: number; y: number }) => {
+    setZoom(zoomTowardPoint(zoomRef.current, clamp(nextScale, MIN_SCALE, MAX_SCALE), point, containerRect()));
+  };
+
+  const toggleZoomToward = (point: { x: number; y: number }) => {
+    if (!canZoom) return;
+    zoomToward(zoomRef.current.scale > PAN_ACTIVE_SCALE ? MIN_SCALE : DOUBLE_TAP_SCALE, point);
+  };
+
+  const handleWheel = (e: WheelEvent) => {
+    if (!canZoom || (!e.ctrlKey && !e.metaKey)) return;
+    const delta = Math.abs(e.deltaY) >= Math.abs(e.deltaX) ? e.deltaY : e.deltaX;
+    if (Math.abs(delta) < 1) return;
+    e.preventDefault();
+    zoomToward(zoomRef.current.scale * (delta > 0 ? WHEEL_ZOOM_OUT : WHEEL_ZOOM_IN), { x: e.clientX, y: e.clientY });
+  };
+
+  const handleDoubleClick = (e: MouseEvent) => {
+    toggleZoomToward({ x: e.clientX, y: e.clientY });
+  };
+
+  const handleMouseDown = (e: MouseEvent) => {
+    if (e.button !== 0 || !canZoom || zoomRef.current.scale <= PAN_ACTIVE_SCALE) return;
+    e.preventDefault();
+    mousePanRef.current = { x: e.clientX, y: e.clientY, zoom: zoomRef.current };
+  };
+  const handleMouseMove = (e: MouseEvent) => {
+    if (!mousePanRef.current) return;
+    e.preventDefault();
+    const rect = containerRect();
+    setZoom(
+      clampZoom(
+        {
+          scale: mousePanRef.current.zoom.scale,
+          x: mousePanRef.current.zoom.x + e.clientX - mousePanRef.current.x,
+          y: mousePanRef.current.zoom.y + e.clientY - mousePanRef.current.y,
+        },
+        rect.width,
+        rect.height,
+      ),
+    );
+  };
+  const clearMousePan = () => {
+    mousePanRef.current = null;
+  };
+
   const handleTouchStart = (e: TouchEvent) => {
-    touchStartX.current = e.touches[0]?.clientX ?? null;
+    if (canZoom && e.touches.length >= 2) {
+      const pinch = pinchMetrics(e.touches);
+      pinchRef.current = pinch ? { ...pinch, zoom: zoomRef.current } : null;
+      panRef.current = null;
+      touchStartX.current = null;
+      touchStartY.current = null;
+      return;
+    }
+    const touch = e.touches[0];
+    if (canZoom && zoomRef.current.scale > PAN_ACTIVE_SCALE && touch) {
+      panRef.current = { x: touch.clientX, y: touch.clientY, zoom: zoomRef.current };
+      touchStartX.current = null;
+      touchStartY.current = null;
+      return;
+    }
+    touchStartX.current = touch?.clientX ?? null;
+    touchStartY.current = touch?.clientY ?? null;
+  };
+  const handleTouchMove = (e: TouchEvent) => {
+    if (!canZoom) return;
+    const rect = containerRect();
+    if (e.touches.length >= 2 && pinchRef.current) {
+      const pinch = pinchMetrics(e.touches);
+      if (!pinch) return;
+      e.preventDefault();
+      const nextScale = clamp(pinchRef.current.zoom.scale * (pinch.distance / pinchRef.current.distance), MIN_SCALE, MAX_SCALE);
+      setZoom(
+        clampZoom(
+          {
+            scale: nextScale,
+            x: pinchRef.current.zoom.x + (pinch.center.x - pinchRef.current.center.x),
+            y: pinchRef.current.zoom.y + (pinch.center.y - pinchRef.current.center.y),
+          },
+          rect.width,
+          rect.height,
+        ),
+      );
+      return;
+    }
+    const touch = e.touches[0];
+    if (touch && panRef.current && zoomRef.current.scale > PAN_ACTIVE_SCALE) {
+      e.preventDefault();
+      setZoom(
+        clampZoom(
+          {
+            scale: zoomRef.current.scale,
+            x: panRef.current.zoom.x + touch.clientX - panRef.current.x,
+            y: panRef.current.zoom.y + touch.clientY - panRef.current.y,
+          },
+          rect.width,
+          rect.height,
+        ),
+      );
+    }
   };
   const handleTouchEnd = (e: TouchEvent) => {
+    if (pinchRef.current) {
+      if (e.touches.length < 2) pinchRef.current = null;
+      if (e.touches.length === 1) {
+        const touch = e.touches[0];
+        panRef.current = touch ? { x: touch.clientX, y: touch.clientY, zoom: zoomRef.current } : null;
+      }
+      if (zoomRef.current.scale <= PAN_ACTIVE_SCALE) setZoom(ZOOM_IDENTITY);
+      return;
+    }
+    if (panRef.current) {
+      if (e.touches.length === 0) panRef.current = null;
+      if (zoomRef.current.scale <= PAN_ACTIVE_SCALE) setZoom(ZOOM_IDENTITY);
+      return;
+    }
     const startX = touchStartX.current;
+    const startY = touchStartY.current;
     touchStartX.current = null;
+    touchStartY.current = null;
     if (startX === null) return;
-    const endX = e.changedTouches[0]?.clientX ?? startX;
+    const touch = e.changedTouches[0];
+    const endX = touch?.clientX ?? startX;
+    const endY = touch?.clientY ?? startY ?? endX;
+    const movement = Math.hypot(endX - startX, endY - (startY ?? endY));
+    if (canZoom && movement < TAP_MOVEMENT_PX) {
+      const now = Date.now();
+      const last = lastTapRef.current;
+      if (last && now - last.time < DOUBLE_TAP_MS && Math.hypot(endX - last.x, endY - last.y) < TAP_MOVEMENT_PX * 2) {
+        lastTapRef.current = null;
+        toggleZoomToward({ x: endX, y: endY });
+        return;
+      }
+      lastTapRef.current = { time: now, x: endX, y: endY };
+      return;
+    }
+    lastTapRef.current = null;
     const delta = endX - startX;
     if (delta > SWIPE_THRESHOLD) goPrev();
     else if (delta < -SWIPE_THRESHOLD) goNext();
@@ -168,8 +286,31 @@ export function PhotoViewer({
         >
           <ChevronLeft size={28} />
         </button>
-        <div class="viewer-image-wrap" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
-          {url ? <img src={url} alt="" /> : <LoaderCircle class="spin" size={32} color="var(--on-surface)" />}
+        <div
+          class={`viewer-image-wrap${canZoom ? " zoomable" : ""}`}
+          ref={imageWrapRef}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          onWheel={handleWheel}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={clearMousePan}
+          onMouseLeave={clearMousePan}
+          onDblClick={handleDoubleClick}
+        >
+          {url ? (
+            <img
+              src={url}
+              alt=""
+              style={{
+                transform: canZoom ? `translate3d(${zoom.x}px, ${zoom.y}px, 0) scale(${zoom.scale})` : undefined,
+                transition: pinchRef.current || panRef.current || mousePanRef.current ? "none" : undefined,
+              }}
+            />
+          ) : (
+            <LoaderCircle class="spin" size={32} color="var(--on-surface)" />
+          )}
         </div>
         <button
           type="button"
@@ -204,23 +345,6 @@ export function PhotoViewer({
           <button type="button" class="btn btn-tonal" onClick={handleDownload} disabled={!url}>
             <Download size={16} /> {t("album.download")}
           </button>
-          {canExport && (
-            <button
-              type="button"
-              class="btn btn-tonal"
-              onClick={handleExportToDrive}
-              disabled={exporting || exported}
-            >
-              {exporting ? (
-                <LoaderCircle class="spin" size={16} />
-              ) : exported ? (
-                <Check size={16} />
-              ) : (
-                <HardDriveDownload size={16} />
-              )}
-              {exported ? t("album.drive.saved") : t("album.drive.save")}
-            </button>
-          )}
           {isOwn && (
             <button type="button" class="btn btn-danger" onClick={handleDelete}>
               <Trash2 size={16} /> {t("album.delete")}
@@ -228,7 +352,6 @@ export function PhotoViewer({
           )}
         </span>
       </div>
-      {toast && <div class="viewer-toast">{toast}</div>}
     </div>
   );
 }

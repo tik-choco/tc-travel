@@ -22,8 +22,8 @@ registerTranslations({
     es: "Tarjetas", fr: "Cartes", de: "Karten", pt: "Cartões",
   },
   "tab.guild": {
-    en: "Guild Card", ja: "ギルドカード", zh: "公会卡", ko: "길드 카드",
-    es: "Tarjeta de Gremio", fr: "Carte de Guilde", de: "Gildenkarte", pt: "Cartão da Guilda",
+    en: "Adventurer Card", ja: "冒険者カード", zh: "冒险者卡", ko: "모험가 카드",
+    es: "Carné de Aventurero", fr: "Carte d'Aventurier", de: "Abenteurerkarte", pt: "Cartão de Aventureiro",
   },
 
   // --- generic actions -----------------------------------------------------

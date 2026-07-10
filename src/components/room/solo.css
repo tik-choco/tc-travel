@@ -228,7 +228,7 @@
   height: 120px;
   transform: translate(-50%, -50%);
   border-radius: var(--radius-full);
-  background: radial-gradient(circle, color-mix(in srgb, var(--primary) 20%, transparent), transparent 70%);
+  background: radial-gradient(circle, color-mix(in srgb, var(--tertiary) 20%, transparent), transparent 70%);
 }
 .solo-welcome-step {
   position: absolute;

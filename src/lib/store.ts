@@ -413,6 +413,13 @@ export function usePhotos(): Photo[] {
   return active.session.doc.getArray<Photo>("photos").toArray().slice().sort((a, b) => b.at - a.at);
 }
 
+/** Non-hook snapshot of the room photo list — same source as usePhotos, for
+ *  callers that can't use hooks (e.g. the drive auto-export engine). */
+export function photosSnapshot(): Photo[] {
+  if (!active) return [];
+  return active.session.doc.getArray<Photo>("photos").toArray();
+}
+
 export async function addPhoto(bytes: Uint8Array, meta: Omit<Photo, "id" | "cid" | "by" | "at">): Promise<void> {
   if (!active) throw new Error("Not in a room");
   const profile = getProfile();
