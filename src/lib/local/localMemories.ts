@@ -15,6 +15,7 @@
 import { useEffect, useState } from "preact/hooks";
 import type { DiaryEntry, EncounterPin, GeoPoint } from "../types";
 import { getProfile } from "../personal";
+import { mistKvGet, mistKvSet } from "../mistKv";
 
 const PINS_KEY = "tc-travel:solo:pins";
 const PHOTOS_KEY = "tc-travel:solo:photos";
@@ -71,6 +72,115 @@ function useLocalVersion(): void {
     };
   }, []);
 }
+
+// --- pins/diary: mist-storage-backed lists (was raw localStorage) -----------
+//
+// Pins carry a free-text note + companion names, and diary entries carry the
+// full entry text — both unbounded over a traveller's lifetime, so (per the
+// storage remediation plan — see docs/INTEGRATION.md) they no longer live as
+// a JSON blob in localStorage. They're kept in mistlib's OPFS-backed storage
+// via mistKv.ts, with only a small CID pointer left in localStorage. Photos
+// (PHOTOS_KEY, just metadata — the bytes are already in IndexedDB) are left
+// on the plain loadList/saveList path below; they're small enough per audit.
+//
+// Every reader here (useLocalPins/useLocalDiary, localSnapshot,
+// hasLocalMemories) expects synchronous access, so each list is fronted by
+// an in-memory cache, hydrated once (migrating a legacy localStorage blob if
+// one is still there) the first time anything reads or writes it. Mutations
+// are serialized through a chain (so two rapid adds can't race and drop one)
+// and the mist-storage write is trailing-debounced.
+const KV_PERSIST_DELAY_MS = 800;
+
+function createKvList<T>(key: string) {
+  let cache: T[] | null = null;
+  let loadPromise: Promise<void> | null = null;
+  let persistTimer: ReturnType<typeof setTimeout> | null = null;
+  let chain: Promise<void> = Promise.resolve();
+
+  function ensureLoaded(): Promise<void> {
+    if (cache) return Promise.resolve();
+    if (!loadPromise) {
+      loadPromise = (async () => {
+        const fromKv = await mistKvGet<T[]>(key);
+        if (fromKv) {
+          cache = fromKv;
+          return;
+        }
+        let legacy: T[] | null = null;
+        try {
+          const raw = localStorage.getItem(key);
+          if (raw) legacy = JSON.parse(raw) as T[];
+        } catch {
+          legacy = null;
+        }
+        cache = legacy ?? [];
+        if (legacy) {
+          // Move the legacy blob into mist storage before dropping it from
+          // localStorage — never remove until the migrated copy is
+          // confirmed written, so a failure here just leaves the old data.
+          try {
+            await mistKvSet(key, legacy);
+            localStorage.removeItem(key);
+          } catch (error) {
+            console.warn(`tc-travel: migration of "${key}" to mist storage failed; keeping legacy localStorage copy`, error);
+          }
+        }
+      })().finally(() => {
+        loadPromise = null;
+      });
+    }
+    return loadPromise;
+  }
+
+  function schedulePersist(list: T[]): void {
+    if (persistTimer !== null) clearTimeout(persistTimer);
+    persistTimer = setTimeout(() => {
+      persistTimer = null;
+      void mistKvSet(key, list).catch((error) => {
+        console.warn(`tc-travel: failed to persist "${key}" to mist storage`, error);
+      });
+    }, KV_PERSIST_DELAY_MS);
+  }
+
+  return {
+    /** Synchronous read. Triggers hydration as a side effect if nothing has
+     *  kicked it off yet. Before hydration resolves, falls back to a direct
+     *  (best-effort) localStorage read of the legacy key rather than an
+     *  empty list — some callers (onboarding.ts's shouldShowOnboarding, a
+     *  one-shot check with no re-render to correct a transient answer) need
+     *  an accurate result on the very first synchronous call, matching this
+     *  module's pre-migration synchronous-localStorage contract. */
+    get(): T[] {
+      if (!cache && !loadPromise) void ensureLoaded().then(notify);
+      if (cache) return cache;
+      try {
+        const raw = localStorage.getItem(key);
+        if (raw) return JSON.parse(raw) as T[];
+      } catch {
+        // fall through
+      }
+      return [];
+    },
+    /** Queues a read-modify-write; `fn` receives the current list (post
+     *  hydration) and returns the next one. Notifies listeners once applied. */
+    mutate(fn: (list: T[]) => T[]): void {
+      chain = chain
+        .then(() => ensureLoaded())
+        .then(() => {
+          const next = fn(cache ?? []);
+          cache = next;
+          notify();
+          schedulePersist(next);
+        })
+        .catch((error) => {
+          console.warn(`tc-travel: failed to update "${key}"`, error);
+        });
+    },
+  };
+}
+
+const pinsList = createKvList<EncounterPin>(PINS_KEY);
+const diaryList = createKvList<DiaryEntry>(DIARY_KEY);
 
 // --- IndexedDB blob store for photo bytes ------------------------------------
 // Separate DB from the VRM store (vrmStorage.ts) so the two never collide.
@@ -172,22 +282,17 @@ export function removeLocalPhoto(id: string): void {
 
 export function useLocalPins(): EncounterPin[] {
   useLocalVersion();
-  return loadList<EncounterPin>(PINS_KEY);
+  return pinsList.get();
 }
 
 export function addLocalPin(p: Omit<EncounterPin, "id" | "by" | "at">): EncounterPin {
   const pin: EncounterPin = { id: crypto.randomUUID(), by: getProfile().id, at: Date.now(), ...p };
-  saveList(PINS_KEY, [...loadList<EncounterPin>(PINS_KEY), pin]);
-  notify();
+  pinsList.mutate((list) => [...list, pin]);
   return pin;
 }
 
 export function removeLocalPin(id: string): void {
-  saveList(
-    PINS_KEY,
-    loadList<EncounterPin>(PINS_KEY).filter((p) => p.id !== id),
-  );
-  notify();
+  pinsList.mutate((list) => list.filter((p) => p.id !== id));
 }
 
 // --- diary -------------------------------------------------------------------
@@ -196,15 +301,15 @@ export function removeLocalPin(id: string): void {
 
 export function useLocalDiary(): DiaryEntry[] {
   useLocalVersion();
-  return loadList<DiaryEntry>(DIARY_KEY)
+  return diaryList
+    .get()
     .slice()
     .sort((a, b) => b.at - a.at);
 }
 
 export function addLocalDiary(e: Omit<DiaryEntry, "id" | "by" | "at">): DiaryEntry {
   const entry: DiaryEntry = { id: crypto.randomUUID(), by: getProfile().id, at: Date.now(), ...e };
-  saveList(DIARY_KEY, [...loadList<DiaryEntry>(DIARY_KEY), entry]);
-  notify();
+  diaryList.mutate((list) => [...list, entry]);
   return entry;
 }
 
@@ -212,28 +317,20 @@ export function updateLocalDiary(
   id: string,
   patch: Partial<Pick<DiaryEntry, "title" | "text" | "mood">>,
 ): void {
-  saveList(
-    DIARY_KEY,
-    loadList<DiaryEntry>(DIARY_KEY).map((d) => (d.id === id ? { ...d, ...patch } : d)),
-  );
-  notify();
+  diaryList.mutate((list) => list.map((d) => (d.id === id ? { ...d, ...patch } : d)));
 }
 
 export function removeLocalDiary(id: string): void {
-  saveList(
-    DIARY_KEY,
-    loadList<DiaryEntry>(DIARY_KEY).filter((d) => d.id !== id),
-  );
-  notify();
+  diaryList.mutate((list) => list.filter((d) => d.id !== id));
 }
 
 // --- non-hook snapshot (for one-shot reads outside components) ---------------
 
 export function localSnapshot(): { pins: EncounterPin[]; photos: LocalPhoto[]; diary: DiaryEntry[] } {
   return {
-    pins: loadList<EncounterPin>(PINS_KEY),
+    pins: pinsList.get(),
     photos: loadList<LocalPhoto>(PHOTOS_KEY),
-    diary: loadList<DiaryEntry>(DIARY_KEY),
+    diary: diaryList.get(),
   };
 }
 

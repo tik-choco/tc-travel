@@ -97,9 +97,18 @@ export async function ensureMistNode(): Promise<InstanceType<typeof MistNode>> {
       adoptSharedFamilyDid(); // fire-and-forget, never blocks or throws
       return node;
     })();
-    initPromise.finally(() => {
-      initPromise = null;
-    });
+    // `.finally()` returns a NEW derived promise that also rejects when the
+    // init IIFE does; it's only used here to clear `initPromise` and nothing
+    // else holds a reference to it, so without a no-op `.catch` a failed
+    // init (e.g. this vendored mistlib-wasm's fetch() in a non-browser test
+    // environment) surfaces as an unhandled rejection even though callers
+    // that `await ensureMistNode()` on the original promise (returned
+    // below) already handle the failure themselves.
+    initPromise
+      .finally(() => {
+        initPromise = null;
+      })
+      .catch(() => {});
   }
   return initPromise;
 }

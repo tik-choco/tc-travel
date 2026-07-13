@@ -134,7 +134,11 @@ export function AvatarSheet({ hasVrm, onClose, onVrmChanged }: AvatarSheetProps)
             type="button"
             class="avatar-sheet-option"
             disabled={busy}
-            onClick={() => setFamilyVrms(listFamilyVrms())}
+            onClick={() => {
+              listFamilyVrms()
+                .then(setFamilyVrms)
+                .catch(() => setFamilyVrms([]));
+            }}
           >
             <span class="avatar-sheet-option-icon" aria-hidden="true">
               <HardDrive />

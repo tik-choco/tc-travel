@@ -54,22 +54,56 @@ function isDriveIndexEntry(value: unknown): value is DriveIndexEntry {
   );
 }
 
+// The storage_add'd payload (see tc-storage's useDriveIndexPublishEffect.ts)
+// is `{version, updatedAt, files: DriveIndexEntry[]}` — the same shape as the
+// inline `meta` object, just JSON'd as a whole. Some builds may instead
+// storage_add a bare `DriveIndexEntry[]`. Accept either.
+export function extractDriveIndexList(parsed: unknown): unknown[] | null {
+  if (Array.isArray(parsed)) return parsed;
+  if (parsed && typeof parsed === "object" && Array.isArray((parsed as { files?: unknown }).files)) {
+    return (parsed as { files: unknown[] }).files;
+  }
+  return null;
+}
+
 // Defensive: a wrong version, malformed shape, or absent index all yield an
 // empty list rather than throwing — this is untrusted cross-app input.
-function readDriveIndex(): DriveIndexEntry[] {
+//
+// Dual-read (see docs/INTEGRATION.md, drive-index contract): older
+// tc-storage builds still inline the full `files` array in `meta`; newer
+// ones publish only a small `{count, updatedAt}` meta and content-address
+// the index via `record.cid` (storage_add), which we resolve with
+// storage_get. The storage_add'd payload may be the wrapped
+// `{version, updatedAt, files}` object or a bare array — see
+// extractDriveIndexList(). Either shape is accepted; nothing here requires
+// the write side to have migrated yet.
+async function readDriveIndex(): Promise<DriveIndexEntry[]> {
   const record = readShared(DRIVE_INDEX_TOPIC);
   if (!record) return [];
   const meta = record.meta as Partial<DriveIndexMeta> | undefined;
-  if (!meta || meta.version !== DRIVE_INDEX_VERSION || !Array.isArray(meta.files)) return [];
-  return meta.files.filter(isDriveIndexEntry);
+  if (meta && meta.version === DRIVE_INDEX_VERSION && Array.isArray(meta.files)) {
+    return meta.files.filter(isDriveIndexEntry);
+  }
+  if (!record.cid) return [];
+  try {
+    await ensureMistNode();
+    const raw = await storage_get(record.cid);
+    const text = new TextDecoder().decode(new Uint8Array(raw));
+    const parsed: unknown = JSON.parse(text);
+    const list = extractDriveIndexList(parsed);
+    if (!list) return [];
+    return list.filter(isDriveIndexEntry);
+  } catch {
+    return [];
+  }
 }
 
 /** Drive file listing, restricted to loadable files (the index only ever
  *  lists those — see DriveIndexEntry). extensions, if given, filters by
  *  lowercase suffix (e.g. [".vrm"]). Defensive: a missing or corrupt index
  *  yields an empty list rather than throwing. */
-export function listDriveFiles(options?: { extensions?: string[] }): DriveFileEntry[] {
-  const entries = readDriveIndex();
+export async function listDriveFiles(options?: { extensions?: string[] }): Promise<DriveFileEntry[]> {
+  const entries = await readDriveIndex();
   const extensions = options?.extensions?.map((ext) => ext.toLowerCase());
   if (!extensions) return entries;
   return entries.filter((entry) => extensions.some((ext) => entry.name.toLowerCase().endsWith(ext)));
