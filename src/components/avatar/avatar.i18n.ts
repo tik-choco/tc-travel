@@ -297,6 +297,19 @@ export const avatarTranslations = {
     de: "Avatar konnte nicht geladen werden — Persona wurde trotzdem übernommen",
     pt: "Não foi possível carregar o avatar — a persona foi aplicada mesmo assim",
   },
+  // Shown when a tc-town character's full persona prompt couldn't be
+  // resolved (neither inlined in the roster listing nor fetchable from mist
+  // storage by cid) — the previous persona setting was left untouched.
+  "avatar.townPersonaUnresolved": {
+    en: "Couldn't load that character's persona — kept your previous one",
+    ja: "キャラクターの設定を読み込めませんでした(以前の設定を維持します)",
+    zh: "无法加载该角色的人设——已保留原设置",
+    ko: "캐릭터의 페르소나를 불러오지 못했습니다(이전 설정 유지)",
+    es: "No se pudo cargar la personalidad de ese personaje — se mantuvo la anterior",
+    fr: "Impossible de charger la personnalité de ce personnage — l'ancienne a été conservée",
+    de: "Persona dieser Figur konnte nicht geladen werden — vorherige beibehalten",
+    pt: "Não foi possível carregar a persona desse personagem — mantida a anterior",
+  },
   "avatar.talkOpen": {
     en: "Talk to Companion",
     ja: "使い魔と話す",

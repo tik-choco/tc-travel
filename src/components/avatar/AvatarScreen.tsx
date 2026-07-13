@@ -32,7 +32,12 @@ import { useT } from "../../lib/i18n";
 import { setMemberVrmBytes } from "../../lib/store";
 import { setProfileAvatar } from "../../lib/avatar";
 import { listDriveFiles, loadDriveFileBytes, type DriveFileEntry } from "../../lib/drive/reader";
-import { loadTownCharacters, subscribeTownCharacters, type CharacterIndexEntry } from "../../lib/town/characterIndex";
+import {
+  loadTownCharacters,
+  subscribeTownCharacters,
+  resolvePersonaPrompt,
+  type CharacterIndexEntry,
+} from "../../lib/town/characterIndex";
 import { resolveTownVrmBytes } from "../../lib/town/vrmResolve";
 import { townAppUrl } from "../../lib/town/townLink";
 import { loadAiSettings, saveAiSettings } from "../../lib/ai/aiSettings";
@@ -232,9 +237,10 @@ export function AvatarScreen() {
   // list or the P0-4 cross-sell card pointing at tc-town's character
   // workshop — so it's never a dead end to show it.
   function handleLoadClick(): void {
-    const entries = listDriveFiles({ extensions: [".vrm"] });
-    setDriveEntries(entries);
     setShowVrmChooser(true);
+    listDriveFiles({ extensions: [".vrm"] })
+      .then(setDriveEntries)
+      .catch(() => setDriveEntries([]));
   }
 
   function handleChooseFromDevice(): void {
@@ -267,11 +273,17 @@ export function AvatarScreen() {
     setShowVrmChooser(false);
 
     const current = loadAiSettings();
+    // entry.personaPrompt may be absent from a slimmed listing entry — dual-read
+    // the full prompt from mist storage in that case (see characterIndex.ts).
+    const personaPrompt = await resolvePersonaPrompt(entry);
     saveAiSettings({
       ...current,
-      persona: entry.personaPrompt,
+      persona: personaPrompt ?? current.persona,
       voice: entry.voiceName ?? entry.voiceModel ?? current.voice,
     });
+    if (!personaPrompt) {
+      showToast(t("avatar.townPersonaUnresolved"));
+    }
 
     const hasVrmRef = Boolean(entry.vrmChecksum || entry.vrmCid);
     if (!hasVrmRef) {

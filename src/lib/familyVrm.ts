@@ -16,7 +16,7 @@ export type { DriveFileEntry };
 const AUTO_ADOPT_FLAG = "tc-travel:familyVrmAdoptChecked";
 
 /** VRM files shared into the family drive (tc-storage) that this device can load. */
-export function listFamilyVrms(): DriveFileEntry[] {
+export async function listFamilyVrms(): Promise<DriveFileEntry[]> {
   return listDriveFiles({ extensions: [".vrm"] });
 }
 
@@ -57,7 +57,7 @@ export async function maybeAdoptFamilyVrm(): Promise<boolean> {
     markChecked(); // a VRM is already set; don't auto-adopt over it, ever
     return false;
   }
-  const vrms = listFamilyVrms();
+  const vrms = await listFamilyVrms();
   if (vrms.length === 0) return false; // nothing to adopt yet — leave the flag unset for a later visit
   markChecked();
   try {
