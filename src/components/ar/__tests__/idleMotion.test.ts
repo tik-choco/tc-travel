@@ -15,6 +15,11 @@ const makeBone = (x = 0, y = 0, z = 0) => ({
   },
 });
 
+const makeLowerArmBone = (positionX: number) => ({
+  ...makeBone(),
+  position: { x: positionX, y: 0, z: 0 },
+});
+
 type Bone = ReturnType<typeof makeBone>;
 
 const makeVrm = (bones: Partial<Record<string, Bone>>) =>
@@ -29,6 +34,43 @@ describe("createIdleMotion", () => {
     const leftUpperArm = makeBone();
     const rightUpperArm = makeBone();
     const vrm = makeVrm({ leftUpperArm, rightUpperArm, spine: makeBone(), chest: makeBone(), head: makeBone() });
+    createIdleMotion(vrm);
+    expect(leftUpperArm.rotation).toMatchObject({ x: 0, y: 0, z: ARM_DOWN_ANGLE });
+    expect(rightUpperArm.rotation).toMatchObject({ x: 0, y: 0, z: -ARM_DOWN_ANGLE });
+  });
+
+  it("flips the arm-down sign per side for a VRM1-oriented rig (lower arm position.x > 0)", () => {
+    const leftUpperArm = makeBone();
+    const rightUpperArm = makeBone();
+    const vrm = makeVrm({
+      leftUpperArm,
+      rightUpperArm,
+      leftLowerArm: makeLowerArmBone(0.3),
+      rightLowerArm: makeLowerArmBone(-0.3),
+    });
+    createIdleMotion(vrm);
+    expect(leftUpperArm.rotation).toMatchObject({ x: 0, y: 0, z: -ARM_DOWN_ANGLE });
+    expect(rightUpperArm.rotation).toMatchObject({ x: 0, y: 0, z: ARM_DOWN_ANGLE });
+  });
+
+  it("keeps the legacy arm-down sign for a VRM0-oriented rig (lower arm position.x < 0)", () => {
+    const leftUpperArm = makeBone();
+    const rightUpperArm = makeBone();
+    const vrm = makeVrm({
+      leftUpperArm,
+      rightUpperArm,
+      leftLowerArm: makeLowerArmBone(-0.3),
+      rightLowerArm: makeLowerArmBone(0.3),
+    });
+    createIdleMotion(vrm);
+    expect(leftUpperArm.rotation).toMatchObject({ x: 0, y: 0, z: ARM_DOWN_ANGLE });
+    expect(rightUpperArm.rotation).toMatchObject({ x: 0, y: 0, z: -ARM_DOWN_ANGLE });
+  });
+
+  it("falls back to the legacy fixed sign when the lower arm bone is missing", () => {
+    const leftUpperArm = makeBone();
+    const rightUpperArm = makeBone();
+    const vrm = makeVrm({ leftUpperArm, rightUpperArm });
     createIdleMotion(vrm);
     expect(leftUpperArm.rotation).toMatchObject({ x: 0, y: 0, z: ARM_DOWN_ANGLE });
     expect(rightUpperArm.rotation).toMatchObject({ x: 0, y: 0, z: -ARM_DOWN_ANGLE });
