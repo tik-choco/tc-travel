@@ -1,0 +1,58 @@
+// Editing helpers for tc-travel's AI接続 tab: a plain CRUD layer over
+// `config.providers`/`config.presets`, ported from tc-translate's
+// src/lib/llmConfigEdit.ts (see tc-docs/drafts/llm-settings-common-v1.md
+// §5.1 - listed as a file to bring across as-is). The user explicitly
+// manages a list of named connections/presets here, same as every other
+// tik-choco app that has adopted this settings UI shape; ensureProvider/
+// ensurePreset (llmConfig.ts) remain reserved for the append-only-dedup
+// seeding path (seedSharedRoomId in aiSettings.ts). Callers are responsible
+// for calling saveLlmConfig() afterwards.
+
+import type { LlmProviderV1, ModelPresetV1, SharedLlmConfigV1 } from "./llmConfig";
+
+function newId(): string {
+  try {
+    if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+      return crypto.randomUUID();
+    }
+  } catch {
+    // fall through to the Math.random fallback below
+  }
+  return `id-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+}
+
+export function createProvider(config: SharedLlmConfigV1, label: string): string {
+  const provider: LlmProviderV1 = { id: newId(), label, baseUrl: "", apiKey: "" };
+  config.providers.push(provider);
+  return provider.id;
+}
+
+export function patchProvider(config: SharedLlmConfigV1, id: string, patch: Partial<Omit<LlmProviderV1, "id">>): void {
+  const provider = config.providers.find((entry) => entry.id === id);
+  if (provider) Object.assign(provider, patch);
+}
+
+/** Removes a provider. Any preset still referencing it keeps its (now dangling) providerId - resolvePreset degrades that to "no target" rather than throwing. */
+export function deleteProvider(config: SharedLlmConfigV1, id: string): void {
+  config.providers = config.providers.filter((entry) => entry.id !== id);
+}
+
+export function createPreset(config: SharedLlmConfigV1, providerId: string, label: string): string {
+  const preset: ModelPresetV1 = { id: newId(), label, providerId, model: "" };
+  config.presets.push(preset);
+  // First preset ever created becomes the default automatically - otherwise
+  // every task would keep resolving to nothing even though a preset now exists.
+  if (!config.defaultPresetId) config.defaultPresetId = preset.id;
+  return preset.id;
+}
+
+export function patchPreset(config: SharedLlmConfigV1, id: string, patch: Partial<Omit<ModelPresetV1, "id">>): void {
+  const preset = config.presets.find((entry) => entry.id === id);
+  if (preset) Object.assign(preset, patch);
+}
+
+/** Removes a preset. If it was the default, the next remaining preset (if any) takes over. */
+export function deletePreset(config: SharedLlmConfigV1, id: string): void {
+  config.presets = config.presets.filter((entry) => entry.id !== id);
+  if (config.defaultPresetId === id) config.defaultPresetId = config.presets[0]?.id ?? "";
+}

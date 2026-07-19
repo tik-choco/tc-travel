@@ -1,0 +1,459 @@
+/* ============================================================
+   AI Settings — tab bar + flat connection/model grid cards +
+   task tooltip rows.
+   ------------------------------------------------------------
+   Ported from tc-translate's src/styles/settings-llm.css /
+   network-status.css (see tc-docs/drafts/llm-settings-common-v1.md
+   §5.1/§5.2), token-mapped onto tc-travel's MD3 palette
+   (theme.css): --border -> --outline-variant, --border-strong ->
+   --outline, --surface -> --surface-container / -high / -highest,
+   --text -> --on-surface, --text-muted -> --on-surface-variant,
+   --primary-soft/--danger-soft synthesized locally via color-mix()
+   (same technique index.css already uses for state layers) since
+   tc-travel's token set has no ready-made "soft tint" variables.
+   Consumed by AiSettingsPanel.tsx.
+   ============================================================ */
+
+.ai-settings {
+  --ai-primary-soft: color-mix(in srgb, var(--primary) 14%, var(--surface-container));
+  --ai-danger-soft: color-mix(in srgb, var(--error) 16%, transparent);
+}
+
+/* --- Tab bar --------------------------------------------------------- */
+
+.settings-tab-bar {
+  display: flex;
+  gap: 4px;
+  margin: 0.75rem 0 1rem;
+  padding: 3px;
+  border-radius: var(--radius-full);
+  background: var(--surface-container-high);
+  border: 1px solid var(--outline-variant);
+}
+
+.settings-tab {
+  flex: 1 1 0;
+  padding: 0.5rem 0.6rem;
+  border: none;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--on-surface-variant);
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: background-color var(--dur-fast) var(--ease-standard), color var(--dur-fast) var(--ease-standard);
+}
+
+.settings-tab:hover {
+  background: color-mix(in srgb, var(--on-surface) var(--state-hover), transparent);
+}
+
+.settings-tab.active {
+  background: var(--primary);
+  color: var(--on-primary);
+}
+
+.settings-tab-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+/* --- 接続先(Provider)とモデル(Preset)は互いに独立したグリッドカード一覧。 --- */
+
+.server-list-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.server-list-header label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--on-surface-variant);
+}
+
+/* Each connection/preset card is always shown in its editable form (rather
+   than a compact view-card that flips into an inline editor on click) - with
+   the typically small number of connections a user configures, a plain
+   vertical stack of small forms is simpler and lower-risk than a
+   view/edit-toggle state machine, while keeping the two sections visually
+   flat and independent per spec §3.1. */
+.settings-flat-section {
+  margin-bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.model-row-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.model-row {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 10px 26px 10px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--outline-variant);
+  background: var(--surface-container);
+  box-shadow: var(--shadow-1);
+  transition: background var(--dur-fast) var(--ease-standard), box-shadow var(--dur-fast) var(--ease-standard),
+    transform var(--dur-fast) var(--ease-standard), border-color var(--dur-fast) var(--ease-standard);
+}
+
+.model-row:hover {
+  background: var(--surface-container-high);
+  box-shadow: var(--shadow-2);
+  transform: translateY(-1px);
+}
+
+.settings-flat-section-connection .model-row {
+  background: var(--ai-primary-soft);
+}
+
+.settings-flat-section-models .model-row {
+  background: var(--surface-container-high);
+}
+
+.model-row-main {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  width: 100%;
+  min-width: 0;
+  background: none;
+  border: none;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+}
+
+.model-row-label {
+  max-width: 100%;
+  font-size: 0.82rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.model-row-model {
+  max-width: 100%;
+  color: var(--on-surface-variant);
+  font-size: 0.72rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.model-row-provider {
+  max-width: 100%;
+  color: var(--on-surface-variant);
+  font-size: 0.68rem;
+  font-style: italic;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.model-row-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.task-badge {
+  background: var(--ai-primary-soft);
+  color: var(--primary);
+  font-size: 0.62rem;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: var(--radius-full);
+  white-space: nowrap;
+}
+
+.model-row-remove {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  color: var(--on-surface-variant);
+  cursor: pointer;
+}
+
+.model-row-remove:hover {
+  color: var(--error);
+  background: var(--ai-danger-soft);
+}
+
+.model-row.model-row-editing {
+  grid-column: 1 / -1;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  background: var(--surface-container-high);
+  border: 1px solid var(--outline-variant);
+  padding: 10px;
+  box-shadow: none;
+  transform: none;
+}
+
+.model-row-edit-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.model-row-edit-fields input,
+.model-row-edit-fields select {
+  min-height: 40px;
+}
+
+.connection-form-model-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.connection-form-model-field select,
+.connection-form-model-field input {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.model-row-add-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.grid-add-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 64px;
+  border: 1px dashed var(--outline);
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--on-surface-variant);
+  font-size: 0.72rem;
+  cursor: pointer;
+  transition: all var(--dur-fast) var(--ease-standard);
+}
+
+.grid-add-tile:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: var(--ai-primary-soft);
+}
+
+.grid-add-tile:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.connection-form-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-container-highest);
+  border: 1px solid var(--outline-variant);
+  color: var(--on-surface-variant);
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: all var(--dur-fast) var(--ease-standard);
+  flex: 1 1 auto;
+  white-space: nowrap;
+}
+
+.connection-form-btn:hover {
+  color: var(--on-surface);
+  background: var(--surface-container-high);
+}
+
+.connection-form-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.connection-form-btn-primary {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--on-primary);
+}
+
+.connection-form-btn-primary:hover {
+  background: color-mix(in srgb, var(--on-primary) var(--state-hover), var(--primary));
+  color: var(--on-primary);
+}
+
+.connection-form-warning {
+  font-style: italic;
+  color: var(--error);
+  margin: -2px 0 0;
+  font-size: 0.72rem;
+}
+
+/* mist-network://由来の行（他アプリが書き込んだもの）を破線のaccent枠線で強調。 */
+.settings-flat-section .model-row.model-row-network {
+  border: 1px dashed var(--primary);
+  background: var(--ai-primary-soft);
+}
+
+/* --- タスク行: ラベル + select群の2カラム、ラベルにhoverツールチップ --- */
+
+.task-model-item {
+  display: grid;
+  grid-template-columns: 60px minmax(0, 1fr);
+  align-items: start;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--outline-variant);
+}
+
+.task-model-item:last-child {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.task-model-item > span {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--on-surface-variant);
+  min-width: 0;
+  padding-top: 10px;
+}
+
+/* Generic hover tooltip for any [data-tip] element in the AI settings panel
+   (task row labels, the Room ID field label) - not scoped to .task-model-item
+   so it can be reused wherever a one-sentence explanation replaces a
+   persistent hint paragraph (spec §3.2/§4, checklist item 9). */
+.ai-settings [data-tip] {
+  position: relative;
+  cursor: help;
+  text-decoration: underline dotted;
+  text-underline-offset: 2px;
+}
+
+.ai-settings [data-tip]:hover::after,
+.ai-settings [data-tip]:focus-visible::after {
+  content: attr(data-tip);
+  position: absolute;
+  left: 0;
+  top: calc(100% + 4px);
+  z-index: 10;
+  width: max-content;
+  max-width: 240px;
+  padding: 6px 8px;
+  border: 1px solid var(--outline-variant);
+  border-radius: var(--radius-sm);
+  background: var(--surface-container-highest);
+  color: var(--on-surface);
+  font-size: 0.7rem;
+  font-weight: 400;
+  line-height: 1.5;
+  box-shadow: var(--shadow-2);
+}
+
+.task-model-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.task-model-field select {
+  width: 100%;
+  min-width: 0;
+}
+
+/* --- AI Network role card ------------------------------------------- */
+
+.settings-role-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px;
+  border: 1px solid var(--outline-variant);
+  border-radius: var(--radius);
+  background: var(--surface-container);
+}
+
+.settings-role-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--on-surface);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.settings-role-title svg {
+  color: var(--primary);
+  flex-shrink: 0;
+}
+
+.settings-role-desc {
+  margin: 0;
+  color: var(--on-surface-variant);
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+
+.settings-role-body {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 2px;
+  padding-top: 8px;
+  border-top: 1px solid var(--outline-variant);
+}
+
+.ai-status-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  flex-shrink: 0;
+  border-radius: var(--radius-full);
+  background: var(--outline-variant);
+}
+
+.ai-status-dot.is-connected {
+  background: var(--secondary);
+}
+
+.ai-status-dot.is-pending {
+  background: var(--outline);
+  animation: status-dot-pulse 1.8s ease-in-out infinite;
+}
+
+.ai-status-dot.is-error {
+  background: var(--error);
+}
