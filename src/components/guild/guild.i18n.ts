@@ -887,33 +887,225 @@ registerTranslations({
     en: "AI Companion", ja: "AI使い魔", zh: "AI伙伴", ko: "AI 동료",
     es: "Compañero IA", fr: "Compagnon IA", de: "KI-Gefährte", pt: "Companheiro IA",
   },
+
+  // --- Settings tab bar (AI接続 / AI Network / タスク, see
+  // tc-docs/drafts/llm-settings-common-v1.md §3) ---
+  "settings.ai.tab.connection": {
+    en: "AI Connection", ja: "AI接続", zh: "AI连接", ko: "AI 연결",
+    es: "Conexión IA", fr: "Connexion IA", de: "KI-Verbindung", pt: "Conexão de IA",
+  },
+  "settings.ai.tab.network": {
+    en: "AI Network", ja: "AI Network", zh: "AI Network", ko: "AI Network",
+    es: "AI Network", fr: "AI Network", de: "AI Network", pt: "AI Network",
+  },
+  "settings.ai.tab.tasks": {
+    en: "Tasks", ja: "タスク", zh: "任务", ko: "작업",
+    es: "Tareas", fr: "Tâches", de: "Aufgaben", pt: "Tarefas",
+  },
+
+  // --- AI接続 tab: providers + presets, a flat card grid shared with every
+  // other tik-choco app at this origin. tc-travel never calls a provider's
+  // HTTP endpoint directly (its AI companion only ever talks over the AI
+  // Network room), so there is no live model-list fetch/connection test here
+  // - model ids are entered by hand. ---
+  "settings.ai.connection.hint": {
+    en: "Connections and models are shared with other apps at this origin (e.g. tc-translate). Set them up once, reuse them everywhere.",
+    ja: "接続先とモデルは、同一オリジンの他アプリ（tc-translateなど）とも共有されます。一度設定すれば他アプリでも再利用できます。",
+    zh: "连接和模型与同源的其他应用（如 tc-translate）共享。设置一次即可在各处复用。",
+    ko: "연결과 모델은 동일 출처의 다른 앱(tc-translate 등)과도 공유됩니다. 한 번 설정하면 어디서나 재사용할 수 있습니다.",
+    es: "Las conexiones y modelos se comparten con otras apps de este origen (p. ej. tc-translate). Configúralos una vez y reutilízalos en todas partes.",
+    fr: "Les connexions et modèles sont partagés avec les autres applis de cette origine (ex. tc-translate). Configurez-les une fois, réutilisez-les partout.",
+    de: "Verbindungen und Modelle werden mit anderen Apps dieser Origin geteilt (z. B. tc-translate). Einmal einrichten, überall wiederverwenden.",
+    pt: "Conexões e modelos são compartilhados com outros apps desta origem (ex.: tc-translate). Configure uma vez, reutilize em todo lugar.",
+  },
+  "settings.ai.connection.providersHeading": {
+    en: "Connections", ja: "接続先", zh: "连接", ko: "연결",
+    es: "Conexiones", fr: "Connexions", de: "Verbindungen", pt: "Conexões",
+  },
+  "settings.ai.connection.presetsHeading": {
+    en: "Models", ja: "モデル", zh: "模型", ko: "모델",
+    es: "Modelos", fr: "Modèles", de: "Modelle", pt: "Modelos",
+  },
+  "settings.ai.connection.noProviders": {
+    en: "No connections yet.", ja: "まだ接続先がありません。", zh: "尚无连接。", ko: "아직 연결이 없습니다.",
+    es: "Aún no hay conexiones.", fr: "Aucune connexion pour l'instant.", de: "Noch keine Verbindungen.", pt: "Ainda não há conexões.",
+  },
+  "settings.ai.connection.noPresetsNoProvider": {
+    en: "Add a connection first.", ja: "先に接続先を追加してください。", zh: "请先添加连接。", ko: "먼저 연결을 추가하세요.",
+    es: "Agrega primero una conexión.", fr: "Ajoutez d'abord une connexion.", de: "Zuerst eine Verbindung hinzufügen.", pt: "Adicione uma conexão primeiro.",
+  },
+  "settings.ai.connection.noPresets": {
+    en: "No models yet.", ja: "まだモデルがありません。", zh: "尚无模型。", ko: "아직 모델이 없습니다.",
+    es: "Aún no hay modelos.", fr: "Aucun modèle pour l'instant.", de: "Noch keine Modelle.", pt: "Ainda não há modelos.",
+  },
+  "settings.ai.connection.addProviderTile": {
+    en: "Add connection", ja: "接続先を追加", zh: "添加连接", ko: "연결 추가",
+    es: "Añadir conexión", fr: "Ajouter une connexion", de: "Verbindung hinzufügen", pt: "Adicionar conexão",
+  },
+  "settings.ai.connection.addPresetTile": {
+    en: "Add model", ja: "モデルを追加", zh: "添加模型", ko: "모델 추가",
+    es: "Añadir modelo", fr: "Ajouter un modèle", de: "Modell hinzufügen", pt: "Adicionar modelo",
+  },
+  "settings.ai.connection.addPresetNeedProvider": {
+    en: "Add a connection first", ja: "先に接続先を追加してください", zh: "请先添加连接", ko: "먼저 연결을 추가하세요",
+    es: "Añade primero una conexión", fr: "Ajoutez d'abord une connexion", de: "Zuerst eine Verbindung hinzufügen", pt: "Adicione uma conexão primeiro",
+  },
+  "settings.ai.connection.labelPlaceholder": {
+    en: "Label (optional)", ja: "ラベル（省略可）", zh: "标签（可选）", ko: "라벨 (선택 사항)",
+    es: "Etiqueta (opcional)", fr: "Libellé (facultatif)", de: "Bezeichnung (optional)", pt: "Rótulo (opcional)",
+  },
+  "settings.ai.connection.apiKeyPlaceholder": {
+    en: "API key (optional)", ja: "APIキー（省略可）", zh: "API 密钥（可选）", ko: "API 키 (선택 사항)",
+    es: "Clave de API (opcional)", fr: "Clé API (facultative)", de: "API-Schlüssel (optional)", pt: "Chave de API (opcional)",
+  },
+  "settings.ai.connection.modelPlaceholder": {
+    en: "Model name", ja: "モデル名", zh: "模型名称", ko: "모델 이름",
+    es: "Nombre del modelo", fr: "Nom du modèle", de: "Modellname", pt: "Nome do modelo",
+  },
+  "settings.ai.connection.selectProviderPlaceholder": {
+    en: "Select a connection...", ja: "接続先を選択...", zh: "选择连接...", ko: "연결 선택...",
+    es: "Selecciona una conexión...", fr: "Sélectionnez une connexion...", de: "Verbindung auswählen...", pt: "Selecione uma conexão...",
+  },
+  "settings.ai.connection.networkNote": {
+    en: "AI Network room", ja: "AI Networkルーム", zh: "AI Network 房间", ko: "AI Network 방",
+    es: "Sala de AI Network", fr: "Salle AI Network", de: "AI-Network-Raum", pt: "Sala da AI Network",
+  },
+  "settings.ai.connection.networkBadge": {
+    en: "From Network", ja: "Network由来", zh: "来自 Network", ko: "Network 유래",
+    es: "De la Network", fr: "Depuis Network", de: "Aus Network", pt: "Da Network",
+  },
+  "settings.ai.connection.defaultBadge": {
+    en: "Default", ja: "既定", zh: "默认", ko: "기본",
+    es: "Predeterminado", fr: "Par défaut", de: "Standard", pt: "Padrão",
+  },
+  "settings.ai.connection.deleteProvider": {
+    en: "Delete connection", ja: "接続先を削除", zh: "删除连接", ko: "연결 삭제",
+    es: "Eliminar conexión", fr: "Supprimer la connexion", de: "Verbindung löschen", pt: "Excluir conexão",
+  },
+  "settings.ai.connection.deletePreset": {
+    en: "Delete model", ja: "モデルを削除", zh: "删除模型", ko: "모델 삭제",
+    es: "Eliminar modelo", fr: "Supprimer le modèle", de: "Modell löschen", pt: "Excluir modelo",
+  },
+  "settings.ai.connection.deleteProviderConfirm": {
+    en: (p) => `Deleting this connection also deletes ${p.count} linked model(s). Continue?`,
+    ja: (p) => `この接続先を削除すると、紐づく${p.count}件のモデルも削除されます。よろしいですか？`,
+    zh: (p) => `删除此连接将同时删除关联的 ${p.count} 个模型。是否继续？`,
+    ko: (p) => `이 연결을 삭제하면 연결된 모델 ${p.count}개도 함께 삭제됩니다. 계속할까요?`,
+    es: (p) => `Eliminar esta conexión también eliminará ${p.count} modelo(s) vinculados. ¿Continuar?`,
+    fr: (p) => `Supprimer cette connexion supprimera aussi ${p.count} modèle(s) associé(s). Continuer ?`,
+    de: (p) => `Das Löschen dieser Verbindung löscht auch ${p.count} verknüpfte Modell(e). Fortfahren?`,
+    pt: (p) => `Excluir esta conexão também excluirá ${p.count} modelo(s) vinculado(s). Continuar?`,
+  },
+  "settings.ai.connection.deletePresetConfirm": {
+    en: "Delete this model?", ja: "このモデルを削除しますか？", zh: "删除此模型？", ko: "이 모델을 삭제할까요?",
+    es: "¿Eliminar este modelo?", fr: "Supprimer ce modèle ?", de: "Dieses Modell löschen?", pt: "Excluir este modelo?",
+  },
+  "settings.ai.connection.add": {
+    en: "Add", ja: "追加", zh: "添加", ko: "추가",
+    es: "Añadir", fr: "Ajouter", de: "Hinzufügen", pt: "Adicionar",
+  },
+  "settings.ai.connection.cancel": {
+    en: "Cancel", ja: "キャンセル", zh: "取消", ko: "취소",
+    es: "Cancelar", fr: "Annuler", de: "Abbrechen", pt: "Cancelar",
+  },
+
+  // --- AI Network tab ---
+  "settings.ai.network.hint": {
+    en: "Devices that join the same Room ID can share an AI over the network. The Room ID is shared with other apps at this origin too.",
+    ja: "同じRoom IDに参加した端末同士で、ネットワーク越しにAIを共有できます。Room IDは同一オリジンの他アプリとも共有されます。",
+    zh: "加入相同 Room ID 的设备可以通过网络共享 AI。Room ID 也与同源的其他应用共享。",
+    ko: "같은 Room ID에 참여한 기기끼리 네트워크를 통해 AI를 공유할 수 있습니다. Room ID는 동일 출처의 다른 앱과도 공유됩니다.",
+    es: "Los dispositivos que se unen al mismo Room ID pueden compartir una IA por red. El Room ID también se comparte con otras apps de este origen.",
+    fr: "Les appareils qui rejoignent le même Room ID peuvent partager une IA sur le réseau. Le Room ID est aussi partagé avec les autres applis de cette origine.",
+    de: "Geräte mit derselben Room-ID können eine KI über das Netzwerk teilen. Die Room-ID wird auch mit anderen Apps dieser Origin geteilt.",
+    pt: "Dispositivos que entram na mesma Room ID podem compartilhar uma IA pela rede. A Room ID também é compartilhada com outros apps desta origem.",
+  },
   "settings.ai.roomId": {
     en: "Room ID", ja: "ルームID", zh: "房间ID", ko: "방 ID",
     es: "ID de Sala", fr: "ID de Salle", de: "Raum-ID", pt: "ID da Sala",
   },
-  "settings.ai.roomIdHint": {
-    en: "The mist room your AI provider is announced on.",
-    ja: "AIプロバイダーが告知しているmistルームです。",
-    zh: "AI 提供方公告所在的 mist 房间。",
-    ko: "AI 제공자가 알리는 mist 방입니다.",
-    es: "La sala mist donde tu proveedor de IA se anuncia.",
-    fr: "La salle mist où votre fournisseur d'IA est annoncé.",
-    de: "Der Mist-Raum, in dem dein KI-Anbieter angekündigt wird.",
-    pt: "A sala mist onde seu provedor de IA é anunciado.",
+  "settings.ai.roomIdTip": {
+    en: "Overrides the shared Room ID for this app only. Leave blank to use the shared one below.",
+    ja: "このアプリだけRoom IDを上書きします。空欄なら下記の共有Room IDを使います。",
+    zh: "仅为此应用覆盖共享 Room ID。留空则使用下方的共享房间。",
+    ko: "이 앱에서만 공유 Room ID를 재정의합니다. 비워두면 아래의 공유 방을 사용합니다.",
+    es: "Anula el Room ID compartido solo para esta app. Déjalo en blanco para usar el compartido de abajo.",
+    fr: "Remplace le Room ID partagé pour cette appli seulement. Laissez vide pour utiliser celui partagé ci-dessous.",
+    de: "Überschreibt die gemeinsame Room-ID nur für diese App. Leer lassen, um die untenstehende gemeinsame Raum-ID zu verwenden.",
+    pt: "Substitui a Room ID compartilhada apenas para este app. Deixe em branco para usar a compartilhada abaixo.",
   },
   "settings.ai.roomIdSharedHint": {
-    en: "Using the shared network room from another app.",
-    ja: "共有設定のルームを使用中です。",
-    zh: "正在使用其他应用共享的房间。",
-    ko: "다른 앱과 공유된 방을 사용 중입니다.",
-    es: "Usando la sala compartida de otra app.",
-    fr: "Utilisation de la salle partagée d'une autre appli.",
-    de: "Verwendet den gemeinsamen Raum einer anderen App.",
-    pt: "Usando a sala compartilhada de outro app.",
+    en: (p) => `Using the shared room "${p.roomId}" from another app.`,
+    ja: (p) => `共有ルーム「${p.roomId}」を使用中です。`,
+    zh: (p) => `正在使用来自其他应用的共享房间「${p.roomId}」。`,
+    ko: (p) => `다른 앱에서 공유된 방 "${p.roomId}"을(를) 사용 중입니다.`,
+    es: (p) => `Usando la sala compartida "${p.roomId}" de otra app.`,
+    fr: (p) => `Utilisation de la salle partagée « ${p.roomId} » d'une autre appli.`,
+    de: (p) => `Verwendet den gemeinsamen Raum „${p.roomId}“ einer anderen App.`,
+    pt: (p) => `Usando a sala compartilhada "${p.roomId}" de outro app.`,
   },
-  "settings.ai.model": {
-    en: "Model (optional)", ja: "モデル（任意）", zh: "模型（可选）", ko: "모델 (선택 사항)",
-    es: "Modelo (opcional)", fr: "Modèle (facultatif)", de: "Modell (optional)", pt: "Modelo (opcional)",
+  "settings.ai.network.roomIdSharedEmptyHint": {
+    en: "No shared Room ID is set anywhere yet.",
+    ja: "共有Room IDはまだどこにも設定されていません。",
+    zh: "尚未在任何地方设置共享 Room ID。",
+    ko: "아직 어디에도 공유 Room ID가 설정되어 있지 않습니다.",
+    es: "Aún no hay un Room ID compartido configurado en ningún lugar.",
+    fr: "Aucun Room ID partagé n'est encore configuré nulle part.",
+    de: "Es ist noch nirgendwo eine gemeinsame Room-ID festgelegt.",
+    pt: "Ainda não há uma Room ID compartilhada definida em lugar nenhum.",
+  },
+  "settings.ai.network.consumerTitle": {
+    en: "Talk to the AI companion", ja: "AI使い魔と話す", zh: "与AI伙伴对话", ko: "AI 동료와 대화하기",
+    es: "Hablar con el compañero IA", fr: "Parler au compagnon IA", de: "Mit dem KI-Gefährten sprechen", pt: "Falar com o companheiro IA",
+  },
+  "settings.ai.network.consumerDesc": {
+    en: "Once a Room ID is set, opening the companion chat connects to whichever provider is announced on that room.",
+    ja: "Room IDを設定すると、使い魔チャットを開いたときにそのルームで告知されているプロバイダーに接続します。",
+    zh: "设置 Room ID 后，打开伙伴聊天即可连接到该房间中公告的提供方。",
+    ko: "Room ID를 설정하면 동료 채팅을 열 때 해당 방에 알려진 제공자에 연결됩니다.",
+    es: "Una vez configurado el Room ID, abrir el chat del compañero se conecta al proveedor anunciado en esa sala.",
+    fr: "Une fois le Room ID configuré, ouvrir le chat du compagnon se connecte au fournisseur annoncé dans cette salle.",
+    de: "Sobald eine Room-ID gesetzt ist, verbindet das Öffnen des Begleiter-Chats mit dem in diesem Raum angekündigten Anbieter.",
+    pt: "Depois de definir a Room ID, abrir o chat do companheiro conecta ao provedor anunciado nessa sala.",
+  },
+
+  // --- タスク tab: rows keep a one-word label (spec §3.2) with the fuller
+  // explanation in a hover tooltip (data-tip). "プラン"/"応答" describe the
+  // two internal fan-out stages (see src/lib/ai/networkTask.ts) in plain,
+  // outcome-facing terms rather than the "orchestrator"/"worker" pipeline
+  // jargon (see llm-settings-common-v1.md §2.3 on not exposing internal
+  // roles directly). ---
+  "settings.ai.tasks.plan": {
+    en: "Plan", ja: "プラン", zh: "计划", ko: "계획",
+    es: "Plan", fr: "Plan", de: "Plan", pt: "Plano",
+  },
+  "settings.ai.tasks.planTip": {
+    en: "Used to split your message into subtasks. The prompt is small, so a powerful model is cheap here.",
+    ja: "会話をサブタスクに分割する計画に使うモデルです。プロンプトが小さいため、高性能なモデルでも低コストです。",
+    zh: "用于将对话拆分为子任务的计划模型。提示词很小，即使使用高性能模型成本也很低。",
+    ko: "대화를 하위 작업으로 나누는 계획에 사용하는 모델입니다. 프롬프트가 작아 고성능 모델도 저렴합니다.",
+    es: "Se usa para dividir tu mensaje en subtareas. El prompt es pequeño, así que un modelo potente sale barato aquí.",
+    fr: "Utilisé pour diviser votre message en sous-tâches. Le prompt est court, un modèle puissant reste donc peu coûteux ici.",
+    de: "Wird verwendet, um deine Nachricht in Teilaufgaben zu zerlegen. Der Prompt ist klein, daher ist ein leistungsstarkes Modell hier günstig.",
+    pt: "Usado para dividir sua mensagem em subtarefas. O prompt é pequeno, então um modelo potente sai barato aqui.",
+  },
+  "settings.ai.tasks.response": {
+    en: "Reply", ja: "応答", zh: "回复", ko: "응답",
+    es: "Respuesta", fr: "Réponse", de: "Antwort", pt: "Resposta",
+  },
+  "settings.ai.tasks.responseTip": {
+    en: "Used to generate the actual reply. Handles most of the tokens, so a lighter model is recommended.",
+    ja: "実際の返答の生成に使うモデルです。トークンを多く消費するため、軽量なモデルがおすすめです。",
+    zh: "用于生成实际回复的模型。消耗大部分 token，因此建议使用较轻量的模型。",
+    ko: "실제 응답을 생성하는 데 사용하는 모델입니다. 토큰을 많이 소비하므로 가벼운 모델을 권장합니다.",
+    es: "Se usa para generar la respuesta real. Consume la mayoría de los tokens, así que se recomienda un modelo más ligero.",
+    fr: "Utilisé pour générer la réponse elle-même. Consomme la majorité des tokens, un modèle plus léger est donc recommandé.",
+    de: "Wird verwendet, um die eigentliche Antwort zu erzeugen. Verbraucht die meisten Tokens, daher wird ein leichteres Modell empfohlen.",
+    pt: "Usado para gerar a resposta real. Consome a maior parte dos tokens, então um modelo mais leve é recomendado.",
+  },
+  "settings.ai.tasks.presetUnset": {
+    en: "Same as default", ja: "既定と同じ", zh: "与默认相同", ko: "기본과 동일",
+    es: "Igual que el predeterminado", fr: "Identique au défaut", de: "Wie Standard", pt: "Igual ao padrão",
   },
   "settings.ai.voice": {
     en: "Voice (optional)", ja: "ボイス（任意）", zh: "声音（可选）", ko: "음성 (선택 사항)",

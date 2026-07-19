@@ -10,11 +10,11 @@ import "./ar.css";
 import { useEffect, useRef, useState } from "preact/hooks";
 import { CircleStop, Send, X } from "lucide-preact";
 import { getLanguage, useT } from "../../lib/i18n";
-import { loadAiSettings, isAiConfigured, resolveAiRoomId } from "../../lib/ai/aiSettings";
+import { loadAiSettings, isAiConfigured, resolveAiRoomId, resolveTaskModel } from "../../lib/ai/aiSettings";
 import { getCompanionClient, type CompanionStatus } from "../../lib/ai/companionClient";
+import { runNetworkTask } from "../../lib/ai/networkTask";
 import { splitSpeechLines, speakLines } from "../../lib/ai/speech";
 import { attachLipSync, type LipSyncHandle } from "../../lib/ai/lipSync";
-import type { ChatMessage } from "../../vendor/mistai";
 import type { Companion } from "./companion";
 
 interface CompanionTalkPanelProps {
@@ -52,6 +52,17 @@ function buildSystemPrompt(persona: string | undefined): string {
     `character. Reply in ${languageName}. Keep replies short and conversational ` +
     `(1–3 sentences). Plain text only — no markdown, no emoji spam.`;
   return persona?.trim() ? `${base}\n${persona.trim()}` : base;
+}
+
+/** Context handed to runNetworkTask's workers: the companion persona/system
+ *  prompt (workers never see buildSystemPrompt directly, since runNetworkTask
+ *  builds its own worker system prompt) plus the recent chat history,
+ *  rendered as compact "role: text" lines. */
+function buildContextText(persona: string | undefined, history: ChatBubble[]): string {
+  const parts = [`Persona/system context:\n${buildSystemPrompt(persona)}`];
+  const historyLines = history.map((m) => `${m.role}: ${m.text}`).join("\n");
+  if (historyLines) parts.push(`Recent conversation:\n${historyLines}`);
+  return parts.join("\n\n");
 }
 
 export function CompanionTalkPanel({ open, onClose, companionRef }: CompanionTalkPanelProps) {
@@ -107,12 +118,9 @@ export function CompanionTalkPanel({ open, onClose, companionRef }: CompanionTal
     if (!text || status.phase !== "connected" || busy) return;
 
     const settings = loadAiSettings();
-    const history: ChatMessage[] = messages.slice(-HISTORY_LIMIT).map((m) => ({ role: m.role, content: m.text }));
-    const chatMessages: ChatMessage[] = [
-      { role: "system", content: buildSystemPrompt(settings.persona) },
-      ...history,
-      { role: "user", content: text },
-    ];
+    const contextText = buildContextText(settings.persona, messages.slice(-HISTORY_LIMIT));
+    const orchestratorModel = resolveTaskModel("orchestrator", settings);
+    const workerModel = resolveTaskModel("worker", settings);
 
     setInput("");
     setError(null);
@@ -133,13 +141,19 @@ export function CompanionTalkPanel({ open, onClose, companionRef }: CompanionTal
     };
 
     try {
-      const reply = await client.requestChat(chatMessages, {
-        model: settings.model || undefined,
-        onDelta: (_delta, full) => {
+      const result = await runNetworkTask({
+        client,
+        orchestratorModel,
+        workerModel,
+        input: text,
+        contextText,
+        signal: abort.signal,
+        onDelta: (full) => {
           if (isCurrent()) updateAssistantBubble(full);
         },
       });
       if (!isCurrent()) return;
+      const reply = result.text;
       updateAssistantBubble(reply);
 
       if (settings.ttsEnabled && reply.trim()) {
