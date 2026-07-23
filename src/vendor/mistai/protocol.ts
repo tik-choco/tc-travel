@@ -6,6 +6,11 @@
 // wire format, incl. raft_message) and tc-translate/src/lib/mistllm/protocol.ts
 // (voice extensions), plus the provider_hello.models extension from
 // tc-pdf-viewer/src/services/mistllm.js.
+//
+// + provider_hello.voices backport (mistai v0.6.0, tts-voice-selection-v1
+// §2.1/§3.1): optional TTS voice-catalog advertisement, decoded with the
+// same element-wise defensive filter as `models`. See
+// tc-docs/drafts/tts-voice-selection-v1.md.
 
 export interface ChatMessage {
   role: "system" | "user" | "assistant";
@@ -52,6 +57,15 @@ export interface ProviderHelloMsg {
    * "unknown list".
    */
   models?: string[];
+  /**
+   * Optional, backward-compatible extension: TTS voice names this provider's
+   * upstream accepts (a catalog advertisement). Each entry is an opaque
+   * string passed straight through to `tts_request.voice` — unlike `models`,
+   * there's no label/id split since the provider forwards the value verbatim
+   * upstream. Absent when the provider couldn't determine its own voice
+   * list (older peers, or non-TTS providers).
+   */
+  voices?: string[];
 }
 
 export interface ConsumerHelloMsg {
@@ -201,15 +215,21 @@ export function decode(data: Uint8Array | string): ProtocolMessage | null {
 
   switch (m.type) {
     case "provider_hello": {
-      // `models` is a backward-compatible optional extension. An invalid
-      // `models` value drops just that field rather than rejecting the whole
+      // `models` / `voices` are backward-compatible optional extensions. An
+      // invalid value drops just that field rather than rejecting the whole
       // message, so a misbehaving/future peer can't take down provider
       // discovery over an optional extension. Non-string entries are filtered.
+      const hello: ProviderHelloMsg = { v: 1, type: "provider_hello" };
       if (Array.isArray(m.models)) {
-        const models = m.models.filter((entry): entry is string => typeof entry === "string");
-        return { v: 1, type: "provider_hello", models };
+        hello.models = m.models.filter((entry): entry is string => typeof entry === "string");
       }
-      return { v: 1, type: "provider_hello" };
+      if (Array.isArray(m.voices)) {
+        // Per mistai v0.6.0 (tts-voice-selection-v1 §2.1): non-string AND
+        // empty-string entries are dropped element-wise, unlike the looser
+        // `models` filter above (left as-is — out of scope for this backport).
+        hello.voices = m.voices.filter(isNonEmptyString);
+      }
+      return hello;
     }
     case "consumer_hello":
       return { v: 1, type: "consumer_hello" };

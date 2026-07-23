@@ -82,6 +82,31 @@ describe("CompanionClient discovery", () => {
     expect(unicastHello).toHaveLength(1);
   });
 
+  it("captures provider_hello.voices into status.voices (tts-voice-selection-v1)", async () => {
+    const { node, access, fire } = createHarness();
+    const client = new CompanionClient(access);
+    client.connect("room-1");
+    await vi.waitFor(() => expect(node.joinRoom).toHaveBeenCalled());
+
+    fire(EVENT_RAW, "provider-1", encode({ v: 1, type: "provider_hello", voices: ["alloy", "verse"] }), "room-1");
+    expect(client.status).toEqual({ phase: "connected", providerId: "provider-1", voices: ["alloy", "verse"] });
+
+    // Re-announcement from the same provider refreshes the advertised list.
+    fire(EVENT_RAW, "provider-1", encode({ v: 1, type: "provider_hello", voices: ["alloy"] }), "room-1");
+    expect(client.status).toEqual({ phase: "connected", providerId: "provider-1", voices: ["alloy"] });
+  });
+
+  it("omits voices from status when the provider doesn't advertise any", async () => {
+    const { node, access, fire } = createHarness();
+    const client = new CompanionClient(access);
+    client.connect("room-1");
+    await vi.waitFor(() => expect(node.joinRoom).toHaveBeenCalled());
+
+    fire(EVENT_RAW, "provider-1", encode({ v: 1, type: "provider_hello" }), "room-1");
+    expect(client.status).toEqual({ phase: "connected", providerId: "provider-1" });
+    expect((client.status as { voices?: string[] }).voices).toBeUndefined();
+  });
+
   it("is a no-op when connect() is called again for the same room", async () => {
     const { node, access } = createHarness();
     const client = new CompanionClient(access);

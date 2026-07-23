@@ -455,9 +455,19 @@ export function AiSettingsPanel() {
           id="settings-ai-voice"
           class="input"
           type="text"
+          list="settings-ai-voice-options"
           value={aiSettings.voice ?? ""}
           onInput={(e) => updateAiSettings({ voice: (e.target as HTMLInputElement).value })}
         />
+        {/* AI Network 広告 voices の候補提示（tts-voice-selection-v1 §2.4）。
+            空欄=「provider 既定」は既存の空文字入力のままで表現される（select 方式の
+            "先頭に provider 既定 option" と同型。datalist は選択肢の提示のみで、値の
+            強制はしない — 広告が無い/未接続時は従来どおりの自由入力欄として振る舞う）。 */}
+        <datalist id="settings-ai-voice-options">
+          {(status.phase === "connected" ? (status.voices ?? []) : []).map((voice) => (
+            <option key={voice} value={voice} />
+          ))}
+        </datalist>
       </div>
 
       <div class="field">
