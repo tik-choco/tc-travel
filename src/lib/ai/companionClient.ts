@@ -31,6 +31,11 @@ export interface CompanionStatus {
   phase: CompanionPhase;
   providerId?: string; // connected 時
   models?: string[]; // provider_hello.models
+  // provider_hello.voices（TTS voice カタログ広告）。tc-travel は単一 provider
+  // 固定（先着1件、client.ts の ConsumerClient と異なり複数 provider の和集合は
+  // 取らない）なので、その1provider の広告をそのまま渡す。
+  // AiSettingsPanel の voice datalist が消費する — tts-voice-selection-v1 §2.4。
+  voices?: string[];
   message?: string; // error 時(英語生文。表示側で i18n コードマップ優先)
   code?: string; // MistaiErrorCode("PROVIDER_NOT_FOUND" | "JOIN_FAILED" 等)
 }
@@ -203,10 +208,20 @@ export class CompanionClient {
         this.send(fromId, { v: 1, type: "consumer_hello" });
         const waiters = this.providerWaiters.splice(0);
         waiters.forEach((waiter) => waiter.resolve(fromId));
-        this.emit({ phase: "connected", providerId: fromId, ...(msg.models !== undefined ? { models: msg.models } : {}) });
+        this.emit({
+          phase: "connected",
+          providerId: fromId,
+          ...(msg.models !== undefined ? { models: msg.models } : {}),
+          ...(msg.voices !== undefined ? { voices: msg.voices } : {}),
+        });
       } else if (fromId === this.providerId) {
-        // Same provider re-announcing — refresh its advertised model list.
-        this.emit({ phase: "connected", providerId: fromId, ...(msg.models !== undefined ? { models: msg.models } : {}) });
+        // Same provider re-announcing — refresh its advertised model/voice list.
+        this.emit({
+          phase: "connected",
+          providerId: fromId,
+          ...(msg.models !== undefined ? { models: msg.models } : {}),
+          ...(msg.voices !== undefined ? { voices: msg.voices } : {}),
+        });
       }
       return;
     }
