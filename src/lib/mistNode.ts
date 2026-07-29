@@ -8,6 +8,7 @@
 // storage (store.ts) and collab rooms (collab.ts) must go through this one
 // shared instance instead. Adapted from tc-note's src/lib/mistNode.ts.
 import { MistNode, storage_get } from "../vendor/mistlib/wrappers/web/index.js";
+import { mistSignalingConfig } from "./drive/mistSignaling";
 
 const NODE_ID_KEY = "tc-travel:nodeId";
 // Family-wide shared pointer (see docs/INTEGRATION.md): a plain CID string
@@ -90,7 +91,9 @@ export async function ensureMistNode(): Promise<InstanceType<typeof MistNode>> {
   if (!initPromise) {
     initPromise = (async () => {
       if (!node) {
-        node = new MistNode(getPageNodeId());
+        // inviteSalt/inviteCode scope peer discovery to the tik-choco family
+        // namespace — without them this node can't find any other app's peers.
+        node = new MistNode(getPageNodeId(), mistSignalingConfig());
         node.onEvent(dispatchNodeEvent);
       }
       await node.init();
