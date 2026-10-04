@@ -22,6 +22,7 @@ import { AvatarScreenLazy } from "./components/avatar/AvatarScreenLazy";
 import { PostScreen } from "./components/post/PostScreen";
 import { GuildScreen } from "./components/guild/GuildScreen";
 import { CelebrationHost } from "./components/common/CelebrationHost";
+import { AiRuntime } from "./components/guild/AiRuntime";
 
 export function App() {
   const [profile] = useProfile();
@@ -121,6 +122,7 @@ export function App() {
 
   return (
     <ErrorBoundary>
+      <AiRuntime />
       <div class="app-shell">{content}</div>
       {/* App-wide reward layer: fires wherever progress is made, and surfaces
           any threshold crossed while away on the next launch. */}

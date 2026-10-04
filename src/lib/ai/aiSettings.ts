@@ -1,163 +1,115 @@
-// Local-only settings for the AI companion feature (mist room id to reach a
-// provider on, plus optional model/voice/persona overrides). Pattern mirrors
-// personal.ts's localStorage-backed settings: never touch storage at module
-// load (vitest's default node test environment has none), swallow write
-// failures (quota, private browsing) rather than surfacing them to the caller.
-//
-// `roomId` is a local override of the AI Network room; when empty, the
-// effective room falls back to the family-wide shared config's
-// `network.roomId` (tc-shared-llm-config-v1, see ../drive/llmConfig.ts) so a
-// room set once in another app (e.g. tc-mistllm as provider) can be reused
-// here without re-entering it. Whenever a non-empty local roomId is
-// known (on load or save) and the shared room is still unset, it is
-// merge-written to the shared config (never overwrites an existing shared
-// room — merge-never-delete per the llm-config contract).
+import {
+  createRoomProvider, emptyLlmConfig, isModelRef, loadLlmConfig,
+  migrateSharedLlmConfig, presetIdToRef, providerKind, resolveModel, saveLlmConfig,
+  type ModelRefV1,
+} from "@tik-choco/mistai/llm-config";
+import { REASONING_EFFORT_OPTIONS, type LlmLocalSettings, type TaskModelV1 } from "@tik-choco/mistai/preact";
 
-import { emptyLlmConfig, loadLlmConfig, resolvePreset, saveLlmConfig } from "../drive/llmConfig";
-
-// Internal pipeline-stage identifiers only — never shown to the user as
-// "orchestrator"/"worker" (see tc-docs/drafts/llm-settings-common-v1.md §2.3:
-// tc-translate abolished exactly this kind of internal-role exposure in its
-// own settings UI). The Tasks tab labels these rows in plain, user-facing
-// terms instead (see guild.i18n.ts's settings.ai.tasks.* keys).
 export type AiTaskRole = "orchestrator" | "worker";
-
-export type AiTaskModelSetting = {
-  presetId: string; // "" = unset, falls back to the shared config's default preset
-};
-
-export interface AiCompanionSettings {
-  /** provider が announce している mist ルーム id。空文字 = 機能未設定 */
-  roomId: string;
-  model?: string; // LLM モデル名(空/undefined = provider 既定)
-  voice?: string; // TTS ボイス名(同上)
-  persona?: string; // システムプロンプトに足すキャラ設定自由文
-  ttsEnabled: boolean; // 既定 true
-  /** タスクロールごとのモデル割当。resolveTaskModel 参照 */
-  tasks: Record<AiTaskRole, AiTaskModelSetting>;
+export type AiTaskModelSetting = TaskModelV1;
+export interface AiCompanionSettings extends LlmLocalSettings {
+  tasks: Record<AiTaskRole, TaskModelV1>;
+  persona?: string;
+  ttsEnabled: boolean;
+  modelsMigrated: true;
 }
-
 export const AI_SETTINGS_KEY = "tc-travel:aiCompanion";
+const listeners = new Set<() => void>();
+const record = (value: unknown): Record<string, unknown> =>
+  typeof value === "object" && value !== null ? value as Record<string, unknown> : {};
+const refs = (value: unknown): ModelRefV1[] => Array.isArray(value) ? value.filter(isModelRef) : [];
 
-const DEFAULT_SETTINGS: Omit<AiCompanionSettings, "tasks"> = { roomId: "", ttsEnabled: true };
-
-function emptyTaskModelSetting(): AiTaskModelSetting {
-  return { presetId: "" };
+export function loadSharedAiConfig() {
+  const config = loadLlmConfig() ?? emptyLlmConfig();
+  if (migrateSharedLlmConfig(config).changed) saveLlmConfig(config);
+  return config;
 }
 
-function defaultTasks(): Record<AiTaskRole, AiTaskModelSetting> {
-  return { orchestrator: emptyTaskModelSetting(), worker: emptyTaskModelSetting() };
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
-}
-
-function sanitizeTaskModelSetting(value: unknown): AiTaskModelSetting {
-  if (!isRecord(value)) return emptyTaskModelSetting();
-  return {
-    presetId: typeof value.presetId === "string" ? value.presetId : "",
-  };
-}
-
-function sanitizeTasks(value: unknown): Record<AiTaskRole, AiTaskModelSetting> {
-  const record = isRecord(value) ? value : {};
-  return {
-    orchestrator: sanitizeTaskModelSetting(record.orchestrator),
-    worker: sanitizeTaskModelSetting(record.worker),
-  };
-}
-
-/** Merge-never-delete seed: if `roomId` is non-empty and the shared config's
- *  `network.roomId` is still unset, publishes it there so other apps in the
- *  family can discover the same AI Network room. No-op otherwise. Never
- *  throws (loadLlmConfig/saveLlmConfig already swallow storage errors). */
-function seedSharedRoomId(roomId: string): void {
-  const trimmed = roomId.trim();
-  if (!trimmed) return;
-  const shared = loadLlmConfig() ?? emptyLlmConfig();
-  if (shared.network.roomId.trim() !== "") return;
-  shared.network = { roomId: trimmed };
-  saveLlmConfig(shared);
-}
-
-/** Loads settings from localStorage, falling back to defaults for a missing
- *  key, corrupt JSON, or a value with the wrong shape. */
+// Only the legacy load path consumes preset IDs. The marker prevents cleared
+// task/default/voice choices from being restored on subsequent launches.
 export function loadAiSettings(): AiCompanionSettings {
-  try {
-    const raw = localStorage.getItem(AI_SETTINGS_KEY);
-    if (raw) {
-      const parsed: unknown = JSON.parse(raw);
-      if (isRecord(parsed)) {
-        const result: AiCompanionSettings = {
-          roomId: typeof parsed.roomId === "string" ? parsed.roomId : DEFAULT_SETTINGS.roomId,
-          ...(typeof parsed.model === "string" ? { model: parsed.model } : {}),
-          ...(typeof parsed.voice === "string" ? { voice: parsed.voice } : {}),
-          ...(typeof parsed.persona === "string" ? { persona: parsed.persona } : {}),
-          ttsEnabled: typeof parsed.ttsEnabled === "boolean" ? parsed.ttsEnabled : DEFAULT_SETTINGS.ttsEnabled,
-          tasks: sanitizeTasks(parsed.tasks),
-        };
-        seedSharedRoomId(result.roomId);
-        return result;
+  let parsed: Record<string, unknown> = {};
+  try { parsed = record(JSON.parse(localStorage.getItem(AI_SETTINGS_KEY) ?? "{}")); } catch { /* defaults */ }
+  const config = loadSharedAiConfig();
+  const legacy = parsed.modelsMigrated !== true;
+  const taskData = record(parsed.tasks);
+  const tasks = {} as AiCompanionSettings["tasks"];
+  for (const role of ["orchestrator", "worker"] as const) {
+    const task = record(taskData[role]);
+    const preset = legacy ? config.presets.find(p => p.id === task.presetId) : undefined;
+    const ref = isModelRef(task.ref) ? task.ref : preset ? presetIdToRef(config, preset.id) : undefined;
+    const effort = task.reasoningEffort ?? preset?.reasoningEffort;
+    tasks[role] = {
+      ...(ref ? { ref } : {}),
+      reasoningEffort: REASONING_EFFORT_OPTIONS.includes(effort as TaskModelV1["reasoningEffort"])
+        ? effort as TaskModelV1["reasoningEffort"] : "none",
+    };
+  }
+  const roomProvide: LlmLocalSettings["roomProvide"] = {};
+  for (const [id, value] of Object.entries(record(parsed.roomProvide))) {
+    const room = record(value);
+    roomProvide[id] = { enabled: room.enabled === true, shared: refs(room.shared) };
+  }
+  if (legacy) {
+    const localRoomId = typeof parsed.roomId === "string" ? parsed.roomId.trim() : "";
+    const roomId = config.network.roomId.trim() || localRoomId;
+    if (roomId) {
+      const before = config.providers.length;
+      const { id } = createRoomProvider(config, { roomId });
+      const targetRoomId = localRoomId || roomId;
+      const targetProviderId = targetRoomId === roomId ? id : createRoomProvider(config, { roomId: targetRoomId }).id;
+      let changed = before !== config.providers.length;
+      if (!roomProvide[id]) {
+        const oldIds = parsed.networkProviderPresetIds ?? parsed.networkSharedPresetIds;
+        const ids = Array.isArray(oldIds) ? oldIds : [];
+        roomProvide[id] = { enabled: parsed.networkProviderEnabled === true, shared: ids
+          .map(old => typeof old === "string" ? presetIdToRef(config, old) : undefined)
+          .filter((ref): ref is ModelRefV1 => !!ref && config.providers.some(p => p.id === ref.providerId && providerKind(p) === "http")) };
       }
+      // Old free-text room overrides become explicit refs, without replacing
+      // any task preset assignment or the family's existing default.
+      if (typeof parsed.model === "string" && parsed.model.trim()) {
+        for (const role of ["orchestrator", "worker"] as const)
+          if (!tasks[role].ref) tasks[role].ref = { providerId: targetProviderId, model: parsed.model.trim() };
+      }
+      if (!config.tts && typeof parsed.voice === "string" && parsed.voice.trim()) {
+        config.tts = { providerId: targetProviderId, model: "network-auto", voice: parsed.voice.trim() };
+        changed = true;
+      }
+      if (changed) saveLlmConfig(config);
     }
-  } catch {
-    // fall through to defaults
   }
-  return { ...DEFAULT_SETTINGS, tasks: defaultTasks() };
+  const result: AiCompanionSettings = {
+    tasks, roomProvide, recentModels: refs(parsed.recentModels).slice(0, 8),
+    ttsEnabled: typeof parsed.ttsEnabled === "boolean" ? parsed.ttsEnabled : true,
+    ...(typeof parsed.persona === "string" ? { persona: parsed.persona } : {}), modelsMigrated: true,
+  };
+  if (legacy) persist(result);
+  return result;
 }
 
+function persist(settings: AiCompanionSettings): void {
+  try { localStorage.setItem(AI_SETTINGS_KEY, JSON.stringify(settings)); } catch { /* private storage */ }
+}
 export function saveAiSettings(settings: AiCompanionSettings): void {
-  try {
-    localStorage.setItem(AI_SETTINGS_KEY, JSON.stringify(settings));
-  } catch (error) {
-    console.warn("tc-travel: failed to persist aiCompanion settings", error);
-  }
-  seedSharedRoomId(settings.roomId);
+  persist(settings);
+  listeners.forEach(fn => fn());
 }
-
-/** Effective AI Network room: the local override (`settings.roomId`) if set,
- *  else the family-wide shared config's `network.roomId`. Empty string if
- *  neither is set. */
-export function resolveAiRoomId(settings?: AiCompanionSettings): string {
-  const s = settings ?? loadAiSettings();
-  const local = s.roomId.trim();
-  if (local) return local;
-  return loadLlmConfig()?.network.roomId.trim() ?? "";
+export function subscribeAiSettings(cb: () => void): () => void {
+  listeners.add(cb);
+  const onStorage = (event: StorageEvent) => { if (event.key === AI_SETTINGS_KEY || event.key === null) cb(); };
+  if (typeof window !== "undefined") window.addEventListener("storage", onStorage);
+  return () => { listeners.delete(cb); if (typeof window !== "undefined") window.removeEventListener("storage", onStorage); };
 }
-
-/** Whether the feature has enough configuration to attempt a connection
- *  (local roomId or a shared-config fallback room). */
-export function isAiConfigured(settings?: AiCompanionSettings): boolean {
-  return resolveAiRoomId(settings) !== "";
+export const aiLocalAdapter = {
+  get: loadAiSettings,
+  set(next: LlmLocalSettings) { saveAiSettings({ ...loadAiSettings(), ...next, tasks: next.tasks as AiCompanionSettings["tasks"] }); },
+  subscribe: subscribeAiSettings,
+};
+export function resolveTaskTarget(role: AiTaskRole, settings = loadAiSettings()) {
+  const target = resolveModel(loadSharedAiConfig(), settings.tasks[role].ref);
+  return target ? { ...target, reasoningEffort: settings.tasks[role].reasoningEffort } : null;
 }
-
-/** Effective model for a task role, first non-empty of:
- *  1. `settings.tasks[role].presetId` resolved against the family-shared LLM
- *     config (`../drive/llmConfig`'s `loadLlmConfig`/`resolvePreset`) — only
- *     used if the specific preset id actually resolves (not a fallback to
- *     the shared config's own default preset);
- *  2. `settings.model` (legacy free-text override, predates the tasks
- *     feature);
- *  3. the shared config's own `defaultPresetId`, resolved the same way.
- *  Returns `""` (send no `model` field — the network provider then answers
- *  with its own upstream default) when none of the above resolve. Per
- *  tc-docs/drafts/llm-settings-common-v1.md §5.3 checklist item 8, this never
- *  falls back to a hardcoded vendor-specific model name. */
-export function resolveTaskModel(role: AiTaskRole, settings?: AiCompanionSettings): string {
-  const s = settings ?? loadAiSettings();
-  const taskSetting = s.tasks[role];
-  const shared = loadLlmConfig();
-
-  const presetId = taskSetting.presetId.trim();
-  if (presetId && shared) {
-    const resolved = resolvePreset(shared, presetId);
-    if (resolved && resolved.presetId === presetId) return resolved.model;
-  }
-
-  const legacyModel = (s.model ?? "").trim();
-  if (legacyModel) return legacyModel;
-
-  const defaultResolved = shared ? resolvePreset(shared) : null;
-  return defaultResolved?.model ?? "";
+export function isAiConfigured(settings = loadAiSettings()): boolean {
+  return resolveTaskTarget("worker", settings) !== null;
 }

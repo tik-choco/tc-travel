@@ -88,6 +88,28 @@ describe("CollabSession room scoping", () => {
     session = undefined;
   });
 
+  it("does not revive a session left while room readiness is pending", async () => {
+    let ready!: () => void;
+    const pending = new Promise<void>(resolve => { ready = resolve; });
+    const send = vi.fn();
+    const leave = vi.fn();
+    const status = vi.fn();
+    const access: MistNodeAccess = {
+      ensure: async () => ({ joinRoom: () => pending, leaveRoom: leave, sendMessage: send }),
+      currentId: () => "peer-1",
+    };
+    session = new CollabSession(testUser, { onStatusChange: status }, access);
+    const joining = session.join("room-a");
+    await Promise.resolve();
+    session.leave();
+    send.mockClear();
+    ready();
+    await joining;
+    expect(send).not.toHaveBeenCalled();
+    expect(leave).toHaveBeenCalledWith("room-a");
+    expect(status.mock.calls.at(-1)).toEqual(["idle"]);
+  });
+
   it("ignores dispatched events tagged with a different room", async () => {
     const { node, sendMessageCalls } = createFakeNode();
     session = new CollabSession(testUser, {}, createNodeAccess(node, "peer-1"));

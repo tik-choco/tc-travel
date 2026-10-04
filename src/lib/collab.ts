@@ -23,14 +23,14 @@ import * as awarenessProtocol from "y-protocols/awareness";
 import * as encoding from "lib0/encoding";
 import * as decoding from "lib0/decoding";
 import {
-  MistNode,
   EVENT_RAW,
   EVENT_PEER_CONNECTED,
   EVENT_PEER_DISCONNECTED,
   DELIVERY_RELIABLE,
   DELIVERY_UNRELIABLE,
 } from "../vendor/mistlib/wrappers/web/index.js";
-import { ensureMistNode, currentNodeId, addNodeEventHandler } from "./mistNode";
+import { sharedMistNodeScope, currentNodeId, addNodeEventHandler } from "./mistNode";
+import type { MistNodeLike } from "@tik-choco/mistai";
 import { translate } from "./i18n";
 import "./common.i18n"; // registers common.anonymous for standalone importers (tests)
 
@@ -182,12 +182,20 @@ interface AwarenessState {
 // implementation adopts the one shared MistNode (see mistNode.ts). Overridable
 // purely for tests, which simulate multiple independent peers within a single
 // process and so need each simulated peer to have its own fake node.
+type CollabNode = Pick<MistNodeLike, "joinRoom" | "leaveRoom" | "sendMessage">;
 export interface MistNodeAccess {
-  ensure(): Promise<InstanceType<typeof MistNode>>;
+  ensure(): Promise<CollabNode>;
   currentId(): string;
 }
 
-const defaultNodeAccess: MistNodeAccess = { ensure: ensureMistNode, currentId: currentNodeId };
+const defaultNodeAccess: MistNodeAccess = {
+  async ensure() {
+    const handle = sharedMistNodeScope(currentNodeId());
+    await handle.init();
+    return handle;
+  },
+  currentId: currentNodeId,
+};
 
 // One CollabSession per open room. Owns the Y.Doc, awareness instance, and
 // the mistlib node for the room; destroy() tears all of it down cleanly.
@@ -197,7 +205,7 @@ export class CollabSession {
   readonly doc = new Y.Doc();
   readonly awareness = new awarenessProtocol.Awareness(this.doc);
 
-  private node: InstanceType<typeof MistNode> | null = null;
+  private node: CollabNode | null = null;
   private roomId: string | null = null;
   private status: CollabStatus = "idle";
   private disposed = false;
@@ -472,14 +480,10 @@ export class CollabSession {
         }
       });
 
-      // Start the room build BEFORE broadcasting anything room-scoped. joinRoom
-      // only kicks off mistlib's async session build (see isRoomNotJoinedError);
-      // it returns immediately, so setLocalState's awareness broadcast right
-      // below may still land in the build window — that send is now dropped
-      // harmlessly by this.send() rather than throwing. The event handler was
-      // registered above, so no peer-connected that fires during the build is
-      // missed. (Ordered join-then-announce is also just the correct sequence.)
-      node.joinRoom(roomId);
+      // Register events before joining, then wait for the shared handle's
+      // room readiness before announcing. Test transports may join instantly.
+      await node.joinRoom(roomId);
+      if (this.disposed || this.node !== node) return;
 
       this.awareness.setLocalState({
         peerId: nodeId,

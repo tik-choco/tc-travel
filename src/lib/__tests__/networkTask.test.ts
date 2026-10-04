@@ -8,7 +8,7 @@ import {
   type ChatMessage,
 } from "../ai/networkTask";
 
-type RequestOptions = { model?: string; onDelta?: (delta: string, full: string) => void };
+type RequestOptions = { task?: "orchestrator" | "worker"; onDelta?: (delta: string, full: string) => void };
 type Call = { messages: ChatMessage[]; options?: RequestOptions };
 type Responder = (messages: ChatMessage[], options?: RequestOptions) => string | Promise<string>;
 
@@ -56,26 +56,26 @@ function planJson(subtasks: Array<{ title: string; instruction: string }>): stri
 describe("planNetworkTaskFanOut", () => {
   it("parses a clean JSON plan", async () => {
     const client = new ScriptedClient([() => planJson([{ title: "A", instruction: "do a" }])]);
-    const plan = await planNetworkTaskFanOut({ client, model: "orchestrator-model", input: "hi", contextText: "" });
+    const plan = await planNetworkTaskFanOut({ client, input: "hi", contextText: "" });
     expect(plan).toEqual({ subtasks: [{ title: "A", instruction: "do a" }] });
-    expect(client.calls[0]?.options?.model).toBe("orchestrator-model");
+    expect(client.calls[0]?.options?.task).toBe("orchestrator");
   });
 
   it("parses a markdown-code-fenced JSON plan", async () => {
     const raw = "```json\n" + planJson([{ title: "A", instruction: "do a" }]) + "\n```";
     const client = new ScriptedClient([() => raw]);
-    const plan = await planNetworkTaskFanOut({ client, model: "m", input: "hi", contextText: "" });
+    const plan = await planNetworkTaskFanOut({ client, input: "hi", contextText: "" });
     expect(plan).toEqual({ subtasks: [{ title: "A", instruction: "do a" }] });
   });
 
   it("throws on unusable output", async () => {
     const client = new ScriptedClient([() => "not json at all"]);
-    await expect(planNetworkTaskFanOut({ client, model: "m", input: "hi", contextText: "" })).rejects.toThrow();
+    await expect(planNetworkTaskFanOut({ client, input: "hi", contextText: "" })).rejects.toThrow();
   });
 
   it("throws when the plan has no valid subtasks", async () => {
     const client = new ScriptedClient([() => planJson([])]);
-    await expect(planNetworkTaskFanOut({ client, model: "m", input: "hi", contextText: "" })).rejects.toThrow();
+    await expect(planNetworkTaskFanOut({ client, input: "hi", contextText: "" })).rejects.toThrow();
   });
 
   it("drops malformed entries but keeps valid ones", async () => {
@@ -83,14 +83,14 @@ describe("planNetworkTaskFanOut", () => {
       subtasks: [{ title: "A", instruction: "do a" }, { title: 42, instruction: "bad" }, { title: "B" }],
     });
     const client = new ScriptedClient([() => raw]);
-    const plan = await planNetworkTaskFanOut({ client, model: "m", input: "hi", contextText: "" });
+    const plan = await planNetworkTaskFanOut({ client, input: "hi", contextText: "" });
     expect(plan.subtasks).toEqual([{ title: "A", instruction: "do a" }]);
   });
 
   it("caps subtasks at MAX_NETWORK_TASK_WORKERS", async () => {
     const subtasks = Array.from({ length: 6 }, (_, i) => ({ title: `T${i}`, instruction: `do ${i}` }));
     const client = new ScriptedClient([() => planJson(subtasks)]);
-    const plan = await planNetworkTaskFanOut({ client, model: "m", input: "hi", contextText: "" });
+    const plan = await planNetworkTaskFanOut({ client, input: "hi", contextText: "" });
     expect(plan.subtasks).toHaveLength(MAX_NETWORK_TASK_WORKERS);
     expect(plan.subtasks).toEqual(subtasks.slice(0, MAX_NETWORK_TASK_WORKERS));
   });
@@ -101,13 +101,12 @@ describe("runNetworkTaskWorker", () => {
     const client = new ScriptedClient([() => "  the answer  "]);
     const result = await runNetworkTaskWorker({
       client,
-      model: "worker-model",
       subtask: { title: "A", instruction: "do a" },
       input: "original request",
       contextText: "ctx",
     });
     expect(result).toBe("the answer");
-    expect(client.calls[0]?.options?.model).toBe("worker-model");
+    expect(client.calls[0]?.options?.task).toBe("worker");
   });
 });
 
@@ -116,8 +115,6 @@ describe("runNetworkTask", () => {
     const client = new ScriptedClient([() => "not json", () => "fallback answer"]);
     const result = await runNetworkTask({
       client,
-      orchestratorModel: "orchestrator-model",
-      workerModel: "worker-model",
       input: "raw user input",
       contextText: "",
     });
@@ -125,8 +122,8 @@ describe("runNetworkTask", () => {
     expect(result.plan).toBeNull();
     expect(result.text).toBe("fallback answer");
     expect(client.calls).toHaveLength(2);
-    expect(client.calls[0]?.options?.model).toBe("orchestrator-model");
-    expect(client.calls[1]?.options?.model).toBe("worker-model");
+    expect(client.calls[0]?.options?.task).toBe("orchestrator");
+    expect(client.calls[1]?.options?.task).toBe("worker");
     const workerUserMessage = client.calls[1]?.messages.find((m) => m.role === "user");
     expect(workerUserMessage?.content).toContain("raw user input");
   });
@@ -142,8 +139,6 @@ describe("runNetworkTask", () => {
 
     const taskPromise = runNetworkTask({
       client,
-      orchestratorModel: "orchestrator-model",
-      workerModel: "worker-model",
       input: "hi",
       contextText: "",
     });
@@ -164,8 +159,6 @@ describe("runNetworkTask", () => {
     let reported: unknown = null;
     await runNetworkTask({
       client,
-      orchestratorModel: "orchestrator-model",
-      workerModel: "worker-model",
       input: "hi",
       contextText: "",
       onPlan: (plan) => {
@@ -191,8 +184,6 @@ describe("runNetworkTask", () => {
     const merges: string[] = [];
     const result = await runNetworkTask({
       client,
-      orchestratorModel: "orchestrator-model",
-      workerModel: "worker-model",
       input: "hi",
       contextText: "",
       onDelta: (mergedText) => merges.push(mergedText),
@@ -217,8 +208,6 @@ describe("runNetworkTask", () => {
     const merges: string[] = [];
     const result = await runNetworkTask({
       client,
-      orchestratorModel: "orchestrator-model",
-      workerModel: "worker-model",
       input: "hi",
       contextText: "",
       onDelta: (mergedText) => merges.push(mergedText),
@@ -239,8 +228,6 @@ describe("runNetworkTask", () => {
 
     const result = await runNetworkTask({
       client,
-      orchestratorModel: "orchestrator-model",
-      workerModel: "worker-model",
       input: "hi",
       contextText: "",
     });
@@ -262,8 +249,6 @@ describe("runNetworkTask", () => {
     await expect(
       runNetworkTask({
         client,
-        orchestratorModel: "orchestrator-model",
-        workerModel: "worker-model",
         input: "hi",
         contextText: "",
       }),

@@ -114,3 +114,21 @@ export async function speakLines(
     if (next) current = next;
   }
 }
+
+/** Browser voice is the shared settings UI's clear/default choice. */
+export async function speakBrowserLines(lines: string[], language: string, signal: AbortSignal): Promise<void> {
+  if (typeof speechSynthesis === "undefined" || signal.aborted) return;
+  for (const line of lines) {
+    if (signal.aborted) break;
+    await new Promise<void>(resolve => {
+      const utterance = new SpeechSynthesisUtterance(line);
+      utterance.lang = language;
+      const finish = () => { signal.removeEventListener("abort", abort); resolve(); };
+      const abort = () => { speechSynthesis.cancel(); finish(); };
+      utterance.onend = finish;
+      utterance.onerror = finish;
+      signal.addEventListener("abort", abort, { once: true });
+      speechSynthesis.speak(utterance);
+    });
+  }
+}

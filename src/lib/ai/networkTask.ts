@@ -1,18 +1,10 @@
-// AI Network Task: an orchestrator->worker fan-out over the mist P2P AI
-// Network, ported from tc-translate's simultaneousTranslate.ts blueprint.
-// The orchestrator (an expensive model, e.g. claude-fable-5) only produces a
-// small JSON subtask plan; the actual work runs in parallel on cheaper
-// worker models (e.g. claude-sonnet-5), keeping expensive-model token spend
-// to a minimum. Structurally typed against CompanionClient.requestChat
-// rather than importing it, so this module has no dependency on the mist
-// wiring and stays trivially testable with a fake client.
-
+// Task planning and response fan-out; each call selects its own task ref.
 export type ChatMessage = { role: "system" | "user" | "assistant"; content: string };
 
 export interface ChatClient {
   requestChat(
     messages: ChatMessage[],
-    options?: { model?: string; onDelta?: (delta: string, full: string) => void },
+    options?: { task?: "orchestrator" | "worker"; onDelta?: (delta: string, full: string) => void },
   ): Promise<string>;
 }
 
@@ -98,7 +90,6 @@ function buildUserContent(input: string, contextText: string): string {
  *  callers should fall back to a single direct worker call on failure. */
 export async function planNetworkTaskFanOut(params: {
   client: ChatClient;
-  model: string;
   input: string;
   contextText: string;
   signal?: AbortSignal;
@@ -109,7 +100,7 @@ export async function planNetworkTaskFanOut(params: {
         { role: "system", content: ORCHESTRATOR_SYSTEM_PROMPT },
         { role: "user", content: buildUserContent(params.input, params.contextText) },
       ],
-      { model: params.model },
+      { task: "orchestrator" },
     ),
     params.signal,
   );
@@ -121,7 +112,6 @@ export async function planNetworkTaskFanOut(params: {
  *  parallel. */
 export async function runNetworkTaskWorker(params: {
   client: ChatClient;
-  model: string;
   subtask: NetworkSubtask;
   input: string;
   contextText: string;
@@ -142,7 +132,7 @@ export async function runNetworkTaskWorker(params: {
         { role: "user", content: userContent },
       ],
       {
-        model: params.model,
+        task: "worker",
         ...(params.onDelta ? { onDelta: (_delta: string, full: string) => params.onDelta?.(full) } : {}),
       },
     ),
@@ -161,8 +151,6 @@ export async function runNetworkTaskWorker(params: {
  *  every worker fails. */
 export async function runNetworkTask(params: {
   client: ChatClient;
-  orchestratorModel: string;
-  workerModel: string;
   input: string;
   contextText: string;
   onDelta?: (mergedText: string) => void;
@@ -173,7 +161,6 @@ export async function runNetworkTask(params: {
   try {
     plan = await planNetworkTaskFanOut({
       client: params.client,
-      model: params.orchestratorModel,
       input: params.input,
       contextText: params.contextText,
       signal: params.signal,
@@ -194,7 +181,6 @@ export async function runNetworkTask(params: {
       try {
         parts[index] = await runNetworkTaskWorker({
           client: params.client,
-          model: params.workerModel,
           subtask,
           input: params.input,
           contextText: params.contextText,
