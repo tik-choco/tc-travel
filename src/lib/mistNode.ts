@@ -9,6 +9,7 @@
 // shared instance instead. Adapted from tc-note's src/lib/mistNode.ts.
 import { MistNode, storage_get } from "../vendor/mistlib/wrappers/web/index.js";
 import { mistSignalingConfig } from "./drive/mistSignaling";
+import { createSharedNodeScope, type MistNodeLike } from "@tik-choco/mistai";
 
 const NODE_ID_KEY = "tc-travel:nodeId";
 // Family-wide shared pointer (see docs/INTEGRATION.md): a plain CID string
@@ -121,6 +122,22 @@ export async function ensureMistNode(): Promise<InstanceType<typeof MistNode>> {
 export function currentNodeId(): string {
   return getPageNodeId();
 }
+
+// All room owners use this scope so leaving a travel room cannot disconnect
+// AI consumers/providers that happen to use the same room ID. Storage still
+// uses ensureMistNode directly and never acquires a room membership.
+export const sharedMistNodeScope = createSharedNodeScope(() => {
+  let realNode: Awaited<ReturnType<typeof ensureMistNode>>;
+  const facade: MistNodeLike = {
+    async init() { realNode = await ensureMistNode(); },
+    onEvent(handler) { addNodeEventHandler(handler); },
+    joinRoom(room) { realNode.joinRoom(room); },
+    joinRoomAsync(room) { return realNode.joinRoomAsync(room); },
+    leaveRoom(room) { if (room) realNode.leaveRoom(room); },
+    sendMessage(to, payload, delivery, room) { realNode.sendMessage(to, payload, delivery, room); },
+  };
+  return facade;
+});
 
 // Lazily adopts the family-wide DID identity (if another app on this origin
 // has published one) by persisting it as tc-travel's own nodeId for the

@@ -1,5 +1,18 @@
 # AIコンパニオン(VRMキャラとの会話・発話)実装契約
 
+> Phase 2 (2026-10-04): the implementation now uses installed mistai 0.9.0.
+> The older contract below is historical. `AiSettingsPanel` mounts mistai
+> `LlmSettings` with Connections / Tasks / Sharing and the app's two tasks.
+> `aiSettings.ts` migrates shared config and local preset IDs idempotently to
+> model refs, preserving the shared legacy data. Each task stores its own
+> reasoning effort; temperature is never sent. `companionClient.ts` is a thin
+> HTTP/room request adapter. Room chat uses the OpenAI tunnel to retain effort
+> (buffered responses); HTTP chat streams. Shared TTS settings select HTTP or
+> room synthesis, and clearing TTS uses browser speech. `AiRuntime` stays
+> mounted in the shell for referenced rooms and per-room providing, while
+> `sharedMistNodeScope` shares room ownership with travel collaboration.
+> The vendored mistai subset and preset/mirror helpers have been removed.
+
 自分の VRM キャラクターと会話し、返答を音声(TTS)+リップシンクで喋らせる機能。
 LLM/TTS は mistai(shared LLM Network)の provider に mist ルーム経由で依頼する。
 provider 側(tc-mistllm 等が上流 API を代理する)は本アプリのスコープ外。

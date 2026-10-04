@@ -1,13 +1,7 @@
-// Covers the hand-applied provider_hello.voices backport in
-// ../../vendor/mistai/protocol.ts (mistai v0.6.0; see
-// tc-docs/drafts/tts-voice-selection-v1.md §2.1/§3.1 and the vendor header
-// comment in vendor/mistai/index.ts for provenance). The vendored copy has no
-// tests of its own upstream, so this file is tc-travel-local coverage for the
-// decode() contract that companionClient.ts and AiSettingsPanel.tsx rely on.
 import { describe, expect, it } from "vitest";
-import { decode, encode, type ProviderHelloMsg } from "../../vendor/mistai";
+import { decode, encode, type ProviderHelloMsg } from "@tik-choco/mistai";
 
-describe("vendored mistai protocol.ts provider_hello.voices", () => {
+describe("mistai protocol provider_hello.voices", () => {
   it("round-trips a valid voices array", () => {
     const msg: ProviderHelloMsg = { v: 1, type: "provider_hello", voices: ["alloy", "verse"] };
     const decoded = decode(encode(msg));

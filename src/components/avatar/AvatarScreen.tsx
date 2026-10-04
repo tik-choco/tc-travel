@@ -40,7 +40,8 @@ import {
 } from "../../lib/town/characterIndex";
 import { resolveTownVrmBytes } from "../../lib/town/vrmResolve";
 import { townAppUrl } from "../../lib/town/townLink";
-import { loadAiSettings, saveAiSettings } from "../../lib/ai/aiSettings";
+import { loadAiSettings, loadSharedAiConfig, saveAiSettings } from "../../lib/ai/aiSettings";
+import { saveLlmConfig } from "@tik-choco/mistai/llm-config";
 import type { Companion } from "../ar/companion";
 import { createArScene, type ArScene } from "../ar/arScene";
 import { createPlaceholderCompanion } from "../ar/placeholderCompanion";
@@ -48,7 +49,6 @@ import { createVrmCompanion, loadVrmFromBytes } from "../ar/vrmLoader";
 import { attachGestures, rotateStep, zoomStep, type GestureHandle } from "../ar/gestures";
 import { loadVrmBytes, saveVrmBytes, clearVrmBytes } from "../ar/vrmStorage";
 import { isAiConfigured } from "../../lib/ai/aiSettings";
-import { getCompanionClient } from "../../lib/ai/companionClient";
 import { CompanionTalkPanel } from "../ar/CompanionTalkPanel";
 import { ARCameraLazy } from "../ar/ARCameraLazy";
 
@@ -103,15 +103,6 @@ export function AvatarScreen() {
   useEffect(() => {
     return () => {
       if (toastTimerRef.current !== null) window.clearTimeout(toastTimerRef.current);
-    };
-  }, []);
-
-  // The AI companion connection is a page-wide singleton (shared mist node);
-  // it's only torn down when this whole hub unmounts, not when the talk panel
-  // closes or the stage is recreated — see docs/ai-companion.md.
-  useEffect(() => {
-    return () => {
-      getCompanionClient().disconnect();
     };
   }, []);
 
@@ -279,8 +270,12 @@ export function AvatarScreen() {
     saveAiSettings({
       ...current,
       persona: personaPrompt ?? current.persona,
-      voice: entry.voiceName ?? entry.voiceModel ?? current.voice,
     });
+    const config = loadSharedAiConfig();
+    if (config.tts && entry.voiceName) {
+      config.tts = { ...config.tts, voice: entry.voiceName };
+      saveLlmConfig(config);
+    }
     if (!personaPrompt) {
       showToast(t("avatar.townPersonaUnresolved"));
     }

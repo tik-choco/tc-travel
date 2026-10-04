@@ -10,11 +10,12 @@ import "./ar.css";
 import { useEffect, useRef, useState } from "preact/hooks";
 import { CircleStop, Send, X } from "lucide-preact";
 import { getLanguage, useT } from "../../lib/i18n";
-import { loadAiSettings, isAiConfigured, resolveAiRoomId, resolveTaskModel } from "../../lib/ai/aiSettings";
+import { loadAiSettings, isAiConfigured, loadSharedAiConfig } from "../../lib/ai/aiSettings";
 import { getCompanionClient, type CompanionStatus } from "../../lib/ai/companionClient";
 import { runNetworkTask } from "../../lib/ai/networkTask";
-import { splitSpeechLines, speakLines } from "../../lib/ai/speech";
+import { splitSpeechLines, speakLines, speakBrowserLines } from "../../lib/ai/speech";
 import { attachLipSync, type LipSyncHandle } from "../../lib/ai/lipSync";
+import { resolveVoice } from "@tik-choco/mistai/llm-config";
 import type { Companion } from "./companion";
 
 interface CompanionTalkPanelProps {
@@ -75,7 +76,6 @@ export function CompanionTalkPanel({ open, onClose, companionRef }: CompanionTal
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const connectedOnceRef = useRef(false);
   const requestIdRef = useRef(0);
   const abortRef = useRef<AbortController | null>(null);
   const lipSyncRef = useRef<LipSyncHandle | null>(null);
@@ -83,12 +83,10 @@ export function CompanionTalkPanel({ open, onClose, companionRef }: CompanionTal
 
   useEffect(() => client.onStatusChange(setStatus), [client]);
 
-  // Connect the first time the panel is opened; later opens/closes reuse the
-  // same connection (connect() itself is a no-op if already on this room).
+  // The shell keeps referenced rooms joined; opening also starts discovery.
   useEffect(() => {
-    if (!open || connectedOnceRef.current) return;
-    connectedOnceRef.current = true;
-    client.connect(resolveAiRoomId());
+    if (!open) return;
+    client.connect();
   }, [open, client]);
 
   // Auto-scroll to the newest message.
@@ -119,8 +117,6 @@ export function CompanionTalkPanel({ open, onClose, companionRef }: CompanionTal
 
     const settings = loadAiSettings();
     const contextText = buildContextText(settings.persona, messages.slice(-HISTORY_LIMIT));
-    const orchestratorModel = resolveTaskModel("orchestrator", settings);
-    const workerModel = resolveTaskModel("worker", settings);
 
     setInput("");
     setError(null);
@@ -143,8 +139,6 @@ export function CompanionTalkPanel({ open, onClose, companionRef }: CompanionTal
     try {
       const result = await runNetworkTask({
         client,
-        orchestratorModel,
-        workerModel,
         input: text,
         contextText,
         signal: abort.signal,
@@ -158,9 +152,11 @@ export function CompanionTalkPanel({ open, onClose, companionRef }: CompanionTal
 
       if (settings.ttsEnabled && reply.trim()) {
         const lines = splitSpeechLines(reply);
-        await speakLines(
+        if (!resolveVoice(loadSharedAiConfig(), "tts")) {
+          await speakBrowserLines(lines, getLanguage(), abort.signal);
+        } else await speakLines(
           lines,
-          (line) => client.requestTts({ text: line, voice: settings.voice || undefined }),
+          (line) => client.requestTts({ text: line }),
           abort.signal,
           {
             onAudioStart: (audio) => {
