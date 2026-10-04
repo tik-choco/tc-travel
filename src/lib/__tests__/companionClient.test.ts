@@ -3,7 +3,7 @@ import { LLM_CONFIG_KEY } from "@tik-choco/mistai/llm-config";
 import { AI_SETTINGS_KEY } from "../ai/aiSettings";
 import { CompanionClient } from "../ai/companionClient";
 import { aiRooms } from "../ai/rooms";
-vi.mock("../ai/rooms", () => ({ aiRooms: { requestRoomOpenAi: vi.fn(), requestRoomTts: vi.fn() } }));
+vi.mock("../ai/rooms", () => ({ aiRooms: { requestRoomChat: vi.fn(), requestRoomOpenAi: vi.fn(), requestRoomTts: vi.fn() } }));
 
 beforeEach(() => {
   const values = new Map<string, string>();
@@ -33,17 +33,31 @@ describe("task and voice requests", () => {
     expect(bodies.map(b => b.reasoning_effort)).toEqual(["high", "none"]);
     bodies.forEach(body => expect(body).not.toHaveProperty("temperature"));
   });
-  it("routes each task to its own room through mistai's tunnel with reasoning", async () => {
+  it("routes each task to its own room with reasoning and streaming deltas", async () => {
     const local = JSON.parse(localStorage.getItem(AI_SETTINGS_KEY)!);
     local.tasks.orchestrator.ref.providerId = "room1";
     local.tasks.worker.ref.providerId = "room2";
     localStorage.setItem(AI_SETTINGS_KEY, JSON.stringify(local));
-    vi.mocked(aiRooms.requestRoomOpenAi).mockResolvedValue({ status: 200, contentType: "application/json", body: JSON.stringify({ choices: [{ message: { content: "room answer" } }] }) });
+    vi.mocked(aiRooms.requestRoomChat).mockImplementation(async (_room, _messages, options) => {
+      if (typeof options === "object") {
+        options.onDelta?.("room ", "room ");
+        options.onDelta?.("answer", "room answer");
+      }
+      return "room answer";
+    });
     const client = new CompanionClient();
-    await client.requestChat([], { task: "orchestrator" });
-    await client.requestChat([], { task: "worker" });
-    expect(vi.mocked(aiRooms.requestRoomOpenAi).mock.calls.map(call => call[0])).toEqual(["first", "second"]);
-    expect(JSON.parse(vi.mocked(aiRooms.requestRoomOpenAi).mock.calls[0][1].body!)).toMatchObject({ model: "same-id", reasoning_effort: "high" });
+    const messages = [{ role: "user" as const, content: "hi" }];
+    const onDelta = vi.fn();
+    expect(await client.requestChat(messages, { task: "orchestrator" })).toBe("room answer");
+    expect(await client.requestChat(messages, { task: "worker", onDelta })).toBe("room answer");
+    expect(aiRooms.requestRoomChat).toHaveBeenNthCalledWith(1, "first", messages, {
+      model: "same-id", reasoningEffort: "high", onDelta: undefined,
+    });
+    expect(aiRooms.requestRoomChat).toHaveBeenNthCalledWith(2, "second", messages, {
+      model: "same-id", reasoningEffort: "none", onDelta,
+    });
+    expect(onDelta.mock.calls).toEqual([["room ", "room "], ["answer", "room answer"]]);
+    expect(aiRooms.requestRoomOpenAi).not.toHaveBeenCalled();
   });
   it("uses the configured TTS provider and strips the room auto sentinel", async () => {
     const config = JSON.parse(localStorage.getItem(LLM_CONFIG_KEY)!);

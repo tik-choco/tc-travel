@@ -44,17 +44,9 @@ export class CompanionClient {
     const target = resolveTaskTarget(options?.task ?? "worker");
     if (!target) throw new Error("No usable model configured");
     if (providerKind(target) === "room") {
-      // The OpenAI tunnel carries per-task reasoning effort. Its response is
-      // buffered by the provider, while HTTP responses stream normally.
-      const response = await aiRooms.requestRoomOpenAi(roomIdFromBaseUrl(target.baseUrl), {
-        path: "/chat/completions", method: "POST", contentType: "application/json",
-        body: JSON.stringify({ model: target.model, messages, stream: false, reasoning_effort: target.reasoningEffort }),
+      return aiRooms.requestRoomChat(roomIdFromBaseUrl(target.baseUrl), messages, {
+        model: target.model, reasoningEffort: target.reasoningEffort, onDelta: options?.onDelta,
       });
-      if (response.status < 200 || response.status >= 300) throw new Error(`LLM HTTP ${response.status}`);
-      const content = JSON.parse(response.body)?.choices?.[0]?.message?.content;
-      if (typeof content !== "string") throw new Error("Invalid chat response");
-      options?.onDelta?.(content, content);
-      return content;
     }
     let full = "";
     return streamChatCompletion(target, messages, delta => { full += delta; options?.onDelta?.(delta, full); });
