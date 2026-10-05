@@ -1,4 +1,4 @@
-import { streamChatCompletion, type ChatMessage, type ConsumerStatus } from "@tik-choco/mistai";
+import { streamChatCompletion, isTtsSpeed, isTtsResponseFormat, type TtsOptions, type ChatMessage, type ConsumerStatus } from "@tik-choco/mistai";
 import { providerKind, resolveVoice, roomIdFromBaseUrl, networkVoiceModelParam, subscribeLlmConfig } from "@tik-choco/mistai/llm-config";
 import { loadSharedAiConfig, resolveTaskTarget, subscribeAiSettings, type AiTaskRole } from "./aiSettings";
 import { aiRooms } from "./rooms";
@@ -51,16 +51,20 @@ export class CompanionClient {
     let full = "";
     return streamChatCompletion(target, messages, delta => { full += delta; options?.onDelta?.(delta, full); });
   }
-  async requestTts(params: { text: string }): Promise<Blob> {
+  async requestTts(params: { text: string } & TtsOptions): Promise<Blob> {
     const target = resolveVoice(loadSharedAiConfig(), "tts");
     if (!target) throw new Error("No usable TTS model configured");
     if (providerKind(target) === "room") return aiRooms.requestRoomTts(roomIdFromBaseUrl(target.baseUrl), {
       text: params.text, model: networkVoiceModelParam(target.model), voice: target.voice,
+      ...(params.speed !== undefined ? { speed: params.speed } : {}),
+      ...(params.responseFormat !== undefined ? { responseFormat: params.responseFormat } : {}),
     });
+    const speed = params.speed ?? target.speed;
     const response = await fetch(`${target.baseUrl.replace(/\/+$/, "")}/audio/speech`, {
       method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${target.apiKey}` },
       body: JSON.stringify({ model: target.model, input: params.text, voice: target.voice,
-        ...(target.speed !== undefined ? { speed: target.speed } : {}) }),
+        ...(isTtsSpeed(speed) ? { speed } : {}),
+        ...(isTtsResponseFormat(params.responseFormat) ? { response_format: params.responseFormat } : {}) }),
     });
     if (!response.ok) throw new Error(`TTS HTTP ${response.status}`);
     return response.blob();
