@@ -1,7 +1,7 @@
 import "@tik-choco/mistai/ui.css";
 import "./settingsAi.css";
 import { useEffect, useState } from "preact/hooks";
-import { LlmSettings, type LlmSettingsLocale } from "@tik-choco/mistai/preact";
+import { LlmSettings, Switch, type LlmSettingsLocale } from "@tik-choco/mistai/preact";
 import { getLanguage, useT } from "../../lib/i18n";
 import { aiLocalAdapter, loadAiSettings, saveAiSettings, subscribeAiSettings } from "../../lib/ai/aiSettings";
 import { setAiSettingsOpen } from "./AiRuntime";
@@ -28,11 +28,11 @@ export function AiSettingsPanel() {
           <textarea id="settings-ai-persona" class="input" rows={3} value={settings.persona ?? ""}
             onInput={e => saveAiSettings({ ...loadAiSettings(), persona: e.currentTarget.value })} />
         </div>
-        <label class="settings-row">
-          <input type="checkbox" checked={settings.ttsEnabled}
-            onChange={e => saveAiSettings({ ...loadAiSettings(), ttsEnabled: e.currentTarget.checked })} />
+        <div class="provider-card-heading">
+          <Switch checked={settings.ttsEnabled} label={messages.ttsEnabled}
+            onChange={next => saveAiSettings({ ...loadAiSettings(), ttsEnabled: next })} />
           <span>{messages.ttsEnabled}</span>
-        </label>
+        </div>
       </>} />
   </div>;
 }

@@ -21,6 +21,29 @@ beforeEach(() => {
 });
 afterEach(() => { vi.unstubAllGlobals(); vi.clearAllMocks(); });
 describe("task and voice requests", () => {
+  it("uses shared HTTP TTS speed, caller hints and the actual response MIME", async () => {
+    const config = JSON.parse(localStorage.getItem(LLM_CONFIG_KEY)!);
+    config.tts = { providerId: "a", model: "speech", voice: "saved", speed: 1.5 };
+    localStorage.setItem(LLM_CONFIG_KEY, JSON.stringify(config));
+    const fetchMock = vi.fn(async (_url: string, _init?: RequestInit) => new Response("audio", { headers: { "Content-Type": "audio/ogg" } }));
+    vi.stubGlobal("fetch", fetchMock);
+    const client = new CompanionClient();
+    expect((await client.requestTts({ text: "hello" })).type).toBe("audio/ogg");
+    await client.requestTts({ text: "hello", speed: 0.75, responseFormat: "wav" });
+    await client.requestTts({ text: "hello", speed: 5, responseFormat: "unknown" });
+    const bodies = fetchMock.mock.calls.map(call => JSON.parse(call[1]!.body as string));
+    expect(bodies[0].speed).toBe(1.5); expect(bodies[0]).not.toHaveProperty("response_format");
+    expect(bodies[1]).toMatchObject({ speed: 0.75, response_format: "wav" });
+    expect(bodies[2]).not.toHaveProperty("speed"); expect(bodies[2]).not.toHaveProperty("response_format");
+  });
+  it("forwards explicit room TTS hints without replacing the response MIME", async () => {
+    const config = JSON.parse(localStorage.getItem(LLM_CONFIG_KEY)!);
+    config.tts = { providerId: "room2", model: "network-auto", speed: 1.5 };
+    localStorage.setItem(LLM_CONFIG_KEY, JSON.stringify(config));
+    vi.mocked(aiRooms.requestRoomTts).mockResolvedValue(new Blob(["audio"], { type: "audio/ogg" }));
+    expect((await new CompanionClient().requestTts({ text: "hello", speed: 0.75, responseFormat: "wav" })).type).toBe("audio/ogg");
+    expect(aiRooms.requestRoomTts).toHaveBeenCalledWith("second", { text: "hello", model: undefined, voice: undefined, speed: 0.75, responseFormat: "wav" });
+  });
   it("routes identical model IDs to the selected provider, passes per-task effort and omits temperature", async () => {
     const fetchMock = vi.fn(async (_url: string, _init?: RequestInit) => new Response(JSON.stringify({ choices: [{ message: { content: "answer" } }] }), { headers: { "Content-Type": "application/json" } }));
     vi.stubGlobal("fetch", fetchMock);
