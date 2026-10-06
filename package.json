@@ -19,7 +19,7 @@
   "dependencies": {
     "@pixiv/three-vrm": "^3.4.2",
     "@tik-choco/mistai": "github:tik-choco-lab/mistai",
-    "@tik-choco/mistlib": "0.6.0",
+    "@tik-choco/mistlib": "0.6.4",
     "jsqr": "^1.4.0",
     "lib0": "^0.2.117",
     "lucide-preact": "^1.14.0",
