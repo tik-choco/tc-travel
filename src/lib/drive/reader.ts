@@ -54,10 +54,9 @@ function isDriveIndexEntry(value: unknown): value is DriveIndexEntry {
   );
 }
 
-// The storage_add'd payload (see tc-storage's useDriveIndexPublishEffect.ts)
-// is `{version, updatedAt, files: DriveIndexEntry[]}` — the same shape as the
-// inline `meta` object, just JSON'd as a whole. Some builds may instead
-// storage_add a bare `DriveIndexEntry[]`. Accept either.
+// After decrypting the current CID envelope, the index is
+// `{version, updatedAt, files: DriveIndexEntry[]}`. Legacy plaintext CIDs
+// may contain that same wrapper or a bare `DriveIndexEntry[]`. Accept either.
 export function extractDriveIndexList(parsed: unknown): unknown[] | null {
   if (Array.isArray(parsed)) return parsed;
   if (parsed && typeof parsed === "object" && Array.isArray((parsed as { files?: unknown }).files)) {
@@ -66,17 +65,10 @@ export function extractDriveIndexList(parsed: unknown): unknown[] | null {
   return null;
 }
 
-// Defensive: a wrong version, malformed shape, or absent index all yield an
-// empty list rather than throwing — this is untrusted cross-app input.
-//
-// Dual-read (see docs/INTEGRATION.md, drive-index contract): older
-// tc-storage builds still inline the full `files` array in `meta`; newer
-// ones publish only a small `{count, updatedAt}` meta and content-address
-// the index via `record.cid` (storage_add), which we resolve with
-// storage_get. The storage_add'd payload may be the wrapped
-// `{version, updatedAt, files}` object or a bare array — see
-// extractDriveIndexList(). Either shape is accepted; nothing here requires
-// the write side to have migrated yet.
+// Missing, malformed, or undecryptable cross-app input yields an empty list.
+// Read legacy inline metadata first; otherwise resolve the CID and decrypt
+// marked encrypted envelopes with the key from same-origin metadata only.
+// Legacy plaintext wrapped and bare-array CIDs remain readable.
 async function readDriveIndex(): Promise<DriveIndexEntry[]> {
   const record = readShared(DRIVE_INDEX_TOPIC);
   if (!record) return [];
@@ -85,11 +77,17 @@ async function readDriveIndex(): Promise<DriveIndexEntry[]> {
     return meta.files.filter(isDriveIndexEntry);
   }
   if (!record.cid) return [];
+  const encrypted = record.meta?.format === "tc-storage/drive-index/encrypted/1";
+  const indexKey = record.meta?.indexKey;
+  if (encrypted && (typeof indexKey !== "string" || !indexKey.trim())) return [];
   try {
     await ensureMistNode();
     const raw = await storage_get(record.cid);
     const text = new TextDecoder().decode(new Uint8Array(raw));
-    const parsed: unknown = JSON.parse(text);
+    let parsed: unknown = JSON.parse(text);
+    if (encrypted) {
+      parsed = await decryptJson<unknown>(parsed as Parameters<typeof decryptJson>[0], indexKey as string);
+    }
     const list = extractDriveIndexList(parsed);
     if (!list) return [];
     return list.filter(isDriveIndexEntry);

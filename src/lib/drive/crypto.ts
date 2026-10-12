@@ -2,11 +2,12 @@
 // protocol/docs/data-contracts/docs/encrypted-bundle.md and
 // docs/INTEGRATION.md). Output format must stay byte-compatible with any
 // app implementing that contract: AES-GCM 256, PBKDF2-SHA256 with 210000
-// iterations, 16-byte salt, 12-byte iv, base64-encoded fields.
+// iterations, 16-byte salt, 12-byte iv, base64-encoded fields. Reads also
+// accept HKDF-SHA256 with iterations=0 and empty info (current drive bundles).
 export type AesGcmPayload = {
   version: 1;
   algorithm: "AES-GCM";
-  kdf: "PBKDF2-SHA256";
+  kdf: "PBKDF2-SHA256" | "HKDF-SHA256";
   iterations: number;
   salt: string;
   iv: string;
@@ -95,7 +96,7 @@ async function decryptAesGcm(payload: AesGcmPayload, passphrase: string): Promis
   const salt = base64ToBytes(payload.salt);
   const iv = base64ToBytes(payload.iv);
   const cipherText = base64ToBytes(payload.cipherText);
-  const key = await deriveWebCryptoKey(passphrase, salt, payload.iterations);
+  const key = await deriveWebCryptoKey(passphrase, salt, payload.iterations, payload.kdf);
   const decrypted = await subtleCrypto().decrypt({ name: "AES-GCM", iv: toArrayBuffer(iv) }, key, toArrayBuffer(cipherText));
   return new Uint8Array(decrypted);
 }
@@ -108,9 +109,16 @@ function validateAesGcmPayload(payload: unknown): asserts payload is AesGcmPaylo
   }
   if (value.version !== 1) throw new Error("tc-travel: unsupported encrypted payload format");
   if (value.algorithm !== "AES-GCM") throw new Error("tc-travel: unsupported encrypted payload format");
-  if (value.kdf !== "PBKDF2-SHA256") throw new Error("tc-travel: unsupported encrypted payload format");
+  if (value.kdf !== "PBKDF2-SHA256" && value.kdf !== "HKDF-SHA256") throw new Error("tc-travel: unsupported encrypted payload format");
   const iterations = value.iterations;
-  if (typeof iterations !== "number" || !Number.isInteger(iterations) || iterations < minWebCryptoIterations || iterations > maxWebCryptoIterations) {
+  if (typeof iterations !== "number" || !Number.isInteger(iterations)) {
+    throw new Error("tc-travel: invalid encryption parameters");
+  }
+  if (value.kdf === "PBKDF2-SHA256") {
+    if (iterations < minWebCryptoIterations || iterations > maxWebCryptoIterations) {
+      throw new Error("tc-travel: invalid encryption parameters");
+    }
+  } else if (iterations !== 0) {
     throw new Error("tc-travel: invalid encryption parameters");
   }
 
@@ -122,8 +130,15 @@ function validateAesGcmPayload(payload: unknown): asserts payload is AesGcmPaylo
   }
 }
 
-async function deriveWebCryptoKey(passphrase: string, salt: Uint8Array, iterationCount = webCryptoIterations): Promise<CryptoKey> {
+async function deriveWebCryptoKey(passphrase: string, salt: Uint8Array, iterationCount = webCryptoIterations, kdf: AesGcmPayload["kdf"] = "PBKDF2-SHA256"): Promise<CryptoKey> {
   const passphraseBytes = encoder.encode(passphrase);
+  if (kdf === "HKDF-SHA256") {
+    const baseKey = await subtleCrypto().importKey("raw", toArrayBuffer(passphraseBytes), "HKDF", false, ["deriveKey"]);
+    return subtleCrypto().deriveKey(
+      { name: "HKDF", hash: "SHA-256", salt: toArrayBuffer(salt), info: new Uint8Array(0) },
+      baseKey, { name: "AES-GCM", length: 256 }, false, ["encrypt", "decrypt"],
+    );
+  }
   const baseKey = await subtleCrypto().importKey("raw", toArrayBuffer(passphraseBytes), "PBKDF2", false, ["deriveKey"]);
   return subtleCrypto().deriveKey(
     { name: "PBKDF2", salt: toArrayBuffer(salt), iterations: iterationCount, hash: "SHA-256" },
