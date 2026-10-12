@@ -34,8 +34,13 @@ OPFS (`mistlib-blocks`) が共有される。vendored mistlib-wasm はファミ�
 ドライブ内ファイルの索引。これにより他アプリはドライブアプリの内部キー
 (スナップショット・フォルダ鍵)を**一切読まずに**ファイルへアクセスできる。
 
-- `cid`: `""` (索引は meta にインライン。ocr-markdown-index と同じ前例)
-- `meta`: `{ version: 1, updatedAt, files: DriveIndexEntry[] }`
+- `cid`: 暗号化索引の mist CID。CID に保存するのは AES-GCM エンベロープのみ。
+- `meta`: `{ format: "tc-storage/drive-index/encrypted/1", indexKey, count, updatedAt }`。
+  `indexKey` は発行ごとに生成するランダムな32バイトの base64 鍵で、同一オリジンの
+  共有メタデータにのみ保持する。CID ストレージやネットワークメッセージには絶対に含めない。
+- 復号後の索引: `{ version: 1, updatedAt, files: DriveIndexEntry[] }`。
+  CID を storage_get → エンベロープ JSON を解釈 → meta.indexKey で認証付き復号
+  → 復号済み JSON を解釈 → files を検証・抽出する (decrypt-before-parse)。
   ```ts
   interface DriveIndexEntry {
     id: string;
@@ -49,20 +54,29 @@ OPFS (`mistlib-blocks`) が共有される。vendored mistlib-wasm はファミ�
   ```
 - 掲載対象: 削除されておらず、lastCid と解決可能な復号鍵を両方持つファイルのみ。
 - 発行タイミング: スナップショット/フォルダ鍵の変化時 (debounce 可) + 起動時。
-- 鍵の露出はドライブアプリ自身の鍵保存 (同一オリジン localStorage 平文) と
-  同一の信頼境界であり、リスクの新規追加はない。
+- `passphrase` は暗号化索引の内部にのみ格納する。公開 CID から平文のファイル鍵を
+  取得できないようにし、索引鍵は同一オリジン localStorage の信頼境界内に留める。
+- 後方互換: 旧 inline meta (`version: 1` / `files`) を優先して読む。
+  暗号化 format のない CID は旧平文 `{version, updatedAt, files}` または裸配列として読む。
+  暗号化 format がある場合は必ず復号し、鍵の欠落・不一致・不正なデータは空配列を返す。
+  復号失敗から平文読取へはフォールバックしない。
 
 ## tc-travel 側実装 (`src/lib/drive/`)
 
-旧 `src/lib/tcstorage/` を改名。crypto.ts / types.ts / sharedBus.ts は内容そのまま
-(バンドル形式は中立契約になった)。
+旧 `src/lib/tcstorage/` を改名 (バンドル形式は中立契約)。
+`crypto.ts` の読取は AES-GCM 256 / PBKDF2-SHA256 と HKDF-SHA256 に対応する。
+PBKDF2 の iterations は整数の100000〜1000000 (両端含む)、HKDF は整数の0のみ。
+HKDF は UTF-8 の鍵文字列、記録された salt、SHA-256、空の info で導出する。
+両形式とも salt は16バイト、iv は12バイト、cipherText は空でない base64 データ。
+暗号化出力は従来の PBKDF2-SHA256 / 210000 iterations を維持する。
 
 - `export.ts`: `FOLDER_EXPORT_TOPIC = "folder-export"`。
   `exportPhotoToDrive(input)` / `isPhotoExported(photoId)`。
   状態キーは `tc-travel:driveExport` (旧 `tc-travel:tcStorageExport` からの
   読み取り移行必須: 新キーが無ければ旧キーを読み、次回 save で新キーに書いて
   旧キーを削除。既存ユーザーのフォルダ分裂防止)。
-- `reader.ts`: **全面書き換え** — `readShared("drive-index")` だけを読む。
+- `reader.ts`: `readShared("drive-index")` だけを読み、暗号化 CID は
+  同一オリジンの meta.indexKey で復号してから索引を抽出する。
   `listDriveFiles({extensions?}): DriveFileEntry[]`
   (`{ entry: DriveIndexEntry }` 相当。索引不在→空配列) と
   `loadDriveFileBytes(entry): Promise<Uint8Array>`
@@ -85,7 +99,9 @@ OPFS (`mistlib-blocks`) が共有される。vendored mistlib-wasm はファミ�
 - `useTravelImportEffect.ts` → `useFolderImportEffect.ts` (同配線)。
 - **新規** `useDriveIndexPublishEffect` (または同等): snapshot / folderKeys の
   変化を購読し (既存の persistSnapshot effect と同じ場所)、掲載対象ファイルの
-  DriveIndexEntry[] を構築して `publishShared("drive-index", "", meta)`。
+  v1 索引を構築して暗号化し、暗号化エンベロープだけを storage_add する。
+  `publishShared("drive-index", encryptedCid, {format, indexKey, count, updatedAt})`
+  で同一オリジンへ通知する。索引鍵・ファイル鍵は CID やネットワーク送信に含めない。
   1秒程度の debounce 可。パスは folderPath 利用。鍵解決は
   nearestSharedAncestorFolder と同じ規則 (自フォルダ鍵→祖先鍵)。
 - 旧 `travel-export` トピックの購読は削除 (公開直後でユーザー実データなしのため
