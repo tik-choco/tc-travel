@@ -15,7 +15,7 @@ import { useEffect, useState } from "preact/hooks";
 import type { AlbumPhoto, DiaryEntry, EncounterPin, Photo } from "./types";
 import { getProfile, useJourney } from "./personal";
 import { ensureMistNode } from "./mistNode";
-import { storage_get } from "../vendor/mistlib/wrappers/web/index.js";
+import { storage_get } from "@tik-choco/mistlib-web";
 import {
   addDiaryEntry,
   addPhoto,

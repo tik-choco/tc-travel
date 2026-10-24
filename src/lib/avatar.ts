@@ -7,7 +7,7 @@
 // photos — the same member's avatarCid can change repeatedly over a session.
 import { useEffect, useState } from "preact/hooks";
 import { ensureMistNode } from "./mistNode";
-import { storage_get } from "../vendor/mistlib/wrappers/web/index.js";
+import { storage_get } from "@tik-choco/mistlib-web";
 import { updateProfile, useProfile } from "./personal";
 import { setMemberAvatarBytes, clearMemberAvatarCid } from "./store";
 import type { Member } from "./types";

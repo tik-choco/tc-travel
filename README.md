@@ -18,12 +18,13 @@ a travel journal, and gradually lift the fog from a fantasy world map with every
 ## Setup
 
 ```bash
-cp .env.example .env   # set MISTLIB_REPO / MISTLIB_REF
+cp .env.example .env   # optional local engine / family chat settings
 npm install
-npm run dev            # predev fetches mistlib and builds the wasm into src/vendor
+npm run dev
 ```
 
-Requirements: Node.js, plus Rust and wasm-pack (to build mistlib).
+Requirements: Node.js. The engine (`@tik-choco/mistlib`) and wrapper
+(`@tik-choco/mistlib-web`) come from npm; no Rust toolchain is needed.
 
 ```bash
 npm run build   # tsc -b && vite build
@@ -34,7 +35,7 @@ npm test        # vitest (pure-function tests: gamification / geo / qr)
 
 See [docs/DESIGN.md](docs/DESIGN.md) for the full design. Highlights:
 
-- **P2P**: mistlib (Rust→wasm, vendored at `src/vendor/mistlib`) is a raw byte pipe; y-protocols
+- **P2P**: mistlib (Rust→wasm, via npm `@tik-choco/mistlib-web`) is a raw byte pipe; y-protocols
   sync/awareness are multiplexed over it with a 1-byte prefix (`src/lib/collab.ts`, following
   the tc-note pattern). The MistNode is a per-page singleton (`src/lib/mistNode.ts`).
 - **Data**: one Y.Doc per room (meta / members / photos / diary / pins). Photo bytes live in

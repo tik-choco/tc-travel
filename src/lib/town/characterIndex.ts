@@ -4,7 +4,7 @@
 // pattern (../drive/reader.ts): this app never trusts the record — every
 // field is coerced and invalid entries are dropped rather than throwing.
 import { ensureMistNode } from "../mistNode";
-import { storage_get } from "../../vendor/mistlib/wrappers/web/index.js";
+import { storage_get } from "@tik-choco/mistlib-web";
 import { readShared, subscribeShared } from "../drive/sharedBus";
 
 const CHARACTER_INDEX_TOPIC = "character-index";

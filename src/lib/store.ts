@@ -12,7 +12,7 @@
 // of members/photos/entries/pins).
 import { useEffect, useState } from "preact/hooks";
 import * as Y from "yjs";
-import { storage_add, storage_get } from "../vendor/mistlib/wrappers/web/index.js";
+import { storage_add, storage_get } from "@tik-choco/mistlib-web";
 import { ensureMistNode } from "./mistNode";
 import { CollabSession, isValidRoomId, type PeerInfo, type CompanionPose } from "./collab";
 export type { CompanionPose };

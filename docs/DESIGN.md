@@ -5,7 +5,7 @@ recording real-world meetups: take AR group photos with VRM avatars, share them 
 keep a travel diary, and fill in a fog-of-war world map with the places and people you've met.
 
 Target: mobile-first (PC also works). Global audience → i18n is mandatory.
-Stack: Vite + Preact + TypeScript, mistlib (Rust wasm, vendored) for P2P, yjs for CRDT sync.
+Stack: Vite + Preact + TypeScript, mistlib (Rust wasm, npm @tik-choco/mistlib-web wrapper) for P2P, yjs for CRDT sync.
 
 ## Core retention loop (game design)
 
@@ -116,8 +116,8 @@ src/
 
 ## mistlib integration (patterns confirmed from tc-note/tc-chat)
 
-- Vendored at `src/vendor/mistlib/{pkg/, wrappers/web/}` (already built). Import from
-  `../vendor/mistlib/wrappers/web/index.js`. No vite wasm plugin needed.
+- The engine comes from npm `@tik-choco/mistlib`; import its JS wrapper from
+  `@tik-choco/mistlib-web`. No vite wasm plugin needed.
 - **Singleton constraint:** exactly ONE `MistNode` per page. Copy tc-note's
   `src/lib/mistNode.ts` lazy-singleton (`ensureMistNode()`, nodeId = `crypto.randomUUID()`
   persisted in localStorage). All subsystems funnel through it. `leaveRoom()` decommissions
@@ -138,7 +138,7 @@ src/
   - `../tc-note/src/lib/mistNode.ts` (singleton)
   - `../tc-note/src/lib/collab.ts` (yjs bridge — adapt, don't invent)
   - `../tc-note/src/lib/mistlib.ts` (storage usage)
-  - `src/vendor/mistlib/wrappers/web/index.d.ts` (API surface)
+  - `node_modules/@tik-choco/mistlib-web/index.d.ts` (API surface)
   - `../tc-vrm-viewer/src/viewer/vrmLoader.ts` (VRM loading)
   - `../tc-home/src/components/QRPanel.tsx` (QR render)
 

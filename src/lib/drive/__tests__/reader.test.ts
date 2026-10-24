@@ -5,11 +5,11 @@ import type { SharedRecord } from "../sharedBus";
 import { encryptFixture } from "./encryptedFixture";
 
 vi.mock("../../mistNode", () => ({ ensureMistNode: vi.fn(async () => {}) }));
-vi.mock("../../../vendor/mistlib/wrappers/web/index.js", () => ({ storage_get: vi.fn() }));
+vi.mock("@tik-choco/mistlib-web", () => ({ storage_get: vi.fn() }));
 vi.mock("../sharedBus", () => ({ readShared: vi.fn() }));
 
 import { ensureMistNode } from "../../mistNode";
-import { storage_get } from "../../../vendor/mistlib/wrappers/web/index.js";
+import { storage_get } from "@tik-choco/mistlib-web";
 import { readShared } from "../sharedBus";
 
 describe("extractDriveIndexList", () => {

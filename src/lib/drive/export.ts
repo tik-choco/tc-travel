@@ -4,7 +4,7 @@
 // them up via its own CRDT merge. See docs/INTEGRATION.md — tc-travel must
 // never touch a drive app's own workspace state directly, only publish
 // through the shared bus.
-import { storage_add } from "../../vendor/mistlib/wrappers/web/index.js";
+import { storage_add } from "@tik-choco/mistlib-web";
 import { currentNodeId, ensureMistNode } from "../mistNode";
 import { bytesToBase64, encryptJson, generateFolderKey, sha256Hex } from "./crypto";
 import { publishShared } from "./sharedBus";

@@ -4,7 +4,7 @@
 // of its loadable files, and this module only resolves file bytes from that
 // index for features like VRM import (see ARCameraScreen.tsx).
 import { ensureMistNode } from "../mistNode";
-import { storage_get } from "../../vendor/mistlib/wrappers/web/index.js";
+import { storage_get } from "@tik-choco/mistlib-web";
 import { decryptJson } from "./crypto";
 import { readShared } from "./sharedBus";
 import type { FileBundle } from "./types";

@@ -28,7 +28,7 @@ import {
   EVENT_PEER_DISCONNECTED,
   DELIVERY_RELIABLE,
   DELIVERY_UNRELIABLE,
-} from "../vendor/mistlib/wrappers/web/index.js";
+} from "@tik-choco/mistlib-web";
 import { sharedMistNodeScope, currentNodeId, addNodeEventHandler } from "./mistNode";
 import type { MistNodeLike } from "@tik-choco/mistai";
 import { translate } from "./i18n";

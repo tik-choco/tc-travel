@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { addNodeEventHandler, dispatchNodeEvent } from "../mistNode";
 import { CollabSession, type CollabUser, type MistNodeAccess } from "../collab";
-import { MistNode, EVENT_PEER_CONNECTED } from "../../vendor/mistlib/wrappers/web/index.js";
+import { MistNode, EVENT_PEER_CONNECTED } from "@tik-choco/mistlib-web";
 
 // dispatchNodeEvent is mistNode.ts's fan-out core (see its @internal comment):
 // exercising it directly lets these tests cover the dispatcher without

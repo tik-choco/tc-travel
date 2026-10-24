@@ -7,7 +7,7 @@
 // per page; call leaveRoom() before initializing another node." Both photo
 // storage (store.ts) and collab rooms (collab.ts) must go through this one
 // shared instance instead. Adapted from tc-note's src/lib/mistNode.ts.
-import { MistNode, storage_get } from "../vendor/mistlib/wrappers/web/index.js";
+import { MistNode, storage_get } from "@tik-choco/mistlib-web";
 import { mistSignalingConfig } from "./drive/mistSignaling";
 import { createSharedNodeScope, type MistNodeLike } from "@tik-choco/mistai";
 
@@ -84,9 +84,9 @@ export function dispatchNodeEvent(eventType: number, fromId: string, payload: un
 // form) still fully decommissions it — this guard re-initializes on the
 // next call if that ever happens.
 export async function ensureMistNode(): Promise<InstanceType<typeof MistNode>> {
-  // `initialized` is a real runtime property the vendor JS wrapper sets
+  // `initialized` is a real runtime property @tik-choco/mistlib-web sets
   // (flipped back to false by leaveRoom()) but it isn't part of the
-  // vendored .d.ts's public surface — hence the cast rather than a type
+  // package .d.ts's public surface — hence the cast rather than a type
   // error, since that .d.ts is regenerated upstream and not ours to extend.
   if (node && (node as unknown as { initialized: boolean }).initialized) return node;
   if (!initPromise) {
@@ -104,7 +104,7 @@ export async function ensureMistNode(): Promise<InstanceType<typeof MistNode>> {
     // `.finally()` returns a NEW derived promise that also rejects when the
     // init IIFE does; it's only used here to clear `initPromise` and nothing
     // else holds a reference to it, so without a no-op `.catch` a failed
-    // init (e.g. this vendored mistlib-wasm's fetch() in a non-browser test
+    // init (e.g. the npm mistlib-wasm's fetch() in a non-browser test
     // environment) surfaces as an unhandled rejection even though callers
     // that `await ensureMistNode()` on the original promise (returned
     // below) already handle the failure themselves.

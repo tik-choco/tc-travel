@@ -12,7 +12,7 @@ import type { Companion } from "./companion";
 import { createPlaceholderCompanion } from "./placeholderCompanion";
 import { createVrmCompanion, loadVrmFromBytes } from "./vrmLoader";
 import { ensureMistNode } from "../../lib/mistNode";
-import { storage_get } from "../../vendor/mistlib/wrappers/web/index.js";
+import { storage_get } from "@tik-choco/mistlib-web";
 import type { CompanionPose } from "../../lib/store";
 
 const POSITION_FOLLOW = 12;

@@ -3,7 +3,7 @@ import * as encoding from "lib0/encoding";
 import * as decoding from "lib0/decoding";
 import { dispatchNodeEvent } from "../mistNode";
 import { CollabSession, MSG_POSE, type CollabUser, type CompanionPose, type MistNodeAccess } from "../collab";
-import { MistNode, EVENT_RAW, DELIVERY_UNRELIABLE } from "../../vendor/mistlib/wrappers/web/index.js";
+import { MistNode, EVENT_RAW, DELIVERY_UNRELIABLE } from "@tik-choco/mistlib-web";
 
 // Same fake-node pattern as mistDispatch.test.ts: CollabSession's MistNodeAccess
 // test seam lets these tests exercise the real handleRawMessage/sendPose code

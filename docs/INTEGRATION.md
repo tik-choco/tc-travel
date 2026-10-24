@@ -10,8 +10,9 @@ tc-travel は tik-choco アプリファミリーの同一オリジン連携規�
 - コード・UI 文言にも相手アプリ名を入れない(UI は「ドライブ」のような機能名)。
 
 前提: 本番は同一オリジンの別サブパス配信で localStorage / BroadcastChannel /
-OPFS (`mistlib-blocks`) が共有される。vendored mistlib-wasm はファミリー全アプリで
-同一ビルドを保つ (現行 commit `e9ae5a4…`)。
+OPFS (`mistlib-blocks`) が共有される。エンジンは npm `@tik-choco/mistlib`、
+JS ラッパーは npm `@tik-choco/mistlib-web` を使い、ファミリー全アプリで
+同一のエンジンビルドを保つ。
 
 ## トピック契約
 

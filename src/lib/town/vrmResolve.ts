@@ -8,7 +8,7 @@
 //   2. mistlib storage_get(vrmCid) — cross-device fallback.
 // Returns null if neither resolves; never throws.
 import { ensureMistNode } from "../mistNode";
-import { storage_get } from "../../vendor/mistlib/wrappers/web/index.js";
+import { storage_get } from "@tik-choco/mistlib-web";
 import type { CharacterIndexEntry } from "./characterIndex";
 
 const DB_NAME = "tc-vrm-viewer";
