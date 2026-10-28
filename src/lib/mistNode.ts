@@ -4,7 +4,7 @@
 // wasm side wires up its content store as part of node startup). Two
 // independent `new MistNode(...).init()` calls race for that single slot;
 // whichever inits second throws "mistlib-wasm supports one active MistNode
-// per page; call leaveRoom() before initializing another node." Both photo
+// per page; call leaveAllRooms() before initializing another node." Both photo
 // storage (store.ts) and collab rooms (collab.ts) must go through this one
 // shared instance instead. Adapted from tc-note's src/lib/mistNode.ts.
 import { MistNode, storage_get } from "@tik-choco/mistlib-web";
@@ -80,12 +80,11 @@ export function dispatchNodeEvent(eventType: number, fromId: string, payload: un
 // slot at that point — `_onEvent` is instance state, so this wiring lives
 // on for the node's whole lifetime, surviving any later re-init. collab.ts
 // now leaves rooms via a room-scoped leaveRoom(roomId), which keeps the
-// node initialized, but an unscoped leaveRoom() (the "leave everything"
-// form) still fully decommissions it — this guard re-initializes on the
-// next call if that ever happens.
+// node initialized, but leaveAllRooms() fully decommissions it — this guard
+// re-initializes on the next call if that ever happens.
 export async function ensureMistNode(): Promise<InstanceType<typeof MistNode>> {
   // `initialized` is a real runtime property @tik-choco/mistlib-web sets
-  // (flipped back to false by leaveRoom()) but it isn't part of the
+  // (flipped back to false by leaveAllRooms()) but it isn't part of the
   // package .d.ts's public surface — hence the cast rather than a type
   // error, since that .d.ts is regenerated upstream and not ours to extend.
   if (node && (node as unknown as { initialized: boolean }).initialized) return node;

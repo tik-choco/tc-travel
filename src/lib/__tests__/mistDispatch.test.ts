@@ -1,12 +1,22 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import * as Y from "yjs";
+import * as awarenessProtocol from "y-protocols/awareness";
 import { addNodeEventHandler, dispatchNodeEvent } from "../mistNode";
 import { CollabSession, type CollabUser, type MistNodeAccess } from "../collab";
-import { MistNode, EVENT_PEER_CONNECTED } from "@tik-choco/mistlib-web";
+import {
+  MistNode, EVENT_AOI_ENTERED, EVENT_AOI_LEFT,
+  EVENT_PEER_CONNECTED, EVENT_PEER_DISCONNECTED,
+} from "@tik-choco/mistlib-web";
 
 // dispatchNodeEvent is mistNode.ts's fan-out core (see its @internal comment):
 // exercising it directly lets these tests cover the dispatcher without
 // spinning up a real (wasm) MistNode via ensureMistNode.
 describe("node event dispatcher", () => {
+  it("uses the peer event codes emitted by mistlib 0.7.1", () => {
+    expect(EVENT_PEER_CONNECTED).toBe(2);
+    expect(EVENT_PEER_DISCONNECTED).toBe(3);
+  });
+
   it("delivers an event to every registered handler", () => {
     const calls1: unknown[][] = [];
     const calls2: unknown[][] = [];
@@ -127,11 +137,39 @@ describe("CollabSession room scoping", () => {
     await session.join("room-a");
     const before = sendMessageCalls.length;
 
-    dispatchNodeEvent(EVENT_PEER_CONNECTED, "peerB", undefined, "room-a");
+    dispatchNodeEvent(EVENT_AOI_ENTERED, "peerB", new TextEncoder().encode("entered"), "room-a");
+    expect(sendMessageCalls.length).toBe(before);
+
+    dispatchNodeEvent(EVENT_PEER_CONNECTED, "peerB", new TextEncoder().encode("joined"), "room-a");
 
     const newCalls = sendMessageCalls.slice(before);
     expect(newCalls.length).toBeGreaterThan(0);
     expect(newCalls.every((c) => c.toId === "peerB" && c.roomId === "room-a")).toBe(true);
+  });
+
+  it("removes peer awareness on disconnect, but not on an AOI exit", async () => {
+    const { node } = createFakeNode();
+    session = new CollabSession(testUser, {}, createNodeAccess(node, "peer-1"));
+    await session.join("room-a");
+
+    const remoteDoc = new Y.Doc();
+    const remoteAwareness = new awarenessProtocol.Awareness(remoteDoc);
+    try {
+      remoteAwareness.setLocalState({ peerId: "peerB", name: "Bob" });
+      const update = awarenessProtocol.encodeAwarenessUpdate(remoteAwareness, [remoteDoc.clientID]);
+      awarenessProtocol.applyAwarenessUpdate(session.awareness, update, "remote");
+      expect(session.awareness.getStates().has(remoteDoc.clientID)).toBe(true);
+
+      const payload = new TextEncoder().encode("left");
+      dispatchNodeEvent(EVENT_AOI_LEFT, "peerB", payload, "room-a");
+      expect(session.awareness.getStates().has(remoteDoc.clientID)).toBe(true);
+
+      dispatchNodeEvent(EVENT_PEER_DISCONNECTED, "peerB", payload, "room-a");
+      expect(session.awareness.getStates().has(remoteDoc.clientID)).toBe(false);
+    } finally {
+      remoteAwareness.destroy();
+      remoteDoc.destroy();
+    }
   });
 
   it("processes dispatched events with no room attached, for backward compatibility", async () => {

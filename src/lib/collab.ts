@@ -30,7 +30,7 @@ import {
   DELIVERY_UNRELIABLE,
 } from "@tik-choco/mistlib-web";
 import { sharedMistNodeScope, currentNodeId, addNodeEventHandler } from "./mistNode";
-import type { MistNodeLike } from "@tik-choco/mistai";
+import type { MistDelivery, MistNodeLike } from "@tik-choco/mistai";
 import { translate } from "./i18n";
 import "./common.i18n"; // registers common.anonymous for standalone importers (tests)
 
@@ -331,7 +331,7 @@ export class CollabSession {
    *  async-join build window (see isRoomNotJoinedError) is swallowed as a
    *  dropped best-effort broadcast instead of bubbling up as an uncaught
    *  rejection out of join()/transact()/an awareness change. */
-  private send(toId: string | null, payload: Uint8Array, delivery: number): void {
+  private send(toId: string | null, payload: Uint8Array, delivery: MistDelivery): void {
     if (!this.node) return;
     try {
       this.node.sendMessage(toId, payload, delivery, this.roomId ?? undefined);
